@@ -31,6 +31,11 @@
   }
 
   // ---- Tap handling on a container ----------------------------------------------------------
+  let touching = false;
+  const fingerUp = () => { touching = false; };
+  window.addEventListener('pointerup', fingerUp, true);
+  window.addEventListener('pointercancel', fingerUp, true);
+
   function attachTaps(el, handle) {
     let down = null;
     const finish = (x, y) => {
@@ -41,6 +46,8 @@
       else if (d.bare) handle('__backdrop');
     };
     el.addEventListener('pointerdown', (e) => {
+      // While a finger is down nothing on screen is redrawn: a button replaced under a finger loses its tap.
+      touching = true;
       const t = e.target.closest('[data-act]');
       down = t ? { act: t.dataset.act, x: e.clientX, y: e.clientY } : { act: null, x: e.clientX, y: e.clientY, bare: e.target === el };
     });
@@ -67,7 +74,7 @@
       attachTaps($('hud'), (act) => this.runBar(act));
       attachTaps($('actionbar'), (act) => this.runBar(act));
       attachTaps($('bottomnav'), (act) => this.runBar(act));
-      setInterval(() => { if (this.panelRoute && this.panelDef().live) this.renderPanel(); }, 1000);
+      setInterval(() => { if (!touching && this.panelRoute && this.panelDef().live) this.renderPanel(); }, 1000);
     },
 
     setBarsVisible(on) {
@@ -168,7 +175,7 @@
 
     refresh() {
       const app = PE.App;
-      if ($('hud').hidden) return;
+      if ($('hud').hidden || touching) return;
       const g = app.g, st = g.state;
       const need = g.progress.xpToNext(st.player.level);
       const pct = Math.min(100, (Money.toNumber(st.player.xp) / need) * 100);
@@ -191,10 +198,12 @@
       let bar = '';
       if (inRoom && !Dom.panelRoute) {
         const ready = g.grow.readyCount(fid);
-        if (g.progress.hasFeature('harvestAll') && ready > 0) bar += `<button class="btn harvest" data-act="harvestAll">Harvest All (${ready})</button>`;
+        let canHarvestAll = false, canReplant = false;
+        g.grow.eachStation((f, si, s) => { if (f !== fid) return; if (g.grow.hasStationFeature(s, 'harvestAll')) canHarvestAll = true; if (g.grow.hasStationFeature(s, 'preset')) canReplant = true; });
+        if (canHarvestAll && ready > 0) bar += `<button class="btn harvest" data-act="harvestAll">Harvest All (${ready})</button>`;
         let empties = 0;
         g.grow.eachStation((f, si, s) => { if (f === fid) s.pots.forEach((p, pi) => { if (!p && s.lastStrains[pi]) empties++; }); });
-        if (g.progress.hasFeature('preset') && empties > 0) bar += `<button class="btn replant" data-act="replantAll">Replant All (${empties})</button>`;
+        if (canReplant && empties > 0) bar += `<button class="btn replant" data-act="replantAll">Replant All (${empties})</button>`;
         if (g.facilities.canBuyStation(fid)) bar += `<button class="btn buy" data-act="buyStation">+ Station ${money(g.facilities.nextStationCost(fid))}</button>`;
       }
       this.set('actionbar', bar);

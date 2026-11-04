@@ -121,3 +121,11 @@ ul.plain li { padding: 3px 0; }
 .toast.big { background: linear-gradient(135deg, #5a3a8c, #a01a6f); border-color: var(--gold); font-size: 16px; }
 @keyframes pop { from { transform: scale(.85); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { padding: 8px 10px; border-radius: 12px; background: #ffffff18 !important; font-size: 13px !important; min-height: 38px; }
+.chip.on { background: var(--lime) !important; color: #123 !important; font-weight: 800; }
+.next { color: var(--lime) !important; }
+.stages { display: flex; justify-content: space-between; }
+.rewards li.got { color: var(--lime); }
+.model-1 { color: #8fd63a; } .model-2 { color: #b98af0; } .model-3 { color: #2fc6e8; } .model-4 { color: #f2a02e; } .model-5 { color: #ff7ac6; }
