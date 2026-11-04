@@ -5,9 +5,24 @@
 //
 // Saves hold plain facts only (ids, numbers, UTC times), never anything from Phaser.
 (function (PE) {
-  const CURRENT_VERSION = 2;
+  const CURRENT_VERSION = 3;
+
+  function newStation(nowMs) {
+    return {
+      model: 1,
+      levels: { lights: 1, sprinkler: 1, pots: 1, computer: 1, capacity: 1 },
+      pots: [null, null],     // each pot: null, or { s: strain id, plantedAtUtc, plantedMs, readyMs, q: quality }
+      lastStrains: [],
+      auto: { harvest: false, replant: false },
+      queue: [],
+      queueIndex: 0,
+      lastServiceMs: nowMs,
+      harvests: 0,
+    };
+  }
 
   function createNewState(nowUtc, balanceVersion) {
+    const nowMs = Date.parse(nowUtc);
     return {
       createdAtUtc: nowUtc,
       lastSeenUtc: nowUtc,
@@ -17,8 +32,14 @@
         cash: '0', researchTokens: '0', empireShares: '0',
         collectionTokens: '0', festivalTickets: '0', rainbowGems: '0',
       },
-      player: { level: 1, xp: '0' },
-      facilities: { F01: { unlocked: true, renovation: 0, stations: {} } },
+      player: { level: 1, xp: '0', talentPoints: 1, talents: {}, pendingChoices: [], titles: [] },
+      time: { offsetMs: 0, highWaterMs: nowMs, lastActiveMs: nowMs, rollbacks: 0 },
+      rng: { seed: nowUtc, counter: 0 },
+      stats: { harvests: 0, lifetimeCash: '0', offlineClaims: 0, bestGrade: {}, lastHarvestDay: null },
+      unlockedStrains: { 'STR-001': true },
+      pendingOffline: null,
+      settings: { reducedMotion: false },
+      facilities: { F01: { unlocked: true, renovation: 0, localXp: 0, stations: { 0: newStation(nowMs), 1: newStation(nowMs) } } },
       mastery: {},
       managers: { owned: {}, assigned: {} },
       collections: {},
@@ -48,6 +69,23 @@
       if (old.garageStrainId) fresh.ui.garageStrainId = old.garageStrainId;
       return fresh;
     },
+    // Version 3 (overnight job 1, Stage 1): adds growing, game time, dice, stats. Only fills in what
+    // is missing, because a version 1 save arrives here already in the newest layout.
+    2(old) {
+      const s = old;
+      const nowMs = Date.parse(s.lastSeenUtc);
+      s.player = { talentPoints: 1, talents: {}, pendingChoices: [], titles: [], ...s.player };
+      s.time = s.time || { offsetMs: 0, highWaterMs: nowMs, lastActiveMs: nowMs, rollbacks: 0 };
+      s.rng = s.rng || { seed: s.createdAtUtc, counter: 0 };
+      s.stats = s.stats || { harvests: 0, lifetimeCash: s.currencies.cash, offlineClaims: 0, bestGrade: {}, lastHarvestDay: null };
+      s.unlockedStrains = s.unlockedStrains || { 'STR-001': true };
+      s.pendingOffline = s.pendingOffline || null;
+      s.settings = s.settings || { reducedMotion: false };
+      const f = s.facilities.F01;
+      f.localXp = f.localXp || 0;
+      if (!Object.keys(f.stations || {}).length) f.stations = { 0: newStation(nowMs), 1: newStation(nowMs) };
+      return s;
+    },
   };
 
   // The minimum a save must have to be usable. Returns a list of what's wrong (empty = fine).
@@ -58,8 +96,9 @@
     if (!state.currencies || typeof state.currencies.cash !== 'string') problems.push('currencies missing');
     if (!state.facilities || !state.facilities.F01) problems.push('garage missing');
     if (!Array.isArray(state.appliedTransactionIds)) problems.push('transaction list missing');
+    if (!state.time || !Number.isFinite(state.time.lastActiveMs)) problems.push('game time missing');
     return problems;
   }
 
-  PE.SaveSchema = { CURRENT_VERSION, MIGRATIONS, createNewState, checkState };
+  PE.SaveSchema = { CURRENT_VERSION, MIGRATIONS, createNewState, newStation, checkState };
 })(globalThis.PE = globalThis.PE || {});

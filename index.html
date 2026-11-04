@@ -16,6 +16,14 @@
 <body>
   <div id="safe-probe" aria-hidden="true"></div>
   <div id="game"></div>
+  <div id="ui">
+    <div id="hud" hidden></div>
+    <div id="actionbar" hidden></div>
+    <nav id="bottomnav" hidden></nav>
+    <div id="panel" hidden></div>
+    <div id="modal" hidden></div>
+    <div id="toasts"></div>
+  </div>
   <pre id="fatal" hidden></pre>
 
   <script src="vendor/phaser.min.js"></script>
@@ -28,7 +36,8 @@
   <script src="data/rivals.js"></script>
   <script src="data/vips.js"></script>
   <script src="data/helpers.js"></script>
-  <script src="data/balance.v1.js"></script>
+  <script src="data/ladder.js"></script>
+  <script src="data/balance.v2.js"></script>
   <script src="data/asset_registry.js"></script>
 
   <!-- Rules: no Phaser in these, they can be tested on their own -->
@@ -37,10 +46,24 @@
   <script src="js/logic/save.js"></script>
   <script src="js/logic/router.js"></script>
   <script src="js/logic/data_check.js"></script>
+  <script src="js/logic/money.js"></script>
+  <script src="js/logic/rng.js"></script>
+  <script src="js/logic/layout.js"></script>
+  <script src="js/logic/game.js"></script>
+  <script src="js/logic/effects.js"></script>
+  <script src="js/logic/progress.js"></script>
+  <script src="js/logic/grow.js"></script>
+  <script src="js/logic/facilities.js"></script>
+  <script src="js/logic/offline.js"></script>
+  <script src="js/logic/goals.js"></script>
 
   <!-- Drawing: Phaser only shows what the rules say -->
   <script src="js/ui/screen.js"></script>
+  <script src="js/ui/dom.js"></script>
+  <script src="js/ui/quality_fx.js"></script>
   <script src="js/ui/screens.js"></script>
+  <script src="js/ui/grow_room.js"></script>
+  <script src="js/ui/panels_grow.js"></script>
   <script src="js/ui/app.js"></script>
 </body>
 </html>

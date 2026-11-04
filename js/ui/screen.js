@@ -1,5 +1,5 @@
-// Shared drawing helpers for all screens: the screen size, the phone's safe areas, buttons,
-// and cutting a strain sheet into its six stage pictures.
+// Shared drawing helpers: the screen size, the phone's safe areas, buttons on the canvas, and
+// cutting a strain sheet into its six stage pictures.
 (function (PE) {
   // Read the phone's safe areas (notch, rounded corners) from the CSS helper box in index.html.
   function readSafeInsets() {
@@ -46,14 +46,17 @@
   // its art is still downloading (a quick tap on a slow connection).
   const waiting = new Map();
 
-  // Get a strain sheet ready, then call onReady, even if the art failed to load (the screen then
-  // draws a plain placeholder). onReady is skipped if the screen has since been left or redrawn.
-  function loadSheet(scene, strainId, onReady) {
-    const key = 'sheet-' + strainId;
-    scene.sheetRequest = (scene.sheetRequest || 0) + 1;
-    const request = scene.sheetRequest;
-    const finish = () => { if (scene.sheetRequest === request && scene.sys.isActive()) onReady(); };
+  // The game draws half-size copies of the strain sheets (assets/strains_s). A full sheet would
+  // take about 6 MB of graphics memory; a room full of different strains would run a mid-range
+  // phone out of memory. See tools/make_small_strains.js.
+  const SHEET_SCALE = 0.5;
+  const sheetUrl = (id) => `assets/strains_s/${id}.webp`;
 
+  // Get a strain sheet ready, then call onReady, even if the art failed to load (the caller checks
+  // and draws a plain placeholder). onReady is skipped if the screen has since been left.
+  function loadStrain(scene, strainId, onReady) {
+    const key = 'sheet-' + strainId;
+    const finish = () => { if (scene.sys.settings.status < Phaser.Scenes.SHUTDOWN) onReady(); };
     if (scene.textures.exists(key)) { onReady(); return; }
     if (waiting.has(strainId)) { waiting.get(strainId).push(finish); return; }
     waiting.set(strainId, [finish]);
@@ -66,15 +69,15 @@
     const img = new Image();
     img.onload = () => { addFrames(scene.textures, key, strainId, img); done(); };
     img.onerror = () => { console.warn('Art failed to load: ' + strainId); done(); };
-    img.src = `assets/strains/${strainId}.webp`;
+    img.src = sheetUrl(strainId);
   }
 
   function addFrames(textures, key, strainId, img) {
     const tex = textures.addImage(key, img);
     PE.Data.strainFrames.sheets[strainId].frames.forEach((f, i) => {
-      tex.add('stage' + i, 0, f.x, f.y, f.w, f.h);
+      tex.add('stage' + i, 0, f.x * SHEET_SCALE, f.y * SHEET_SCALE, f.w * SHEET_SCALE, f.h * SHEET_SCALE);
     });
   }
 
-  PE.UI = { layout, addButton, loadSheet };
+  PE.UI = { layout, addButton, loadStrain, sheetUrl, SHEET_SCALE };
 })(globalThis.PE = globalThis.PE || {});
