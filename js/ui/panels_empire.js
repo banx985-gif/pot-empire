@@ -1,0 +1,309 @@
+// Empire map, facility expansion, retail, factory, depot, research, contracts.
+(function (PE) {
+  const { esc, money, duration } = PE.Dom;
+  const { Money } = PE;
+  const g = () => PE.App.g;
+  const params = () => PE.App.router.current().params;
+  const toast = (t) => PE.Dom.toast(t);
+  const why = (r, fallback) => {
+    const text = { cash: 'Not enough cash yet', level: 'Your level is too low', progress: 'Needs more local progress', tokens: 'Not enough tokens', crop: 'Not enough crop stock yet: keep harvesting', stock: 'Not enough stock for that', vehicleBusy: 'That vehicle is out on a route', lab: 'Buy the Research Lab first', busy: 'That one is busy' };
+    toast(text[r.why] || fallback || 'Not available yet');
+  };
+  const worth = (v) => money(Math.floor(v));
+  const MODE_ICON = { Grow: '🌱', Retail: '🛍️', Factory: '🏭', Research: '🔬', Logistics: '🚚', Prestige: '🏛️' };
+
+  // ---- Empire map (UI02, UI03) -----------------------------------------------------------------------
+  PE.Panels.empire = {
+    title: 'Empire map',
+    render() {
+      const game = g();
+      const F = game.facilities;
+      let html = '';
+      for (const d of F.districts) {
+        html += `<h4>${esc(d.name)}</h4>`;
+        html += d.facilities.map((fid) => {
+          const row = F.row(fid);
+          const own = F.isOwned(fid);
+          const open = F.isAvailable(fid);
+          const cost = F.econ(fid).cost;
+          let right = '';
+          if (own) right = '<span class="tag go">Go</span>';
+          else if (open) right = `<button class="btn small ${game.canAfford('cash', cost) ? 'buy' : 'plain'}" data-act="buy:${fid}">Buy ${money(cost)}</button>`;
+          else right = `<span class="tag">Level ${row.playerLevel}</span>`;
+          const count = row.stations ? (own ? `${F.ownedStationCount(fid)}/${row.stations} ${row.mode === 'Grow' ? 'stations' : 'slots'}` : `${row.stations} ${row.mode === 'Grow' ? 'stations' : 'slots'}`) : row.mode;
+          return `<div class="item ${own ? '' : 'locked'}" ${own ? `data-act="go:${fid}"` : ''}><span class="fac-ico">${MODE_ICON[row.mode]}</span>
+            <div class="grow"><b>${esc(row.name)}</b><small>${esc(row.mode)} · ${count}</small>
+            ${own ? `<div class="bar thin"><i style="width:${(F.localProgress(fid) * 100).toFixed(0)}%"></i></div>` : ''}</div>${right}</div>`;
+        }).join('');
+      }
+      return html;
+    },
+    actions: {
+      go(fid) { PE.App.goToRoom(fid); },
+      buy(fid) {
+        const r = g().facilities.buy(fid);
+        if (!r.ok) why(r); else PE.App.saveGame();
+      },
+    },
+  };
+
+  function expansionBlock(fid) {
+    const game = g();
+    const F = game.facilities;
+    const row = F.row(fid);
+    const mark = F.nextStationMark(fid);
+    let out = `<p class="muted">Local progress ${(F.localProgress(fid) * 100).toFixed(0)}%</p><div class="bar thin"><i style="width:${(F.localProgress(fid) * 100).toFixed(0)}%"></i></div>`;
+    if (row.stations && mark !== null) {
+      const ok = F.canBuyStation(fid);
+      out += `<button class="btn wide ${ok && game.canAfford('cash', F.nextStationCost(fid)) ? 'buy' : 'plain'}" data-act="slot">${ok ? `Add a slot: ${money(F.nextStationCost(fid))}` : `Next slot at ${(mark * 100).toFixed(0)}% local progress`}</button>`;
+    }
+    const reno = F.renovationInfo(fid);
+    if (reno) {
+      out += `<button class="btn wide ${reno.ready && game.canAfford('cash', reno.cost) ? 'buy' : 'plain'}" data-act="renovate">${reno.ready ? `Renovation ${reno.index + 1}: ${money(reno.cost)} (+${Math.round(reno.bonus * 100)}% value here)` : `Renovation ${reno.index + 1} at ${Math.round(reno.at * 100)}% local progress`}</button>`;
+    } else out += '<p class="muted">All renovations done.</p>';
+    return out;
+  }
+  const expansionActions = {
+    slot() { const r = g().facilities.buyStation(params().fid); if (!r.ok) why(r); },
+    renovate() { const r = g().facilities.renovate(params().fid); if (!r.ok) why(r); },
+  };
+  PE.Panels.facilityInfo = {
+    title: ({ fid }) => g().facilities.row(fid).name,
+    sheet: true,
+    render: ({ fid }) => expansionBlock(fid),
+    actions: expansionActions,
+  };
+
+  const levelsBlock = (fid, i, s, labels) => {
+    const game = g();
+    return Object.entries(labels).map(([k, label]) => {
+      const lvl = s.levels[k];
+      const max = lvl >= game.B.businessEconomy.maxUpgradeLevel;
+      const c = max ? 0 : game.business.upgradeCost(fid, k, lvl);
+      return `<button class="btn small ${!max && game.canAfford('cash', c) ? 'buy' : 'plain'}" data-act="lvl:${i}:${k}">${label} L${lvl}${max ? ' MAX' : ` ${money(c)}`}</button>`;
+    }).join('');
+  };
+
+  // ---- Business rooms ----------------------------------------------------------------------------------
+  function retailBody(fid) {
+    const game = g();
+    const b = game.business;
+    const shelves = b.slots(fid).map((s, i) => {
+      if (!s.sku) return `<div class="item" data-act="pick:${i}"><div class="grow"><b>Shelf ${i + 1}</b><small>Empty. Tap to stock it.</small></div><span class="tag go">Stock</span></div>`;
+      const rate = b.shelfRatePerMinute(fid, s);
+      const have = game.stock.getStock(s.sku);
+      return `<div class="shelf"><div class="item" data-act="pick:${i}"><div class="grow"><b>Shelf ${i + 1}: ${esc(game.stock.skuName(s.sku))}</b>
+        <small>Stock worth ${worth(have)} · sells ${(rate * 100).toFixed(1)}% a minute at x${b.shelfMarkup(fid, s).toFixed(2)}</small></div><span class="tag">Change</span></div>
+        <div class="row-btns">${levelsBlock(fid, i, s, { speed: 'Speed', capacity: 'Capacity', value: 'Value' })}</div></div>`;
+    }).join('');
+    return `<p class="muted">Customers buy by themselves. Harvests add crop stock; factories add products. Demand shifts every few hours.</p>${shelves}${expansionBlock(fid)}${bizAssign(fid)}`;
+  }
+
+  function factoryBody(fid) {
+    const game = g();
+    const b = game.business;
+    const now = game.now();
+    const lines = b.slots(fid).map((l, i) => {
+      if (l.job) {
+        const ready = now >= l.job.endMs;
+        const t = Math.min(1, (now - l.job.startMs) / (l.job.endMs - l.job.startMs));
+        return `<div class="shelf"><div class="item"><div class="grow"><b>Line ${i + 1}: ${esc(game.stock.skuName(l.sku))}</b>
+          <small>${ready ? `Done: ${worth(l.job.output)} of product` : `${duration((l.job.endMs - now) / 1000)} left, makes ${worth(l.job.output)}`}</small>
+          <div class="bar thin"><i style="width:${(t * 100).toFixed(0)}%"></i></div></div>
+          ${ready ? `<button class="btn small go" data-act="claim:${i}">Claim</button>` : ''}</div>
+          <div class="row-btns">${levelsBlock(fid, i, l, { speed: 'Speed', batch: 'Batch', value: 'Value' })}</div></div>`;
+      }
+      return `<div class="shelf"><div class="item" data-act="pick:${i}"><div class="grow"><b>Line ${i + 1}</b><small>Idle${l.sku ? `, last made ${esc(game.stock.skuName(l.sku))}` : ''}. Tap to choose a product.</small></div><span class="tag go">Start</span></div>
+        <div class="row-btns">${levelsBlock(fid, i, l, { speed: 'Speed', batch: 'Batch', value: 'Value' })}</div></div>`;
+    }).join('');
+    return `<p><b>Crop stock: ${worth(game.state.stock.crop)}</b></p>
+      <button class="btn wide plain" data-act="catalogue">Product catalogue</button>
+      ${lines}${expansionBlock(fid)}${bizAssign(fid)}`;
+  }
+
+  function depotBody(fid) {
+    const game = g();
+    const b = game.business;
+    const now = game.now();
+    b.ensureOffers();
+    const owned = game.data.collectibles.vehicles.filter((v) => game.state.collections.owned[v.id]);
+    const routes = b.slots(fid).map((r, i) => {
+      if (r.job) {
+        const ready = now >= r.job.endMs;
+        const t = Math.min(1, (now - r.job.startMs) / (r.job.endMs - r.job.startMs));
+        return `<div class="item"><div class="grow"><b>Route ${i + 1}: ${esc(r.job.offer.name)}</b>
+          <small>${esc(game.collections.item(r.vehicle).name)} · pays ${worth(r.job.reward)}${ready ? '' : ` · ${duration((r.job.endMs - now) / 1000)} left`}</small>
+          <div class="bar thin"><i style="width:${(t * 100).toFixed(0)}%"></i></div></div>
+          ${ready ? `<button class="btn small go" data-act="claim:${i}">Claim</button>` : `<button class="btn small plain" data-act="cancel:${i}">Cancel</button>`}</div>`;
+      }
+      const auto = game.research.hasFlag('deliveryAuto') ? `<button class="btn small ${r.auto ? 'go' : 'plain'}" data-act="auto:${i}:${r.auto ? 0 : 1}">Auto ${r.auto ? 'on' : 'off'}</button>` : '';
+      return `<div class="item"><div class="grow"><b>Route ${i + 1}</b><small>${r.vehicle ? esc(game.collections.item(r.vehicle).name) : 'No vehicle'}. Idle.</small></div>${auto}
+        <button class="btn small buy" data-act="dispatch:${i}">Dispatch</button></div>`;
+    }).join('');
+    return `<p class="muted">${owned.length} vehicles owned. ${game.state.depot.offers.length} contracts on offer.</p>${routes}${expansionBlock(fid)}${bizAssign(fid)}`;
+  }
+
+  function researchBody() {
+    const game = g();
+    const R = game.research;
+    const rows = R.branches().map((b) => {
+      const rank = R.rankOf(b.id);
+      const c = R.cost(b.id);
+      const dots = Array.from({ length: game.B.research.ranks }, (_, i) => `<span class="dot ${i < rank ? 'on' : ''}"></span>`).join('');
+      return `<div class="item"><div class="grow"><b>${esc(b.id)}</b> ${dots}<small>${esc(b.text)}</small></div>
+        ${c ? `<button class="btn small ${game.canAfford('researchTokens', c.tokens) && game.canAfford('cash', c.cash) ? 'buy' : 'plain'}" data-act="research:${b.id}">${c.tokens} tokens<br>${money(c.cash)}</button>` : '<span class="tag go">MAX</span>'}</div>`;
+    }).join('');
+    return `<p><b>Research Tokens: ${Money.format(game.state.currencies.researchTokens)}</b></p><p class="muted">Permanent. Tokens come from chests${game.meta ? ', daily tasks and achievements' : ''}.</p>${rows}${bizAssign('F06')}`;
+  }
+
+  // A manager row for a business, filled in by Stage 4's collection screens.
+  function bizAssign(fid) {
+    const game = g();
+    const at = game.collections.managersAt(fid);
+    const names = at.map((id) => game.collections.item(id).name).join(', ');
+    return `<h4>Manager</h4><div class="item" data-act="managers"><div class="grow"><b>${names ? esc(names) : 'None assigned'}</b><small>${at.length}/${game.collections.managerSlots(fid)} slots</small></div><span class="tag">Open</span></div>`;
+  }
+
+  PE.Panels.business = {
+    title: ({ fid }) => g().facilities.row(fid).name,
+    live: true,
+    render({ fid }) {
+      const mode = g().facilities.row(fid).mode;
+      if (mode === 'Retail') return retailBody(fid);
+      if (mode === 'Factory') return factoryBody(fid);
+      if (mode === 'Logistics') return depotBody(fid);
+      if (mode === 'Research') return researchBody();
+      return PE.Panels.hqBody ? PE.Panels.hqBody() : '<p class="center muted">Empire Headquarters: arrives with regional prestige.</p>';
+    },
+    actions: {
+      ...expansionActions,
+      lvl(i, what) { const r = g().business.upgradeSlot(params().fid, Number(i), what); if (!r.ok && r.why !== 'max') why(r); },
+      pick(i) {
+        const fid = params().fid;
+        PE.App.router.go('skuPicker', { fid, i: Number(i), mode: g().facilities.row(fid).mode });
+      },
+      claim(i) {
+        const fid = params().fid;
+        const mode = g().facilities.row(fid).mode;
+        const r = mode === 'Factory' ? g().business.claimLine(fid, Number(i)) : g().business.claimRoute(fid, Number(i));
+        if (r.ok && r.cash) toast(`Delivered: +${worth(r.cash)}`);
+        PE.App.saveGame();
+      },
+      cancel(i) {
+        const fid = params().fid;
+        PE.Dom.confirm('Cancel this delivery?', '<p>The vehicle turns back. All the stock is returned and nothing is paid.</p>', 'Cancel delivery', () => g().business.cancelRoute(fid, Number(i)), { noLabel: 'Keep going' });
+      },
+      auto(i, on) { g().business.setRouteAuto(params().fid, Number(i), on === '1'); },
+      dispatch(i) { PE.App.router.go('contractPicker', { fid: params().fid, i: Number(i) }); },
+      catalogue() { PE.App.router.go('catalogue'); },
+      research(id) { const r = g().research.buy(id); if (!r.ok && r.why !== 'max') why(r); else if (r.ok) PE.App.saveGame(); },
+      managers() { PE.App.router.go('managerBinder', { target: params().fid }); },
+    },
+  };
+
+  // Shelf or line: choose what it handles.
+  PE.Panels.skuPicker = {
+    title: ({ mode }) => (mode === 'Retail' ? 'Stock this shelf' : 'Choose a product'),
+    sheet: true,
+    render({ fid, i, mode }) {
+      const game = g();
+      const open = game.data.collectibles.products.filter((p) => game.state.collections.productsUnlocked[p.id]);
+      let rows = '';
+      if (mode === 'Retail') {
+        rows += `<div class="item" data-act="set:CROP"><div class="grow"><b>House Bags</b><small>Your crop stock: ${worth(game.state.stock.crop)}</small></div><span class="tag go">Use</span></div>`;
+      }
+      rows += open.map((p) => `<div class="item" data-act="set:${p.id}"><div class="grow"><b>${esc(p.name)}</b><small>${esc(p.family)} · ${mode === 'Retail' ? `stock ${worth(game.stock.getStock(p.id))}` : `crop x${game.business.batchOutputMult(fid, game.business.slots(fid)[i], p.id).toFixed(2)} in ${duration(game.business.batchSeconds(fid, game.business.slots(fid)[i], p.id))}`}</small></div><span class="tag go">Use</span></div>`).join('');
+      if (!open.length && mode !== 'Retail') rows += '<p class="muted">No products yet.</p>';
+      return rows;
+    },
+    actions: {
+      set(sku) {
+        const { fid, i, mode } = params();
+        if (mode === 'Retail') { g().business.setShelf(fid, i, sku); PE.App.back(); return; }
+        const r = g().business.startLine(fid, i, sku);
+        if (!r.ok) why(r); else { PE.App.back(); PE.App.saveGame(); }
+      },
+    },
+  };
+
+  // UI15 product catalogue.
+  PE.Panels.catalogue = {
+    title: 'Product catalogue',
+    render() {
+      const game = g();
+      const lvl = game.progress.level();
+      let html = '';
+      for (const fam of Object.keys(game.data.collectibles.families)) {
+        html += `<h4>${esc(fam)}</h4>`;
+        html += game.data.collectibles.products.filter((p) => p.family === fam).map((p) => {
+          const on = game.state.collections.productsUnlocked[p.id];
+          const open = lvl >= p.levelGate;
+          const c = game.business.productCost(p.id);
+          return `<div class="item ${on ? '' : 'locked'}"><span class="card-ph small">${esc(p.id)}</span><div class="grow"><b>${esc(p.name)}</b><small>Crop x${p.magnitude} · batch ${duration(p.batchSeconds)}${on ? ` · stock ${worth(game.stock.getStock(p.id))}` : ''}</small></div>
+            ${on ? '<span class="tag go">Owned</span>' : open ? `<button class="btn small ${game.canAfford('cash', c) ? 'buy' : 'plain'}" data-act="unlock:${p.id}">${money(c)}</button>` : `<span class="tag">Level ${p.levelGate}</span>`}</div>`;
+        }).join('');
+      }
+      return html;
+    },
+    actions: { unlock(id) { const r = g().business.unlockProduct(id); if (!r.ok) why(r); else PE.App.saveGame(); } },
+  };
+
+  // UI17 delivery contracts: pick a contract and vehicle for a route.
+  PE.Panels.contractPicker = {
+    title: 'Choose a contract',
+    sheet: true,
+    live: true,
+    render({ fid, i }) {
+      const game = g();
+      const b = game.business;
+      b.ensureOffers();
+      const route = b.slots(fid)[i];
+      const owned = game.data.collectibles.vehicles.filter((v) => game.state.collections.owned[v.id]);
+      const busy = new Set(b.slots(fid).filter((r) => r.job).map((r) => r.vehicle));
+      const free = owned.filter((v) => !busy.has(v.id));
+      const vehicleId = route.vehicle && free.some((v) => v.id === route.vehicle) ? route.vehicle : (free[0] && free[0].id);
+      const chips = owned.map((v) => `<button class="chip ${v.id === vehicleId ? 'on' : ''} ${busy.has(v.id) ? 'off-state' : ''}" data-act="veh:${v.id}">${esc(v.name)}</button>`).join('');
+      const offers = game.state.depot.offers.map((o) => {
+        const q = vehicleId ? b.quote(fid, o, vehicleId) : null;
+        return `<div class="item" ${q && q.amount >= 1 ? `data-act="go:${o.id}:${vehicleId}"` : ''}><div class="grow"><b>${esc(o.name)}: ${esc(game.stock.skuName(o.sku))}</b>
+          <small>${q ? `Moves ${worth(q.amount)} of stock · ${duration(q.seconds)} · pays ${worth(q.reward)}` : 'Needs a free vehicle'}</small></div>
+          <span class="tag ${q && q.amount >= 1 ? 'go' : ''}">${q && q.amount >= 1 ? 'Send' : 'No stock'}</span></div>`;
+      }).join('');
+      const limit = game.B.businessEconomy.rerollsPerDay;
+      return `<h4>Vehicle</h4><div class="chips">${chips || '<span class="muted">No vehicles yet.</span>'}</div><h4>Contracts</h4>${offers}
+        <button class="btn wide plain" data-act="reroll">New offers (${Math.max(0, limit - game.state.depot.rerolls)} left today)</button>`;
+    },
+    actions: {
+      veh(id) { const { fid, i } = params(); g().business.setRouteVehicle(fid, i, id); },
+      go(offerId, vehicleId) {
+        const { fid, i } = params();
+        const r = g().business.dispatch(fid, i, offerId, vehicleId);
+        if (!r.ok) why(r); else { PE.App.back(); PE.App.saveGame(); }
+      },
+      reroll() { if (!g().business.reroll()) toast('No more new offers today'); },
+    },
+  };
+
+  // Contracts tab: everything timed in one place.
+  PE.Panels.contracts = {
+    title: 'Contracts',
+    live: true,
+    render() {
+      const game = g();
+      const depots = game.business.ids('Logistics');
+      let html = PE.Panels.vipBody ? PE.Panels.vipBody() : '';
+      if (depots.length) {
+        html += '<h4>Deliveries</h4>' + depots.map((f) => `<div class="item" data-act="depot:${f}"><div class="grow"><b>${esc(game.facilities.row(f).name)}</b><small>${game.business.slots(f).filter((r) => r.job).length} of ${game.business.slots(f).length} routes busy</small></div><span class="tag">Open</span></div>`).join('');
+      } else {
+        html += `<h4>Deliveries</h4><p class="muted">Delivery contracts open with the Distribution Depot at level ${game.facilities.row('F09').playerLevel}.</p>`;
+      }
+      return html;
+    },
+    actions: {
+      depot(f) { PE.App.openPanel('business', { fid: f }); },
+    },
+  };
+
+  PE.Panels.facilityHud = true;
+  delete PE.Panels.facilityHud;
+})(globalThis.PE = globalThis.PE || {});

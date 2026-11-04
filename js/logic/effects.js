@@ -34,6 +34,7 @@
     streak: (c) => c.dailyStreak >= 1,
     afterContract: (c) => !!c.recentContract,
     vipOrder: (c) => !!c.vip,
+    mixedShelves: (c) => !!c.mixedShelves,
   };
 
   function scopeMatches(scope, c) {

@@ -100,11 +100,11 @@ globalThis.PE.Data.balance = {
     // price = salePrice * (1 + priceStep * i), time = growSeconds * (1 + growStep * i)
     // unlock level = unlockLevel + floor(i * levelStep), unlock cost = round(unlockCost * costGrowth^i)
     Common: { growSeconds: 60, growStep: 0.1, yieldPerPot: 1, salePrice: 10, priceStep: 0.12, harvestXp: 5, masteryXp: 5, unlockLevel: 1, levelStep: 0.5, unlockCost: 60, costGrowth: 1.5, qualityScore: 0 },
-    Uncommon: { growSeconds: 120, growStep: 0.08, yieldPerPot: 1, salePrice: 34, priceStep: 0.12, harvestXp: 11, masteryXp: 5, unlockLevel: 6, levelStep: 0.6, unlockCost: 2500, costGrowth: 1.45, qualityScore: 2 },
-    Rare: { growSeconds: 240, growStep: 0.08, yieldPerPot: 1, salePrice: 110, priceStep: 0.12, harvestXp: 24, masteryXp: 6, unlockLevel: 13, levelStep: 0.7, unlockCost: 60000, costGrowth: 1.45, qualityScore: 4 },
-    Epic: { growSeconds: 420, growStep: 0.08, yieldPerPot: 1, salePrice: 340, priceStep: 0.12, harvestXp: 45, masteryXp: 7, unlockLevel: 22, levelStep: 0.8, unlockCost: 1500000, costGrowth: 1.45, qualityScore: 6 },
-    Legendary: { growSeconds: 720, growStep: 0.08, yieldPerPot: 1, salePrice: 1000, priceStep: 0.12, harvestXp: 80, masteryXp: 8, unlockLevel: 33, levelStep: 0.9, unlockCost: 40000000, costGrowth: 1.45, qualityScore: 8 },
-    Mythic: { growSeconds: 1200, growStep: 0.08, yieldPerPot: 1, salePrice: 3000, priceStep: 0.12, harvestXp: 140, masteryXp: 10, unlockLevel: 45, levelStep: 1, unlockCost: 1000000000, costGrowth: 1.45, qualityScore: 10 },
+    Uncommon: { growSeconds: 120, growStep: 0.08, yieldPerPot: 1, salePrice: 34, priceStep: 0.12, harvestXp: 8, masteryXp: 5, unlockLevel: 6, levelStep: 0.6, unlockCost: 2500, costGrowth: 1.45, qualityScore: 2 },
+    Rare: { growSeconds: 240, growStep: 0.08, yieldPerPot: 1, salePrice: 110, priceStep: 0.12, harvestXp: 12, masteryXp: 6, unlockLevel: 13, levelStep: 0.7, unlockCost: 60000, costGrowth: 1.45, qualityScore: 4 },
+    Epic: { growSeconds: 420, growStep: 0.08, yieldPerPot: 1, salePrice: 340, priceStep: 0.12, harvestXp: 18, masteryXp: 7, unlockLevel: 22, levelStep: 0.8, unlockCost: 1500000, costGrowth: 1.45, qualityScore: 6 },
+    Legendary: { growSeconds: 720, growStep: 0.08, yieldPerPot: 1, salePrice: 1000, priceStep: 0.12, harvestXp: 26, masteryXp: 8, unlockLevel: 33, levelStep: 0.9, unlockCost: 40000000, costGrowth: 1.45, qualityScore: 8 },
+    Mythic: { growSeconds: 1200, growStep: 0.08, yieldPerPot: 1, salePrice: 3000, priceStep: 0.12, harvestXp: 36, masteryXp: 10, unlockLevel: 45, levelStep: 1, unlockCost: 1000000000, costGrowth: 1.45, qualityScore: 10 },
   },
 
   // Bible section 5: six viable strain roles. Each strain gets one, in a repeating order.
@@ -123,8 +123,8 @@ globalThis.PE.Data.balance = {
     source: 'STAND-IN, tuned by tools/balance_sim.js',
     // XP for the next level = previous * growth, with growth chosen by level band.
     // Levels above 60 use the last band forever: there is no final rank (bible section 2).
-    xpFirstLevel: 20,
-    xpBands: [{ upTo: 10, growth: 1.34 }, { upTo: 30, growth: 1.18 }, { upTo: 60, growth: 1.11 }, { upTo: 1e9, growth: 1.035 }],
+    xpFirstLevel: 28,
+    xpBands: [{ upTo: 10, growth: 1.34 }, { upTo: 30, growth: 1.33 }, { upTo: 60, growth: 1.06 }, { upTo: 1e9, growth: 1.035 }],
     talentPointsPerLevel: 1,
     // Bible section 2: Rank 61+ milestone rewards at every 10/25/50/100 ranks. Biggest match wins.
     rankMilestones: [
@@ -165,10 +165,10 @@ globalThis.PE.Data.balance = {
     source: 'names from bible section 4, numbers STAND-IN tuned by tools/balance_sim.js',
     rows: [
       { model: 1, name: 'Groovy Green', timeFactor: 1, valueMult: 1, color: 0x8fd63a },
-      { model: 2, name: 'Purple Haze', timeFactor: 0.94, valueMult: 5, color: 0x9a5be0 },
-      { model: 3, name: 'Cosmic Blue', timeFactor: 0.88, valueMult: 26, color: 0x2fc6e8 },
-      { model: 4, name: 'Sunset Gold', timeFactor: 0.82, valueMult: 130, color: 0xf2a02e },
-      { model: 5, name: 'Rainbow Madness', timeFactor: 0.76, valueMult: 650, color: 0xff4fa3 },
+      { model: 2, name: 'Purple Haze', timeFactor: 0.94, valueMult: 3, color: 0x9a5be0 },
+      { model: 3, name: 'Cosmic Blue', timeFactor: 0.88, valueMult: 9, color: 0x2fc6e8 },
+      { model: 4, name: 'Sunset Gold', timeFactor: 0.82, valueMult: 27, color: 0xf2a02e },
+      { model: 5, name: 'Rainbow Madness', timeFactor: 0.76, valueMult: 81, color: 0xff4fa3 },
     ],
     // Sprinkler level: how much automation earns while the game is closed.
     offlineEfficiency: [0.5, 0.56, 0.62, 0.68, 0.74, 0.8],
@@ -214,18 +214,18 @@ globalThis.PE.Data.balance = {
   facilityEconomy: {
     source: 'STAND-IN, tuned by tools/balance_sim.js. Bible: slots at even local milestones, R1/R2/R3 at 25/60/100%.',
     rows: {
-      F01: { startStations: 2, cost: 0, valueMult: 1, stationCostBase: 150, localTarget: 60 },
-      F02: { startStations: 1, cost: 300, valueMult: 1.4, stationCostBase: 800, localTarget: 240 },
-      F03: { startStations: 1, cost: 6000, valueMult: 2, stationCostBase: 5000, localTarget: 700 },
-      F04: { startStations: 2, cost: 40000, valueMult: 1, stationCostBase: 15000, localTarget: 300 },
-      F05: { startStations: 1, cost: 250000, valueMult: 1, stationCostBase: 120000, localTarget: 300 },
-      F06: { startStations: 0, cost: 2000000, valueMult: 1, stationCostBase: 0, localTarget: 100 },
-      F07: { startStations: 1, cost: 25000000, valueMult: 3, stationCostBase: 8000000, localTarget: 2500 },
-      F08: { startStations: 2, cost: 250000000, valueMult: 1.5, stationCostBase: 50000000, localTarget: 600 },
-      F09: { startStations: 1, cost: 2500000000, valueMult: 1, stationCostBase: 800000000, localTarget: 300 },
-      F10: { startStations: 1, cost: 30000000000, valueMult: 4.5, stationCostBase: 8000000000, localTarget: 5000 },
-      F11: { startStations: 1, cost: 500000000000, valueMult: 7, stationCostBase: 120000000000, localTarget: 8000 },
-      F12: { startStations: 0, cost: 8000000000000, valueMult: 1, stationCostBase: 0, localTarget: 100 },
+      F01: { startStations: 2, cost: 0, valueMult: 1, upgradeScale: 1, stationCostBase: 150, localTarget: 60 },
+      F02: { startStations: 1, cost: 300, valueMult: 1.4, upgradeScale: 1.4, stationCostBase: 800, localTarget: 240 },
+      F03: { startStations: 1, cost: 6000, valueMult: 2, upgradeScale: 2, stationCostBase: 5000, localTarget: 700 },
+      F04: { startStations: 2, cost: 40000, valueMult: 1, upgradeScale: 1, stationCostBase: 15000, localTarget: 300 },
+      F05: { startStations: 1, cost: 250000, valueMult: 1, upgradeScale: 1, stationCostBase: 120000, localTarget: 300 },
+      F06: { startStations: 0, cost: 2000000, valueMult: 1, upgradeScale: 1, stationCostBase: 0, localTarget: 100 },
+      F07: { startStations: 1, cost: 25000000, valueMult: 3, upgradeScale: 3, stationCostBase: 8000000, localTarget: 2500 },
+      F08: { startStations: 2, cost: 250000000, valueMult: 1.5, upgradeScale: 1.5, stationCostBase: 50000000, localTarget: 600 },
+      F09: { startStations: 1, cost: 2500000000, valueMult: 1, upgradeScale: 1, stationCostBase: 800000000, localTarget: 300 },
+      F10: { startStations: 1, cost: 30000000000, valueMult: 4.5, upgradeScale: 4.5, stationCostBase: 8000000000, localTarget: 5000 },
+      F11: { startStations: 1, cost: 500000000000, valueMult: 7, upgradeScale: 7, stationCostBase: 120000000000, localTarget: 8000 },
+      F12: { startStations: 0, cost: 8000000000000, valueMult: 1, upgradeScale: 1, stationCostBase: 0, localTarget: 100 },
     },
     stationCostGrowth: 1.7,
     // Cost of renovation R1/R2/R3 = stationCostBase * these; each adds this much local sale value.
@@ -245,9 +245,82 @@ globalThis.PE.Data.balance = {
     ],
   },
 
+  businessEconomy: {
+    source: 'STAND-IN, tuned by tools/balance_sim.js. Bible section 8 gives the loops, not the numbers.',
+    cropShare: 0.35,            // share of a harvest's sale value that also becomes crop stock
+    shelfDrainPerMinute: 0.05,  // share of a shelf's stock sold each minute at normal demand
+    speedPerLevel: 0.2,
+    valuePerLevel: 0.12,
+    retailMarkup: 1.5,
+    demandWindowHours: 6,
+    demandMin: 0.8,
+    demandMax: 1.3,
+    reputationToDemand: 0.01,
+    lowStockValue: 2,
+    offlineRetailScale: 0.3,
+    capacityOfflinePerLevel: 0.08,
+    maxUpgradeLevel: 10,
+    upgradeGrowth: 1.6,
+    upgradeFactor: { speed: 0.5, capacity: 0.4, value: 0.7, batch: 0.6 },
+    batchShare: 0.25,           // share of crop stock one batch takes
+    batchSharePerLevel: 0.05,
+    factoryBoostSpeed: 0.2,
+    productCostBase: 40000,
+    productCostGrowth: 1.28,
+    contractShare: 0.2,
+    contractCreditCap: 100,
+    creditPerHarvest: 0.2,
+    creditToPayout: 0.002,
+    offerCount: 4,
+    rerollsPerDay: 3,
+    reliableBonus: 0.5,
+    recentContractSeconds: 1800,
+    contractTypes: [
+      { id: 'local', name: 'Local drop', seconds: 600, mult: 1.7 },
+      { id: 'city', name: 'City run', seconds: 1800, mult: 2.1 },
+      { id: 'regional', name: 'Regional haul', seconds: 3600, mult: 2.6 },
+      { id: 'overnight', name: 'Overnight freight', seconds: 21600, mult: 3.6 },
+      { id: 'express', name: 'Advanced express', seconds: 900, mult: 2.6, advanced: true },
+      { id: 'national', name: 'Advanced national', seconds: 43200, mult: 5, advanced: true },
+    ],
+  },
+
+  research: {
+    source: 'Bible section 8: six branches, six ranks, 36 nodes. Numbers STAND-IN.',
+    ranks: 6,
+    tokenBase: 3,
+    tokenGrowth: 1.6,
+    cashBase: 1000000,
+    cashGrowth: 12,
+    maxDiscount: 0.5,
+    boosterDiscount: 0.1,
+    branches: [
+      { id: 'Grow', effectKey: 'growSpeed', perRank: 0.05, text: 'Grow speed. Rank 3 raises the away cap to 12 hours.', flags: { offlineCap: 3 } },
+      { id: 'Quality', effectKey: 'qualityScore', perRank: 5, text: 'Quality score on all harvests.' },
+      { id: 'Retail', effectKey: 'retailDemand', perRank: 0.1, text: 'Customer demand in all shops.' },
+      { id: 'Factory', effectKey: 'factorySpeed', perRank: 0.1, text: 'Factory speed. Rank 3 makes lines restart by themselves.', flags: { factoryAuto: 3 } },
+      { id: 'Logistics', effectKey: 'deliveryPayout', perRank: 0.08, text: 'Delivery pay. Rank 3 opens auto-dispatch.', flags: { deliveryAuto: 3 } },
+      { id: 'Events', effectKey: 'festivalPoints', perRank: 0.1, text: 'Festival points.' },
+    ],
+  },
+
+  collectionRules: {
+    source: 'Bible section 7 for the slot counts, STAND-IN for the rest.',
+    stationManagerSlots: 1,
+    businessManagerSlots: 1,
+    managerLevelBonus: 0.1,
+    managerMaxLevel: 5,
+    fragmentsPerLevel: 3,
+    relicsPerDistrict: 3,
+    stickersPerBusiness: 2,
+    loadoutSlots: 3,
+    chestCategories: ['managers', 'relics', 'stickers', 'vehicles', 'packaging', 'decorations'],
+  },
+
   offline: {
     source: 'bible section 6 for the cap, STAND-IN for the rest',
     minAwaySeconds: 60,          // shorter gaps are treated as normal play
+    xpShare: 0.25,               // share of normal XP earned while away
   },
 
   effectCaps: {

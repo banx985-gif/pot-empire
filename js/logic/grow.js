@@ -100,7 +100,8 @@
       const ctx = contextFor(fid, si, strainId);
       const speed = g.effects.get('growSpeed', ctx) + masteryBonus(strainId, 'growSpeed')
         + B.hydroModels.computerSpeed[st.levels.computer - 1];
-      const slow = serviceDue(st, fid, si) ? B.maintenance.slowdown : 1;
+      const recovery = g.effects.get('serviceRecovery', ctx);
+      const slow = serviceDue(st, fid, si) ? 1 + (B.maintenance.slowdown - 1) * Math.max(0, 1 - recovery) : 1;
       const t = (s.baseSeconds * model.timeFactor * B.hydro.lightTimeMultiplier[st.levels.lights - 1] * slow) / (1 + speed);
       return Math.max(B.growing.minCycleSeconds, t);
     }
@@ -159,9 +160,10 @@
 
     function isStrainUnlocked(id) { return !!state.unlockedStrains[id]; }
 
-    function plantInto(fid, si, pi, strainId, atMs) {
+    function plantInto(fid, si, pi, strainId, atMs, automated) {
       const st = stationOf(fid, si);
-      const seconds = cycleSeconds(fid, si, strainId);
+      let seconds = cycleSeconds(fid, si, strainId);
+      if (automated) seconds *= 1 - Math.min(0.5, g.effects.get('replantHeadStart', contextFor(fid, si, strainId)));
       // Quality is decided at planting and stays hidden until the plant is mature, so it can't be
       // re-rolled by closing the game.
       const grade = PE.Rng.pick(chancesFor(fid, si, strainId), g.nextRoll('quality'));
@@ -195,7 +197,7 @@
       state.stats.lastHarvestDay = Math.floor(g.now() / 86400000);
       state.stats.bestGrade[plant.s] = Math.max(state.stats.bestGrade[plant.s] ?? 0, plant.q);
       if (g.facilities) g.facilities.addLocalXp(fid, B.facilityEconomy.localXpPerHarvest);
-      if (g.stock) g.stock.onHarvest(s, plant.q);
+      if (g.stock) g.stock.onHarvest(s, plant.q, cash, ctx);
       if (g.meta) g.meta.onHarvest(s, plant.q);
       g.progress.addXp(xp);
       return { cash: Math.round(cash), grade: plant.q, doubled, xp, strainId: plant.s };
@@ -341,7 +343,7 @@
         g.emit('harvest', result);
         if (st.auto.replant && hasStationFeature(st, 'autoReplant')) {
           const next = nextReplantStrain(st, pi);
-          if (next && isStrainUnlocked(next)) plantInto(fid, si, pi, next, g.now());
+          if (next && isStrainUnlocked(next)) plantInto(fid, si, pi, next, g.now(), true);
         }
         g.emit('changed');
         return result;
@@ -464,7 +466,7 @@
             if (!p) {
               if (st.auto.replant && hasStationFeature(st, 'autoReplant')) {
                 const next = nextReplantStrain(st, pi);
-                if (next && isStrainUnlocked(next)) { plantInto(fid, si, pi, next, now); g.emit('changed'); }
+                if (next && isStrainUnlocked(next)) { plantInto(fid, si, pi, next, now, true); g.emit('changed'); }
               }
               return;
             }
@@ -475,7 +477,7 @@
             g.emit('harvest', result);
             if (st.auto.replant && hasStationFeature(st, 'autoReplant')) {
               const next = nextReplantStrain(st, pi);
-              if (next && isStrainUnlocked(next)) plantInto(fid, si, pi, next, now);
+              if (next && isStrainUnlocked(next)) plantInto(fid, si, pi, next, now, true);
             }
             g.emit('changed');
           });

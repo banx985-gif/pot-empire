@@ -28,6 +28,17 @@
       if (!sheet || sheet.frames.length !== 6) problems.push(`strain frames: ${s.id} doesn't have six frames`);
     });
 
+    if (d.collectibles) {
+      const c = d.collectibles;
+      checkIds(problems, 'relics', c.relics, range('R', 48, 2));
+      checkIds(problems, 'stickers', c.stickers, range('B', 48, 2));
+      checkIds(problems, 'vehicles', c.vehicles, range('V', 24, 2));
+      checkIds(problems, 'products', c.products, range('P', 36, 2));
+      checkIds(problems, 'packaging', c.packaging, range('K', 30, 2));
+      checkIds(problems, 'decorations', c.decorations, range('D', 72, 2));
+      checkIds(problems, 'avatars', c.avatars, range('AV-', 60, 3));
+    }
+
     if (!d.balance) problems.push('balance table missing');
     else {
       if (d.balance.status !== 'provisional') problems.push('balance table must be marked provisional until the simulator passes');

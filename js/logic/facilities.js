@@ -13,7 +13,9 @@
 
     function ownedStationCount(fid) {
       const f = get(fid);
-      return f ? Object.keys(f.stations || {}).length : 0;
+      if (!f) return 0;
+      if (byId.get(fid).mode !== 'Grow') return (f.slots || []).length;
+      return Object.keys(f.stations || {}).length;
     }
     function localProgress(fid) {
       const f = get(fid);
@@ -79,12 +81,12 @@
         return mark !== null && localProgress(fid) >= mark;
       },
       buyStation(fid) {
-        if (byId.get(fid).mode !== 'Grow') return { ok: false, why: 'bad' };
         const mark = nextStationMark(fid);
         if (mark === null) return { ok: false, why: 'max' };
         if (localProgress(fid) < mark) return { ok: false, why: 'progress' };
         if (!g.spend('cash', nextStationCost(fid), 'station')) return { ok: false, why: 'cash' };
-        addStationsTo(fid, 1);
+        if (byId.get(fid).mode === 'Grow') addStationsTo(fid, 1);
+        else g.business.addSlot(fid);
         g.emit('celebrate', { kind: 'station', text: 'New station!' });
         g.emit('changed');
         return { ok: true };

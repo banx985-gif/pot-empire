@@ -129,3 +129,14 @@ ul.plain li { padding: 3px 0; }
 .stages { display: flex; justify-content: space-between; }
 .rewards li.got { color: var(--lime); }
 .model-1 { color: #8fd63a; } .model-2 { color: #b98af0; } .model-3 { color: #2fc6e8; } .model-4 { color: #f2a02e; } .model-5 { color: #ff7ac6; }
+
+.fac-ico { font-size: 26px; width: 34px; text-align: center; flex: none; }
+.bar.thin { height: 6px; margin: 4px 0 0; }
+.shelf { margin-bottom: 10px; }
+.shelf .item { margin-bottom: 4px; }
+.row-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+.row-btns .btn { flex: 1; font-size: 12.5px; padding: 5px 4px; min-height: 40px; }
+.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #ffffff30; margin-left: 2px; }
+.dot.on { background: var(--lime); }
+.card-ph { display: flex; align-items: center; justify-content: center; width: 54px; height: 54px; border-radius: 10px; background: linear-gradient(135deg, #5a3a8c, #2a1a47); border: 1px dashed #ffffff55; font-size: 11px; font-weight: 800; flex: none; text-align: center; padding: 2px; }
+.card-ph.small { width: 44px; height: 44px; }

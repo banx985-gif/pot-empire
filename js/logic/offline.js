@@ -72,7 +72,7 @@
           st.harvests += 1;
           state.stats.bestGrade[p.s] = Math.max(state.stats.bestGrade[p.s] ?? 0, p.q);
           if (g.facilities) g.facilities.addLocalXp(fid, B.facilityEconomy.localXpPerHarvest);
-          if (g.stock) g.stock.onHarvest(s, p.q);
+          if (g.stock) g.stock.onHarvest(s, p.q, g.grow.saleValue(fid, si, p.s, p.q), g.grow.internals.contextFor(fid, si, p.s));
           if (g.meta) g.meta.onHarvest(s, p.q, true);
 
           if (!cycling) { st.pots[pi] = null; return; }
@@ -94,7 +94,7 @@
             state.stats.harvests += extra;
             st.harvests += extra;
             if (g.facilities) g.facilities.addLocalXp(fid, B.facilityEconomy.localXpPerHarvest * extra * eff);
-            if (g.stock) g.stock.onOfflineCycles(s, extra * eff);
+            if (g.stock) g.stock.onOfflineCycles(s, each * extra * eff);
             if (g.meta) g.meta.onOfflineCycles(s, extra * eff);
           }
           // Replant: partway through a cycle if the time ran out naturally, fresh if the cap cut it off.
@@ -108,7 +108,7 @@
       if (g.business) g.business.settleOffline(from, now, creditedSeconds, report);
 
       report.cash = Money.toBig(report.cash).toString();   // text, so it can be any size
-      report.xp = Math.round(report.xp);
+      report.xp = Math.round(report.xp * B.offline.xpShare);   // being away earns less XP than playing
       if (report.cash === '0' && report.harvests === 0 && !report.extras.length) return report;
 
       // Unclaimed money from an earlier return is rolled together, never lost and never doubled.

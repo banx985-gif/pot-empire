@@ -5,7 +5,11 @@
 //
 // Saves hold plain facts only (ids, numbers, UTC times), never anything from Phaser.
 (function (PE) {
-  const CURRENT_VERSION = 3;
+  const CURRENT_VERSION = 4;
+
+  function newCollections() {
+    return { owned: {}, productsUnlocked: {}, relicsByDistrict: {}, stickersByBusiness: {}, decorByFacility: {}, packagingBySku: {}, loadouts: [] };
+  }
 
   function newStation(nowMs) {
     return {
@@ -35,14 +39,16 @@
       player: { level: 1, xp: '0', talentPoints: 1, talents: {}, pendingChoices: [], titles: [] },
       time: { offsetMs: 0, highWaterMs: nowMs, lastActiveMs: nowMs, rollbacks: 0 },
       rng: { seed: nowUtc, counter: 0 },
-      stats: { harvests: 0, lifetimeCash: '0', offlineClaims: 0, bestGrade: {}, lastHarvestDay: null },
+      stats: { harvests: 0, lifetimeCash: '0', offlineClaims: 0, bestGrade: {}, lastHarvestDay: null, deliveries: 0 },
       unlockedStrains: { 'STR-001': true },
       pendingOffline: null,
       settings: { reducedMotion: false },
       facilities: { F01: { unlocked: true, renovation: 0, localXp: 0, stations: { 0: newStation(nowMs), 1: newStation(nowMs) } } },
       mastery: {},
       managers: { owned: {}, assigned: {} },
-      collections: {},
+      collections: newCollections(),
+      stock: { crop: 0, products: {}, contractCredit: 0 },
+      depot: { day: null, seed: 0, rerolls: 0, offers: [] },
       research: {},
       contracts: { active: [], history: [] },
       events: {},
@@ -84,6 +90,15 @@
       const f = s.facilities.F01;
       f.localXp = f.localXp || 0;
       if (!Object.keys(f.stations || {}).length) f.stations = { 0: newStation(nowMs), 1: newStation(nowMs) };
+      return s;
+    },
+    // Version 4 (overnight job 1, Stage 3): stock, depot, collections.
+    3(old) {
+      const s = old;
+      s.collections = { ...newCollections(), ...s.collections };
+      s.stock = s.stock || { crop: 0, products: {}, contractCredit: 0 };
+      s.depot = s.depot || { day: null, seed: 0, rerolls: 0, offers: [] };
+      s.stats.deliveries = s.stats.deliveries || 0;
       return s;
     },
   };
