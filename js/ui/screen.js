@@ -41,22 +41,38 @@
     return { g, text, zone, x, y, w, h };
   }
 
-  // Load a strain sheet (if not already loaded). onReady runs when loading ends, even on failure.
+  // Sheets being downloaded right now: id -> list of things waiting for it.
+  // This belongs to the whole game, not one screen, because the player can leave a screen while
+  // its art is still downloading (a quick tap on a slow connection).
+  const waiting = new Map();
+
+  // Get a strain sheet ready, then call onReady, even if the art failed to load (the screen then
+  // draws a plain placeholder). onReady is skipped if the screen has since been left or redrawn.
   function loadSheet(scene, strainId, onReady) {
     const key = 'sheet-' + strainId;
-    const done = () => { addFrames(scene, strainId); onReady(); };
-    if (scene.textures.exists(key)) { done(); return; }
-    scene.load.image(key, `assets/strains/${strainId}.webp`);
-    scene.load.once('complete', done);
-    scene.load.start();
+    scene.sheetRequest = (scene.sheetRequest || 0) + 1;
+    const request = scene.sheetRequest;
+    const finish = () => { if (scene.sheetRequest === request && scene.sys.isActive()) onReady(); };
+
+    if (scene.textures.exists(key)) { onReady(); return; }
+    if (waiting.has(strainId)) { waiting.get(strainId).push(finish); return; }
+    waiting.set(strainId, [finish]);
+
+    const done = () => {
+      const list = waiting.get(strainId);
+      waiting.delete(strainId);
+      list.forEach((fn) => fn());
+    };
+    const img = new Image();
+    img.onload = () => { addFrames(scene.textures, key, strainId, img); done(); };
+    img.onerror = () => { console.warn('Art failed to load: ' + strainId); done(); };
+    img.src = `assets/strains/${strainId}.webp`;
   }
 
-  function addFrames(scene, strainId) {
-    const key = 'sheet-' + strainId;
-    if (!scene.textures.exists(key)) return;
-    const tex = scene.textures.get(key);
+  function addFrames(textures, key, strainId, img) {
+    const tex = textures.addImage(key, img);
     PE.Data.strainFrames.sheets[strainId].frames.forEach((f, i) => {
-      if (!tex.has('stage' + i)) tex.add('stage' + i, 0, f.x, f.y, f.w, f.h);
+      tex.add('stage' + i, 0, f.x, f.y, f.w, f.h);
     });
   }
 

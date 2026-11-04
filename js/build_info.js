@@ -1,2 +1,2 @@
 // publish.ps1 stamps the build number into the published copy. Here it stays as "dev".
-(globalThis.PE = globalThis.PE || {}).BUILD = '20261104-212635';
+(globalThis.PE = globalThis.PE || {}).BUILD = '20261104-213115';
