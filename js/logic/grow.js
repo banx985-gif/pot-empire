@@ -199,7 +199,7 @@
       state.stats.bestGrade[plant.s] = Math.max(state.stats.bestGrade[plant.s] ?? 0, plant.q);
       if (g.facilities) g.facilities.addLocalXp(fid, B.facilityEconomy.localXpPerHarvest);
       if (g.stock) g.stock.onHarvest(s, plant.q, cash, ctx);
-      if (g.meta) g.meta.onHarvest(s, plant.q);
+      if (g.meta) g.meta.onHarvest(s, plant.q, false, fid, cash);
       g.progress.addXp(xp);
       return { cash: Math.round(cash), grade: plant.q, doubled, xp, strainId: plant.s };
     }
@@ -457,6 +457,21 @@
         g.emit('celebrate', { kind: 'model', text: `${B.hydroModels.rows[st.model - 1].name} installed!` });
         g.emit('changed');
         return { ok: true, preview };
+      },
+
+      // Regional prestige: back to the first model and level 1 parts, but pot positions stay
+      // (bible section 8). Crops are settled the same way as a model upgrade.
+      prestigeReset(fid, si, now) {
+        const st = stationOf(fid, si);
+        st.pots.forEach((p, pi) => {
+          if (!p) return;
+          const t = potProgress(p, now);
+          if (t >= 1) payHarvest(fid, si, p, 'prestige');
+          else g.earn('cash', saleValue(fid, si, p.s, p.q) * t, 'prestige');
+          st.pots[pi] = null;
+        });
+        st.model = 1;
+        for (const b of BRANCHES) if (b !== 'capacity') st.levels[b] = 1;
       },
 
       // Runs on every tick: automation.

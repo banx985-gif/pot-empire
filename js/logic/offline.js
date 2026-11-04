@@ -73,7 +73,7 @@
           state.stats.bestGrade[p.s] = Math.max(state.stats.bestGrade[p.s] ?? 0, p.q);
           if (g.facilities) g.facilities.addLocalXp(fid, B.facilityEconomy.localXpPerHarvest);
           if (g.stock) g.stock.onHarvest(s, p.q, g.grow.saleValue(fid, si, p.s, p.q), g.grow.internals.contextFor(fid, si, p.s));
-          if (g.meta) g.meta.onHarvest(s, p.q, true);
+          if (g.meta) g.meta.onHarvest(s, p.q, true, fid, g.grow.saleValue(fid, si, p.s, p.q));
 
           if (!cycling) { st.pots[pi] = null; return; }
 
@@ -95,7 +95,7 @@
             st.harvests += extra;
             if (g.facilities) g.facilities.addLocalXp(fid, B.facilityEconomy.localXpPerHarvest * extra * eff);
             if (g.stock) g.stock.onOfflineCycles(s, each * extra * eff);
-            if (g.meta) g.meta.onOfflineCycles(s, extra * eff);
+            if (g.meta) g.meta.onOfflineCycles(s, extra * eff, fid, each * extra * eff);
           }
           // Replant: partway through a cycle if the time ran out naturally, fresh if the cap cut it off.
           const next = nextReplantStrain(st, pi) || strainId;

@@ -147,3 +147,7 @@ ul.plain li { padding: 3px 0; }
 .chips.narrow { max-width: 45%; justify-content: flex-end; }
 .chips .chip { pointer-events: auto; }
 .r-bg-Common { border-color: #cfd8dc !important; } .r-bg-Uncommon { border-color: #9cff8a !important; } .r-bg-Rare { border-color: #6fd3ff !important; } .r-bg-Epic { border-color: #d39aff !important; } .r-bg-Legendary { border-color: #ffd84d !important; }
+.menu-row { display: flex; gap: 5px; margin-bottom: 6px; }
+.menu-btn { flex: 1; min-width: 0; min-height: 62px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10.5px !important; font-weight: 800; border-radius: 12px; background: linear-gradient(135deg, #7a3fb0, #ff4fa366) !important; border: 1px solid #ffffff30 !important; padding: 2px; }
+.menu-btn span { font-size: 22px; }
+.bigtitle { font-size: 24px; font-weight: 900; text-align: center; color: var(--gold); margin: 6px 0 !important; }

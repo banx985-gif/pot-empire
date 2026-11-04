@@ -80,8 +80,13 @@
     // ---- Which screen is showing ------------------------------------------------------------------
     let sceneNow = null;   // { key, fid } of the scene under any panels
     function showScene(route) {
-      const same = sceneNow && sceneNow.key === route.name && sceneNow.fid === route.params.fid && game.scene.isActive(route.name);
-      if (!same) {
+      const same = sceneNow && sceneNow.key === route.name && sceneNow.fid === route.params.fid
+        && (game.scene.isActive(route.name) || game.scene.isSleeping(route.name));
+      if (same) {
+        if (game.scene.isSleeping(route.name)) game.scene.wake(route.name);
+      } else {
+        // A scene asleep behind a full-screen menu has to be stopped too.
+        if (sceneNow && game.scene.isSleeping(sceneNow.key)) game.scene.stop(sceneNow.key);
         game.scene.getScenes(true).forEach((s) => game.scene.stop(s.scene.key));
         game.scene.start(route.name, route.params);
         sceneNow = { key: route.name, fid: route.params.fid };
@@ -99,8 +104,13 @@
       }
     }
     router.onChange((route) => {
-      if (isPanel(route.name)) PE.Dom.showPanel(route);
-      else showScene(route);
+      if (isPanel(route.name)) {
+        PE.Dom.showPanel(route);
+        // Nothing can be seen behind a full-screen menu, so stop drawing the room: saves battery.
+        // The rules keep running, they don't depend on the drawing.
+        if (!PE.Panels[route.name].sheet && sceneNow && game.scene.isActive(sceneNow.key)) game.scene.sleep(sceneNow.key);
+        else if (PE.Panels[route.name].sheet && sceneNow && game.scene.isSleeping(sceneNow.key)) game.scene.wake(sceneNow.key);
+      } else showScene(route);
       syncGuard();
       saves.save(app.state);
       PE.Hud.refresh();

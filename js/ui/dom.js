@@ -246,3 +246,6 @@
   PE.Hud = Hud;
   PE.Panels = {};
 })(globalThis.PE = globalThis.PE || {});
+
+// A long press on a phone must not open the browser's own menu: that would cancel the touch.
+document.addEventListener('contextmenu', (e) => e.preventDefault());

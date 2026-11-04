@@ -5,10 +5,20 @@
 //
 // Saves hold plain facts only (ids, numbers, UTC times), never anything from Phaser.
 (function (PE) {
-  const CURRENT_VERSION = 4;
+  const CURRENT_VERSION = 5;
 
   function newCollections() {
     return { owned: {}, productsUnlocked: {}, relicsByDistrict: {}, stickersByBusiness: {}, decorByFacility: {}, packagingBySku: {}, loadouts: [] };
+  }
+
+  function newMeta() {
+    return {
+      counters: {}, districtEarned: {}, typicalHarvest: 0, lastDay: null, lastTaskDay: null, wheelDay: null,
+      tasks: { day: null, daily: [], week: null, weekly: [] },
+      achievements: {}, rivals: {}, inbox: [],
+      festival: { id: null, theme: null, active: false, points: 0, claimed: {} },
+      vip: { seed: 0, offers: [], history: [] },
+    };
   }
 
   function newStation(nowMs) {
@@ -47,6 +57,7 @@
       mastery: {},
       managers: { owned: {}, assigned: {} },
       collections: newCollections(),
+      meta: newMeta(),
       stock: { crop: 0, products: {}, contractCredit: 0 },
       depot: { day: null, seed: 0, rerolls: 0, offers: [] },
       research: {},
@@ -99,6 +110,12 @@
       s.stock = s.stock || { crop: 0, products: {}, contractCredit: 0 };
       s.depot = s.depot || { day: null, seed: 0, rerolls: 0, offers: [] };
       s.stats.deliveries = s.stats.deliveries || 0;
+      return s;
+    },
+    // Version 5 (overnight job 1, M5): tasks, achievements, rivals, festivals, VIPs, prestige.
+    4(old) {
+      const s = old;
+      s.meta = s.meta || newMeta();
       return s;
     },
   };

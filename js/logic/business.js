@@ -173,7 +173,9 @@
       const pool = adv ? t : t.filter((x) => !x.advanced);
       const type = pool[Math.floor(dice('type') * pool.length)];
       const unlocked = Object.keys(state.collections.productsUnlocked);
-      const options = [CROP, ...unlocked];
+      // A contract is only useful for stock you actually have. Crop is the fallback.
+      const stocked = [CROP, ...unlocked].filter((s) => getStock(s) >= 1);
+      const options = stocked.length ? stocked : [CROP];
       const sku = options[Math.floor(dice('sku') * options.length)];
       return { id: `${nowDay}-${seed}`, type: type.id, name: type.name, sku, seconds: type.seconds, mult: type.mult };
     }
