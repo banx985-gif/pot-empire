@@ -127,6 +127,7 @@
       const yieldBonus = g.effects.get('yieldBonus', ctx) + masteryBonus(strainId, 'yieldBonus');
       const units = s.baseYield * (1 + yieldBonus);
       const additive = g.effects.get('saleBonus', ctx) + masteryBonus(strainId, 'saleBonus')
+        + g.effects.get('reputation', ctx) * B.businessEconomy.reputationToValue
         + B.hydroModels.potValueBonus[st.levels.pots - 1]
         + (g.facilities ? g.facilities.localValueBonus(fid) : 0);
       const global = B.hydroModels.rows[st.model - 1].valueMult * facRow(fid).valueMult

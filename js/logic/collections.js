@@ -264,6 +264,7 @@
       placeDecoration(fid, id) {
         const d = all.get(id);
         if (!d || d.category !== 'decoration' || !col().owned[id] || !g.facilities.isOwned(fid)) return { ok: false, why: 'owned' };
+        if (['Research', 'Prestige'].includes(g.facilities.row(fid).mode)) return { ok: false, why: 'target' };   // no reputation to earn there
         const map = col().decorByFacility;
         for (const f of Object.keys(map)) for (const s of Object.keys(map[f])) if (map[f][s] === id) delete map[f][s];
         (map[fid] || (map[fid] = {}))[d.socketId] = id;

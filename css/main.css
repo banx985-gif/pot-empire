@@ -140,3 +140,10 @@ ul.plain li { padding: 3px 0; }
 .dot.on { background: var(--lime); }
 .card-ph { display: flex; align-items: center; justify-content: center; width: 54px; height: 54px; border-radius: 10px; background: linear-gradient(135deg, #5a3a8c, #2a1a47); border: 1px dashed #ffffff55; font-size: 11px; font-weight: 800; flex: none; text-align: center; padding: 2px; }
 .card-ph.small { width: 44px; height: 44px; }
+.hub { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0; }
+.hub-btn { background: linear-gradient(135deg, #5a3a8c, #3a2666) !important; border: 1px solid #ffffff30 !important; border-radius: 14px; padding: 12px 8px; display: flex; flex-direction: column; align-items: center; min-height: 92px; }
+.hub-btn span { font-size: 28px; }
+.hub-btn small { color: var(--lime); font-weight: 700; }
+.chips.narrow { max-width: 45%; justify-content: flex-end; }
+.chips .chip { pointer-events: auto; }
+.r-bg-Common { border-color: #cfd8dc !important; } .r-bg-Uncommon { border-color: #9cff8a !important; } .r-bg-Rare { border-color: #6fd3ff !important; } .r-bg-Epic { border-color: #d39aff !important; } .r-bg-Legendary { border-color: #ffd84d !important; }

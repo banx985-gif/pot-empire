@@ -256,6 +256,7 @@ globalThis.PE.Data.balance = {
     demandMin: 0.8,
     demandMax: 1.3,
     reputationToDemand: 0.01,
+    reputationToValue: 0.002,   // in grow rooms, factories and depots reputation adds to value instead
     lowStockValue: 2,
     offlineRetailScale: 0.3,
     capacityOfflinePerLevel: 0.08,

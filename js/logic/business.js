@@ -117,7 +117,7 @@
       const p = products.get(sku);
       const ctx = factoryCtx(fid, line, sku);
       return p.magnitude * (1 + (line.levels.value - 1) * E().valuePerLevel)
-        * (1 + g.effects.get('productValue', ctx) + g.effects.get('familyDemand', ctx));
+        * (1 + g.effects.get('productValue', ctx) + g.effects.get('familyDemand', ctx) + g.effects.get('reputation', ctx) * E().reputationToValue);
     }
     function startLine(fid, i, sku) {
       const line = slots(fid)[i];
@@ -189,7 +189,7 @@
       const ctx = deliveryCtx(fid, offer.seconds, vehicleId);
       const share = Math.min(0.9, E().contractShare * (vs.capacity / 0.2) * (1 + g.effects.get('deliveryCapacity', ctx)));
       const amount = getStock(offer.sku) * share;
-      const payout = 1 + g.effects.get('deliveryPayout', ctx) + packBonus(offer.sku, 'deliveryPayout');
+      const payout = 1 + g.effects.get('deliveryPayout', ctx) + packBonus(offer.sku, 'deliveryPayout') + g.effects.get('reputation', ctx) * E().reputationToValue;
       const creditBoost = 1 + stock().contractCredit * E().creditToPayout;
       const reward = amount * offer.mult * vs.reward * payout * creditBoost * g.facilities.econ(fid).valueMult;
       return { seconds, amount, reward };
@@ -340,7 +340,7 @@
       reroll() {
         const d = state.depot;
         ensureOffers();
-        const limit = E().rerollsPerDay + (g.effects.get('vipRefresh', {}) || 0);
+        const limit = E().rerollsPerDay + Math.max(0, ...g.business.ids('Retail').map((f) => g.effects.get('vipRefresh', { facility: f })));
         if (d.rerolls >= limit) return false;
         d.rerolls += 1;
         d.offers = [];
