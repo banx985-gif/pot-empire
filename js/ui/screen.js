@@ -39,6 +39,13 @@
     text.setStroke('#1d0f33', 5 * L.u).setDepth(2);
     const zone = scene.add.zone(x, y, w, h).setInteractive({ useHandCursor: true });
     zone.on('pointerup', onTap);
+    const parts = [text];
+    if (!(PE.App.state.settings.reducedMotion)) {
+      zone.on('pointerdown', () => { for (const p of parts) p.setScale((p.sx0 || 1) * 0.94, (p.sy0 || 1) * 0.94); });
+      const up = () => { for (const p of parts) scene.tweens.add({ targets: p, scaleX: p.sx0 || 1, scaleY: p.sy0 || 1, duration: 130, ease: 'Back.easeOut' }); };
+      zone.on('pointerup', up);
+      zone.on('pointerout', up);
+    }
     // The real button art: the round ends stay the right shape and only the middle stretches.
     loadIcons(scene, [opts.art || 'BTN-01'], () => {
       const key = 'ui-' + (opts.art || 'BTN-01');
@@ -48,9 +55,11 @@
       if (!tex.has('L')) { tex.add('L', 0, 0, 0, cap, ih); tex.add('M', 0, cap, 0, iw - cap * 2, ih); tex.add('R', 0, iw - cap, 0, cap, ih); }
       const k = h / ih, capW = cap * k;
       g.clear();
-      scene.add.image(x - w / 2, y, key, 'L').setOrigin(0, 0.5).setDisplaySize(capW, h).setDepth(1);
-      scene.add.image(x, y, key, 'M').setDisplaySize(Math.max(1, w - capW * 2 + 1), h).setDepth(1);
-      scene.add.image(x + w / 2, y, key, 'R').setOrigin(1, 0.5).setDisplaySize(capW, h).setDepth(1);
+      // Each end scales around the button's middle, so the three pieces press in as one.
+      const left = scene.add.image(x, y, key, 'L').setOrigin((w / 2) / capW, 0.5).setDisplaySize(capW, h).setDepth(1);
+      const mid = scene.add.image(x, y, key, 'M').setDisplaySize(Math.max(1, w - capW * 2 + 1), h).setDepth(1);
+      const right = scene.add.image(x, y, key, 'R').setOrigin(1 - (w / 2) / capW, 0.5).setDisplaySize(capW, h).setDepth(1);
+      for (const p of [left, mid, right]) { p.sx0 = p.scaleX; p.sy0 = p.scaleY; parts.push(p); }
     });
     return { g, text, zone, x, y, w, h };
   }

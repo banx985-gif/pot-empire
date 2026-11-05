@@ -66,6 +66,7 @@
     PE.Settings.init();
     PE.AgeGate.init();
     PE.Tutorial.init();
+    PE.Juice.init();
 
     const fromFile = location.protocol === 'file:';
     const game = new Phaser.Game({

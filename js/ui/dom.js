@@ -120,7 +120,7 @@
       const top = !fresh && oldScroll ? oldScroll.scrollTop : 0;
       const body = def.render(this.panelRoute.params || {});
       const title = typeof def.title === 'function' ? def.title(this.panelRoute.params || {}) : def.title;
-      el.className = def.sheet ? 'is-sheet' : 'is-full';
+      el.className = `${def.sheet ? 'is-sheet' : 'is-full'}${fresh ? ' enter' : ''}`;
       el.innerHTML = `<div class="box"><header><button data-act="__close" class="closer ${def.sheet ? "" : "back"}" aria-label="${def.sheet ? "Close" : "Back"}">${icon(def.sheet ? "SYS-04" : "SYS-03", 30)}</button><h2>${esc(title)}</h2></header><div class="scroll">${body}</div></div>`;
       el.hidden = false;
       const nowScroll = el.querySelector('.scroll');
@@ -197,7 +197,13 @@
 
   const Hud = {
     last: {},
-    set(id, html) { if (this.last[id] !== html) { this.last[id] = html; $(id).innerHTML = html; } },
+    set(id, html) {
+      if (this.last[id] === html) return;
+      this.last[id] = html;
+      $(id).innerHTML = html;
+      // The bar was rebuilt, so the number needs putting straight back.
+      if (id === 'hud') { const c = PE.Juice.Counter; c.shown = c.shown === null ? null : c.shown; const el = $('cash-num'); if (el && c.shown !== null) el.textContent = PE.Dom.money(String(Math.floor(c.shown))); }
+    },
 
     refresh() {
       const app = PE.App;
@@ -210,13 +216,14 @@
       this.set('hud', `
         <div class="hud-top">
           <button class="lvl" data-act="profile"><b>${st.player.level}</b><i style="width:${pct.toFixed(1)}%"></i></button>
-          <div class="cash">${icon('CUR-01', 28)}<span id="cash-num">${money(st.currencies.cash)}</span></div>
+          <div class="cash">${icon('CUR-01', 28)}<span id="cash-num"></span></div>
           <div class="gems">${icon('CUR-02', 24)}${Money.format(st.currencies.rainbowGems)}</div>
           ${netDot}
           <button class="gear" data-act="settings" aria-label="Settings">${icon('SYS-01', 34)}</button>
         </div>
         <div class="goal">${esc(PE.Goals.current(g))}</div>
         ${chest ? `<button class="chest" data-act="chest">${icon('RWD-01', 26)}Choose your reward${chest > 1 ? ` (${chest})` : ''}</button>` : ''}`);
+      PE.Juice.Counter.sync();
 
       const route = app.router.current();
       const inRoom = route && route.name === 'garage';

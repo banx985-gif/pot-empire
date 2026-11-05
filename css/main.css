@@ -468,3 +468,16 @@ ul.plain li { padding: 3px 0; }
 .comic-say { flex: 1; min-width: 0; align-self: center; }
 .comic-say p { margin: 2px 0 0; font-size: 15px; line-height: 1.28; }
 .comic .story-who { color: #a01a6f; margin: 0; font-size: 14px; }
+
+/* ---- Big job 3, Stage 7: polish ---- */
+#juice { position: absolute; inset: 0; z-index: 8; pointer-events: none; overflow: hidden; }
+.fly-coin, .fly-star { position: absolute; left: -13px; top: -13px; will-change: transform; line-height: 0; }
+#panel.is-sheet.enter .box { animation: sheet-up .22s cubic-bezier(.2,.9,.3,1); }
+#panel.is-full.enter .box { animation: full-in .18s ease-out; }
+#panel.is-sheet.enter { animation: fadein .18s ease-out; }
+#modal .card { animation: pop .2s cubic-bezier(.2,1.4,.4,1); }
+@keyframes sheet-up { from { transform: translateY(70px); opacity: .4; } }
+@keyframes full-in { from { transform: translateX(22px); opacity: 0; } }
+.calm #panel.enter .box, .calm #panel.enter, .calm #modal .card { animation: none !important; }
+@media (prefers-reduced-motion: reduce) { #panel.enter .box, #panel.enter, #modal .card { animation: none !important; } }
+#ui .map-side-btn, #ui .map-event, #ui .chip, #ui .gear, #ui .lvl, #ui .closer { transition: transform .12s cubic-bezier(.3,1.8,.5,1), filter .12s; }

@@ -61,14 +61,18 @@
       if (card) {
         card.classList.add('flip');
         PE.Sound.play('reveal');
-        if (/rare-(Epic|Legendary|Mythic)/.test(card.className)) PE.Sound.play('rare');
+        if (/rare-(Epic|Legendary|Mythic)/.test(card.className)) {
+          PE.Sound.play('rare');
+          const r = card.getBoundingClientRect();
+          PE.Juice.sparkle(r.left + r.width / 2, r.top + r.height / 2, 12);
+        }
       }
     },
     tap() {
       if (!this.now) return;
       if (this.flipped) { this.close(); return; }
       this.flipped = true;
-      document.querySelectorAll('#reveal .reveal-card').forEach((c) => c.classList.add('flip'));
+      document.querySelectorAll('#reveal .reveal-card:not(.flip)').forEach((c) => this.flipOne(Number(c.dataset.i)));
     },
     close() {
       this.timers.forEach(clearTimeout);

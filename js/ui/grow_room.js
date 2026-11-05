@@ -50,6 +50,7 @@
       PE.UI.loadIcons(this, ['ACT-01', 'ACT-04'], () => {});
       this.refresh(true);
       this.ready = true;
+      if (!PE.App.state.settings.reducedMotion && !this.testOverride) this.cameras.main.fadeIn(170, 20, 10, 36);
     }
 
     // ---- The room itself (placeholder) ----------------------------------------------------------

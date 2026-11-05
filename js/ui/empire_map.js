@@ -136,6 +136,7 @@
       this.refresh();
       this.ready = true;
       PE.Sound.setOnMap(true);
+      if (!this.calm()) this.cameras.main.fadeIn(170, 29, 15, 51);
       this.events.on('sleep', () => PE.Sound.setOnMap(false));
       this.events.on('wake', () => PE.Sound.setOnMap(true));
       this.unsub = this.g.on((type, e) => this.onGameEvent(type, e));
@@ -416,6 +417,7 @@
       if (r.ok) {
         PE.App.saveGame();
         this.floatText(v.s.x, v.s.y - 260, r.cash ? `+$${PE.Money.format(Math.floor(r.cash))}` : `+${r.count} collected`);
+        if (r.cash) { const p = this.worldToPage(v.s.x, v.s.y - 230); PE.Juice.coins(p.x, p.y, 6); }
       }
       this.refresh();
     }

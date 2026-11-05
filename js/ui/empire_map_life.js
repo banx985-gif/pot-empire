@@ -367,6 +367,7 @@
         if (r.ok) {
           this.floatText(s.x, s.y - 40, r.text);
           PE.Dom.toast(`Free gift: ${r.text}`, '', 'RWD-04');
+          { const p = this.worldToPage(s.x, s.y); PE.Juice.sparkle(p.x, p.y, 7); }
           PE.App.saveGame();
         }
         s.destroy();
