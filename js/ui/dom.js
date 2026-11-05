@@ -31,10 +31,15 @@
   }
 
   // ---- Tap handling on a container ----------------------------------------------------------
+  // A finger tap arrives as pointerdown, pointerup, then touchend, and the game acts on touchend. So for
+  // fingers "a finger is down" only ends at touchend: if it ended at pointerup, a menu's once-a-second
+  // redraw could slip in before touchend, replace the button, and the tap would be lost (the cause of
+  // the two taps that failed in job 002; tools/browser_lost_tap.js shows it).
   let touching = false;
-  const fingerUp = () => { touching = false; };
-  window.addEventListener('pointerup', fingerUp, true);
-  window.addEventListener('pointercancel', fingerUp, true);
+  window.addEventListener('pointerup', (e) => { if (e.pointerType !== 'touch') touching = false; }, true);
+  window.addEventListener('pointercancel', () => { touching = false; }, true);
+  window.addEventListener('touchend', (e) => { if (!e.touches || !e.touches.length) setTimeout(() => { touching = false; }, 0); }, true);
+  window.addEventListener('touchcancel', () => { touching = false; }, true);
 
   function attachTaps(el, handle) {
     let down = null;
@@ -56,7 +61,10 @@
     // plant. Cancelling touchend stops it, but only if done BEFORE the menu is removed, so the
     // action has to run here, after the cancel.
     el.addEventListener('pointerup', (e) => { if (e.pointerType !== 'touch') finish(e.clientX, e.clientY); });
-    el.addEventListener('touchend', (e) => {
+    // Heard on the whole window, not just this menu: if the button under the finger was replaced anyway,
+    // its touchend would go to a button no longer on the page and never reach the menu.
+    window.addEventListener('touchend', (e) => {
+      if (!down) return;   // this tap didn't start here
       // A text box needs the browser's own touch handling to get the keyboard up.
       if (e.target.closest && e.target.closest('input, textarea, select, label')) { down = null; return; }
       if (e.cancelable) e.preventDefault();
@@ -77,7 +85,12 @@
       attachTaps($('hud'), (act) => this.runBar(act));
       attachTaps($('actionbar'), (act) => this.runBar(act));
       attachTaps($('bottomnav'), (act) => this.runBar(act));
-      setInterval(() => { if (!touching && this.panelRoute && this.panelDef().live) this.renderPanel(); }, 1000);
+      setInterval(() => this.liveTick(), 1000);
+    },
+
+    // The once-a-second redraw of menus with timers. Never while a finger is on the screen.
+    liveTick() {
+      if (!touching && this.panelRoute && this.panelDef().live) this.renderPanel();
     },
 
     setBarsVisible(on) {

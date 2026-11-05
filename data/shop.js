@@ -21,8 +21,8 @@ globalThis.PE.Data.shop = {
   //       pass (lasts passDays from purchase, restorable while it lasts), theme (cosmetic, restorable)
   products: [
     { id: 'starter_bundle', name: 'Starter bundle', priceKey: 'starterBundle', kind: 'oneTime',
-      text: 'A head start: cash worth 300 typical harvests, 30 Collection Tokens and the "Founding Grower" title.',
-      grants: { cashHarvests: 300, collectionTokens: 30, title: 'Founding Grower' } },
+      text: 'A head start: cash worth 60 typical harvests, 30 Collection Tokens and the "Founding Grower" title.',
+      grants: { cashHarvests: 60, collectionTokens: 30, title: 'Founding Grower' } },
     { id: 'no_ads', name: 'No-ads convenience', priceKey: 'noAds', kind: 'oneTime',
       text: 'Get every optional ad reward without watching, same daily limits.',
       grants: { entitlement: 'noAds' } },
