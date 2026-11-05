@@ -53,6 +53,24 @@
       EVENTS.forEach((e) => { if (!d.jokes.some((j) => j.event === e)) problems.push(`jokes: none for ${e}`); });
     }
 
+    // Helper pictures: every id used anywhere must be a real sprite of the right helper.
+    if (d.helperSprites) {
+      const S = d.helperSprites;
+      const real = (id, helper) => {
+        const m = /^([A-Z]+)-(\d\d)$/.exec(String(id));
+        return !!m && (!helper || m[1] === helper) && S.counts[m[1]] >= Number(m[2]) && Number(m[2]) >= 1;
+      };
+      const need = (id, helper, where) => { if (!real(id, helper)) problems.push(`helper art: ${where} uses ${id}, which isn't a sprite of ${helper || 'a helper'}`); };
+      (d.jokes || []).forEach((j) => { need(j.face, j.helper, j.id); need(j.face2, j.helper, j.id); });
+      for (const h of Object.keys(S.counts)) {
+        need(S.defaultFace[h], h, 'defaultFace');
+        need(S.screens.crew[h], h, 'screens.crew');
+        S.blink[h].frames.forEach((id) => need(id, h, 'blink'));
+      }
+      for (const [kind, list] of Object.entries(S.celebrate)) list.forEach((id) => need(id, null, 'celebrate ' + kind));
+      for (const k of ['title', 'howToPlay', 'noLinesYet']) need(S.screens[k], null, 'screens.' + k);
+    }
+
     if (!d.balance) problems.push('balance table missing');
     else {
       if (d.balance.status !== 'provisional') problems.push('balance table must be marked provisional until the simulator passes');

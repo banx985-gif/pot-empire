@@ -63,12 +63,20 @@
         <h4>Prestige badges</h4>
         ${badges.length ? `<div class="chips">${badges.map((b) => `<span class="chip on">🌟 ${esc(b.name)} x${b.count}</span>`).join('')}</div>` : '<p class="muted">Each regional prestige adds a badge for that district.</p>'}
 
+        <h4>Your helpers</h4>
+        ${PE.Data.helpers.map((h) => {
+    const all = PE.Data.jokes.filter((j) => j.helper === h.id).length;
+    const heard = game.helpers.heard().filter((j) => j.helper === h.id).length;
+    return `<div class="item" data-act="crew">${PE.HelperArt.img(PE.Data.helperSprites.screens.crew[h.id], h.name, 'crew-face')}<div class="grow"><b>${esc(h.name)}</b><small>${heard} of ${all} lines heard</small></div><span class="tag">Lines</span></div>`;
+  }).join('')}
+
         <h4>Stats</h4>
         <ul class="plain"><li>${Money.format(st.stats.harvests)} harvests</li><li>${money(st.stats.lifetimeCash)} earned in total</li>
           <li>${Object.keys(st.unlockedStrains).length} of 60 strains</li><li>${Object.keys(st.collections.owned).length} collection items</li></ul>`;
     },
     actions: {
       talents() { PE.App.router.go('talents', {}); },
+      crew() { PE.App.router.go('helperReplay', {}); },
       avatars() { PE.App.router.go('avatarList', {}); },
       saveNames() {
         const game = g();
@@ -135,9 +143,9 @@
     title: 'Helper lines',
     render() {
       const heard = g().helpers.heard();
-      if (!heard.length) return '<p class="center muted">Nothing yet. The helpers speak up when something big happens.</p>';
+      if (!heard.length) return PE.HelperArt.says(PE.Data.helperSprites.screens.noLinesYet, PE.Data.helperSprites.words.noLinesYet, 'Budz');
       const names = Object.fromEntries(PE.Data.helpers.map((h) => [h.id, h.name]));
-      return '<p class="muted">Tap one to hear it again.</p>' + heard.map((j) => `<div class="item" data-act="say:${j.id}"><div class="grow"><b>${esc(names[j.helper])}</b><small>${esc(j.text)}</small></div><span class="tag">Replay</span></div>`).join('');
+      return '<p class="muted">Tap one to hear it again.</p>' + heard.map((j) => `<div class="item" data-act="say:${j.id}">${PE.HelperArt.img(PE.Data.helperSprites.screens.crew[j.helper], names[j.helper], 'line-face')}<div class="grow"><b>${esc(names[j.helper])}</b><small>${esc(j.text)}</small></div><span class="tag">Replay</span></div>`).join('');
     },
     actions: { say(id) { g().helpers.replay(id); } },
   };

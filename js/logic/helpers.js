@@ -40,7 +40,7 @@
       hs().lastMs = now;
       hs().lastId = j.id;
       hs().said += 1;
-      g.emit('helperSay', { jokeId: j.id, helper: j.helper, name: helperName[j.helper], text: j.text, event });
+      g.emit('helperSay', { jokeId: j.id, helper: j.helper, name: helperName[j.helper], text: j.text, event, face: j.face, face2: j.face2 });
       return j;
     }
 
@@ -123,7 +123,7 @@
       replay(jokeId) {
         const j = data.jokes.find((x) => x.id === jokeId);
         if (!j || !hs().seen[j.id]) return false;
-        g.emit('helperSay', { jokeId: j.id, helper: j.helper, name: helperName[j.helper], text: j.text, event: j.event, replay: true });
+        g.emit('helperSay', { jokeId: j.id, helper: j.helper, name: helperName[j.helper], text: j.text, event: j.event, face: j.face, face2: j.face2, replay: true });
         return true;
       },
     };

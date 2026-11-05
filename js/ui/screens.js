@@ -21,6 +21,19 @@
         img.setScale(Math.min((L.right - L.left) * 0.75 / img.width, (L.bottom - L.top) * 0.42 / img.height));
       });
 
+      // Uncle Haze in front of the plant, loaded only for this screen and let go when it closes.
+      const hazeId = PE.Data.helperSprites.screens.title;
+      const hazeKey = 'helper-' + hazeId;
+      const hazeImg = new Image();
+      hazeImg.onload = () => {
+        if (this.sys.settings.status >= Phaser.Scenes.SHUTDOWN) return;
+        if (!this.textures.exists(hazeKey)) this.textures.addImage(hazeKey, hazeImg);
+        const size = Math.min((L.right - L.left) * 0.62, (L.bottom - L.top) * 0.34);
+        this.add.image(L.left + (L.right - L.left) * 0.26, L.bottom - 150 * L.u, hazeKey).setOrigin(0.5, 0.96).setDisplaySize(size, size);
+      };
+      hazeImg.src = PE.HelperArt.url(hazeId);
+      this.events.once('shutdown', () => { hazeImg.onload = null; if (this.textures.exists(hazeKey)) this.textures.remove(hazeKey); });
+
       this.startButton = PE.UI.addButton(this, midX, L.bottom - 110 * L.u, 240 * L.u, 64 * L.u, 'START',
         () => PE.App.goToRoom(PE.App.state.ui.lastRoom || 'F01'), { size: 26 });
 

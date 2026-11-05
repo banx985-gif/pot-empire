@@ -423,6 +423,11 @@ globalThis.PE.Data.balance = {
     repeatChance: 0.35,      // after the first time, the chance an event gets a line at all
     idleReturnHours: 2,      // "welcome back" lines only after being away this long
     showSeconds: 9,          // a line closes by itself after this long; one tap closes it sooner
+    secondFaceMinChars: 60,  // lines at least this long change expression partway through
+    secondFaceAtShare: 0.4,  // how far through the time on screen that change happens
+    blinkEverySeconds: 2.6,  // how often a blink/idle frame is swapped in
+    blinkHoldMs: 170,        // how long that frame stays before going back
+    celebrateHelperSize: 124, // how wide the cheering helper is on a banner, in screen points
   },
   celebrations: {
     source: 'STAND-IN. Bible section 10A: short and skippable, reduced-motion option.',

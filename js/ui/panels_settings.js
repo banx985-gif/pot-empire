@@ -43,6 +43,7 @@
         <h4>Test shop</h4>
         ${toggle('pretendShop', 'Pretend payments and ads', 'For testing only: no real money, no real ads')}
         <h4>How to play</h4>
+        ${PE.HelperArt.says(PE.Data.helperSprites.screens.howToPlay, PE.Data.helperSprites.words.howToPlay, 'Leafy')}
         ${HELP.map(([t, x]) => `<div class="item"><div class="grow"><b>${esc(t)}</b><small>${esc(x)}</small></div></div>`).join('')}
         <p class="muted">Build ${esc(build)} · Balance table v${g().B.tableVersion} (provisional) · Save version ${PE.SaveSchema.CURRENT_VERSION}</p>
         <p class="muted">A fictional game for adults. Nothing here is real advice or a real product.${s ? '' : ''}</p>`;
