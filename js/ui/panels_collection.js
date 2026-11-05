@@ -131,7 +131,7 @@
       const m = game.collections.item(id);
       const here = game.state.managers.assigned[id];
       const targets = game.collections.managerTargets(id);
-      return `<div class="item big">${card(m)}<div class="grow"><small class="r-${m.rarity}">${m.rarity} · ${esc(m.role)}</small><b>${esc(effectLine(m))}${esc(whenText(m))}</b><small>${esc(m.strategy)}</small></div></div>
+      return `<div class="item big"><span class="card-ph has-portrait big-face r-bg-${m.rarity}">${PE.Dom.portrait(m.id, m.name)}</span><div class="grow"><small class="r-${m.rarity}">${m.rarity} · ${esc(m.role)}</small><b>${esc(effectLine(m))}${esc(whenText(m))}</b><small>${esc(m.strategy)}</small></div></div>
         ${game.collections.owns(id) ? `${cardProgress(id)}<p class="muted">Duplicates level this card up. Each level adds ${Math.round(game.B.collectionRules.managerLevelBonus * 100)}% to its effect. You also get Collection Tokens for every duplicate.</p>` : ''}
         <h4>Assign to</h4>
         ${targets.length ? targets.map((t) => `<div class="item" data-act="assign:${id}:${t.id}"><div class="grow"><b>${esc(t.name)}</b></div>${here === t.id ? '<span class="tag go">Here</span>' : '<span class="tag">Assign</span>'}</div>`).join('') : '<p class="muted">You don\'t own a place this manager can work yet.</p>'}
@@ -327,7 +327,7 @@
     const target = `${p.fid}:${Number(p.si)}`;
     const at = game.collections.managersAt(target);
     const names = at.map((id) => game.collections.item(id).name).join(', ');
-    return `${baseStation(p)}<h4>Manager</h4><div class="item" data-act="managers"><div class="grow"><b>${names ? esc(names) : 'None assigned'}</b><small>${at.length}/${game.collections.managerSlots(target)} slots</small></div><span class="tag">Open</span></div>`;
+    return `${baseStation(p)}<h4>Manager</h4><div class="item" data-act="managers">${PE.Dom.managerFaces(at)}<div class="grow"><b>${names ? esc(names) : 'None assigned'}</b><small>${at.length}/${game.collections.managerSlots(target)} slots</small></div><span class="tag">Open</span></div>`;
   };
   PE.Panels.station.actions.managers = () => {
     const r = params();

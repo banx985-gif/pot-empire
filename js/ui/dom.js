@@ -263,6 +263,9 @@
   // A character portrait (manager, rival or VIP). Hides itself if it can't load.
   Dom.portrait = (id, name, cls = '') => `<img class="portrait ${cls}" src="assets/characters/${id}.webp" alt="${esc(name)}" loading="lazy" draggable="false" onerror="this.style.visibility='hidden'">`;
 
+  // The faces of whoever works somewhere: used on station, shop, factory and depot manager rows.
+  Dom.managerFaces = (ids) => (ids.length ? `<span class="face-row">${ids.map((id) => { const m = PE.App.g.collections.item(id); return Dom.portrait(id, m.name, `small r-bg-${m.rarity}`); }).join('')}</span>` : '');
+
   PE.Dom = Dom;
   PE.Hud = Hud;
   PE.Panels = {};

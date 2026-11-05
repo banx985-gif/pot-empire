@@ -351,3 +351,12 @@ ul.plain li { padding: 3px 0; }
   .map-side-btn small { font-size: 7px; }
 }
 .cal-day.best small { color: #2a0f33; }
+
+/* ---- Big job 3, Stage 0: portraits ---- */
+.face-row { display: flex; gap: 4px; flex: none; }
+.face-row .portrait { border: 2px solid #ffffff55; box-sizing: border-box; }
+.card-ph.has-portrait { border-style: solid; border-width: 2px; background: radial-gradient(circle at 50% 35%, #5a3a8c, #1d0f33); }
+.card-ph.big-face { width: 116px; height: 116px; }
+.card-ph.big-face .portrait { width: 100%; height: 100%; }
+.r-bg-Mythic { border-color: #ff7ac6 !important; }
+.item .portrait:not(.small) { background: radial-gradient(circle at 50% 35%, #5a3a8c, #1d0f33); }

@@ -247,7 +247,7 @@
     const game = g();
     const at = game.collections.managersAt(fid);
     const names = at.map((id) => game.collections.item(id).name).join(', ');
-    return `<h4>Manager</h4><div class="item" data-act="managers"><div class="grow"><b>${names ? esc(names) : 'None assigned'}</b><small>${at.length}/${game.collections.managerSlots(fid)} slots</small></div><span class="tag">Open</span></div>`;
+    return `<h4>Manager</h4><div class="item" data-act="managers">${PE.Dom.managerFaces(at)}<div class="grow"><b>${names ? esc(names) : 'None assigned'}</b><small>${at.length}/${game.collections.managerSlots(fid)} slots</small></div><span class="tag">Open</span></div>`;
   }
 
   PE.Panels.business = {
