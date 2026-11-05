@@ -129,7 +129,14 @@
         // The rules keep running, they don't depend on the drawing.
         if (!PE.Panels[route.name].sheet && sceneNow && game.scene.isActive(sceneNow.key)) game.scene.sleep(sceneNow.key);
         else if (PE.Panels[route.name].sheet && sceneNow && game.scene.isSleeping(sceneNow.key)) game.scene.wake(sceneNow.key);
-      } else showScene(route);
+      } else {
+        showScene(route);
+        // First open of the day: the calendar comes up once, if today's reward is waiting. Skippable.
+        if (route.name !== 'title' && !route.params.test && g.calendar.shouldShow()) {
+          g.calendar.markShown();
+          setTimeout(() => { if (!PE.Dom.panelRoute) router.go('calendar', { auto: true }); }, 0);
+        }
+      }
       syncGuard();
       saves.save(app.state);
       PE.Hud.refresh();

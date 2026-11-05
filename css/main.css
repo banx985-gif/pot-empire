@@ -331,3 +331,23 @@ ul.plain li { padding: 3px 0; }
 #reveal.still .reveal-card .inner { transition: none; }
 .calm .reveal-glow { display: none; }
 @media (prefers-reduced-motion: reduce) { .reveal-glow { display: none; } .reveal-card { animation: none; } .reveal-card .inner { transition: none; } }
+
+/* ---- Job 5: the login calendar ---- */
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin: 8px 0; }
+.cal-day { position: relative; aspect-ratio: 0.82; border-radius: 9px; background: #3a2666; border: 2px solid transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 19px; line-height: 1.1; overflow: hidden; }
+.cal-day small { position: absolute; top: 1px; left: 3px; font-size: 9px; font-weight: 800; color: #cbbfe3; }
+.cal-day.big { background: linear-gradient(145deg, #5a3a8c, #a01a6f); border-color: var(--gold); }
+.cal-day.best { background: linear-gradient(145deg, #ffd84d, #ff4fa3); }
+.cal-day.claimed { opacity: 0.45; }
+.cal-day.claimed::after { content: '✓'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--lime); font-weight: 900; font-size: 24px; text-shadow: 0 1px 3px #000; }
+.cal-day.next { border-color: var(--lime); box-shadow: 0 0 10px var(--lime); }
+.cal-today { display: flex; gap: 10px; align-items: center; background: #0003; border-radius: 12px; padding: 8px 12px; }
+.cal-today .ico { font-size: 34px; flex: none; }
+
+@media (max-height: 700px) {
+  .map-side { gap: 3px; bottom: 50px; }
+  .map-side-btn { width: 44px; height: 44px; }
+  .map-side-btn span { font-size: 16px; }
+  .map-side-btn small { font-size: 7px; }
+}
+.cal-day.best small { color: #2a0f33; }

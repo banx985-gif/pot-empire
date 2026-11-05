@@ -444,6 +444,50 @@ globalThis.PE.Data.balance = {
     nameMaxLength: 20,
   },
 
+  // v4: the daily login calendar. Add a row to calendars for a seasonal one, and point "active" at it.
+  // Rewards use the same words as tasks: cashHarvests (typical harvests of cash), collectionTokens,
+  // researchTokens, festivalTickets, gems, title, plus chest (how many cards), manager (at least this
+  // rarity) and decoration. Every 7th day is a bigger prize, and day 28 is the best.
+  calendar: {
+    source: 'STAND-IN. Job 5 card, Stage 6. Rewards made up by Claude Code.',
+    active: 'standard',
+    calendars: {
+      standard: {
+        name: 'Grower\'s Calendar',
+        days: [
+          { cashHarvests: 5 },
+          { collectionTokens: 5 },
+          { researchTokens: 1 },
+          { festivalTickets: 5 },
+          { chest: 2 },
+          { gems: 2 },
+          { manager: 'Common', cashHarvests: 10 },   // day 7
+          { cashHarvests: 8 },
+          { collectionTokens: 8 },
+          { researchTokens: 2 },
+          { festivalTickets: 8 },
+          { chest: 2 },
+          { gems: 3 },
+          { decoration: true, cashHarvests: 15 },   // day 14
+          { cashHarvests: 10 },
+          { collectionTokens: 10 },
+          { researchTokens: 2 },
+          { festivalTickets: 10 },
+          { chest: 3 },
+          { gems: 3 },
+          { manager: 'Uncommon', gems: 5 },   // day 21
+          { cashHarvests: 13 },
+          { collectionTokens: 13 },
+          { researchTokens: 3 },
+          { festivalTickets: 13 },
+          { chest: 3 },
+          { gems: 5 },
+          { manager: 'Rare', gems: 10, collectionTokens: 30, title: 'Calendar Keeper' },   // day 28
+        ],
+      },
+    },
+  },
+
   // v4: recipes. Storage never throws anything away: a full store only makes finished batches wait.
   factoryStore: {
     source: 'STAND-IN. Job 5 card: if a store is full, production waits and shows why.',

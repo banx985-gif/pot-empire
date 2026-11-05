@@ -17,7 +17,7 @@
     { id: 'rivals', label: 'Rivals', icon: '🥊' },
     { id: 'prestige', label: 'Prestige', icon: '🌟' },
   ];
-  PE.MapMenu = MENU;
+  PE.MapMenu = [{ id: 'calendar', label: 'Daily', icon: '📅', dot: () => g().calendar.canClaim() }, ...MENU];
 
   PE.Panels.tasks = {
     title: 'Daily and weekly tasks',

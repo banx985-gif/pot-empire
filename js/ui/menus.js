@@ -116,6 +116,7 @@
     { ui: 'UI27', name: 'Decoration inventory', route: 'decorList' },
     { ui: 'UI28', name: 'Rivals', route: 'rivals' },
     { ui: 'UI29', name: 'Daily tasks', route: 'tasks' },
+    { ui: 'UI29b', name: 'Login calendar', route: 'calendar' },
     { ui: 'UI30', name: 'Achievements', route: 'achievements' },
     { ui: 'UI31', name: 'Festival hub', route: 'festival' },
     { ui: 'UI32', name: 'Festival progression', route: 'festivalTiers' },
