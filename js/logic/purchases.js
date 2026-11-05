@@ -87,8 +87,10 @@
 
       // Gem and ticket shop: cosmetics and small conveniences.
       shopItems: () => S().gemItems,
+      // What's on sale for the event happening right now. Nothing between events.
+      eventItems() { const e = g.meta.currentEvent(); return e ? e.items : []; },
       buyItem(id) {
-        const it = S().gemItems.find((x) => x.id === id);
+        const it = S().gemItems.find((x) => x.id === id) || g.purchases.eventItems().find((x) => x.id === id);
         if (!it) return { ok: false, why: 'unknown' };
         if (!it.repeat && state.shopOwned[id]) return { ok: false, why: 'owned' };
         if (!g.spend(it.currency, it.cost, 'shop')) return { ok: false, why: it.currency === 'rainbowGems' ? 'gems' : 'tickets' };

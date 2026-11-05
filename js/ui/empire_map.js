@@ -150,7 +150,11 @@
     }
 
     // ---- Ground: painted once from the district's layout file (js/ui/empire_map_ground.js). ----
-    drawGround() { PE.MapGround.bake(this, this.layout); }
+    drawGround() {
+      const f = this.g.meta.festivalNow();
+      this.eventSig = f.active ? f.theme : '';
+      PE.MapGround.bake(this, this.layout, f.active ? this.g.meta.eventNamed(f.theme) : null);
+    }
 
     // ---- Buildings ---------------------------------------------------------------------------------------
     standInKey(fid, tier) {
@@ -265,6 +269,9 @@
         if (showBubble) { this.drawBubble(v.bubble, st); v.bubble.c.setScale(k); }
       }
       if (this.refreshLife) this.refreshLife();
+      // An event started or ended while the map's open: redraw it with the new look.
+      const f = g.meta.festivalNow();
+      if ((f.active ? f.theme : '') !== this.eventSig) this.scene.restart();
     }
     showLook(v, own, open, tier) {
       const id = !own ? PE.Data.map.lockedLotArt : `BLD-${v.fid}-${PE.Data.map.lookForRenovation[Math.min(3, tier)]}`;
@@ -449,7 +456,10 @@
       const here = g.map.districts().find((d) => d.id === g.map.current());
       const waiting = g.map.districts().some((d) => d.id !== here.id && g.map.isUnlocked(d.id) && g.map.needsYou(d.id));
       const side = (PE.MapMenu || []).map((m) => `<button class="map-side-btn" data-act="menu:${m.id}" aria-label="${m.label}"><span>${PE.Dom.icon(m.icon, 34)}</span><small>${m.label}</small>${m.dot && m.dot() ? PE.Dom.icon('STA-03', 22, 'side-alert') : ''}</button>`).join('');
-      return `<div class="map-side">${side}</div>
+      const f = g.meta.festivalNow();
+      const left = PE.Dom.duration(Math.max(0, f.endsMs - g.now()) / 1000);
+      const banner = `<button class="map-event ${f.active ? 'on' : ''}" data-act="menu:festival">${PE.Dom.icon('GOL-03', 30)}<span><b>${PE.Dom.esc(f.theme)}</b><small>${f.active ? `On now, ends in ${left}` : `Starts in ${left}`}</small></span></button>`;
+      return `${banner}<div class="map-side">${side}</div>
         <button class="btn map-switch" data-act="districts">${PE.Dom.icon('NAV-01', 26)}${PE.Dom.esc(here.name)}${PE.Dom.icon('SYS-03', 14, 'down')}${waiting ? PE.Dom.icon('STA-03', 20) : ''}</button>
         <button class="btn plain map-list" data-act="mapList">${PE.Dom.icon('SYS-05', 22)}List</button>`;
     },

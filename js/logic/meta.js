@@ -136,13 +136,25 @@
     }
 
     // ---- Festivals: one reusable seven-day engine, six themes, 20 tiers ---------------------------------------
+    // Big job 3: a rotating monthly calendar. Each month has one theme, on for its first seven days, so
+    // there's always an event on or one coming up. Between events, theme and endsMs describe the next one.
+    const monthOf = (ms) => { const d = new Date(ms); return d.getUTCFullYear() * 12 + d.getUTCMonth(); };
+    const eventStart = (month) => Date.UTC(Math.floor(month / 12), month % 12, T().festival.startDay);
+    const eventTheme = (month) => T().festival.themes[month % T().festival.themes.length];
     function festivalNow(nowMs) {
-      const t = T().festival;
-      const week = Math.floor(dayOf(nowMs) / t.lengthDays);
-      const on = week % t.everyWeeks === 0;
-      const index = Math.floor(week / t.everyWeeks) % t.themes.length;
-      const endsMs = (week + 1) * t.lengthDays * 86400000;
-      return { id: `F${week}`, week, active: on, theme: t.themes[index], endsMs };
+      const len = T().festival.lengthDays * 86400000;
+      let month = monthOf(nowMs);
+      let start = eventStart(month);
+      if (nowMs >= start && nowMs < start + len) return { id: `M${month}`, month, active: true, theme: eventTheme(month), startsMs: start, endsMs: start + len };
+      if (nowMs >= start) { month += 1; start = eventStart(month); }
+      return { id: `W${month}`, month, active: false, theme: eventTheme(month), startsMs: start, endsMs: start };
+    }
+    // The next few events after whichever is on now.
+    function festivalCalendar(n, nowMs = g.now()) {
+      const f = festivalNow(nowMs);
+      const list = [];
+      for (let mo = f.active ? f.month + 1 : f.month; list.length < n; mo++) list.push({ theme: eventTheme(mo), startsMs: eventStart(mo) });
+      return list;
     }
     function tierNeed(tier) { const t = T().festival; return Math.round(t.tierBase * Math.pow(tier, t.tierPower)); }
     function festivalReward(tier) {
@@ -164,7 +176,12 @@
           }
         }
       }
+      const hadOne = !!cur.id;
       m().festival = { id: f.id, theme: f.theme, active: f.active, points: 0, claimed: {} };
+      if (f.active && hadOne) {
+        g.emit('festivalStarted', { theme: f.theme });
+        g.emit('celebrate', { kind: 'festival', text: `${f.theme} has begun!` });
+      }
       g.emit('changed');
     }
     function addFestivalPoints(n, strain) {
@@ -431,6 +448,10 @@
       rivalList,
       beatRival,
       festivalNow: () => festivalNow(g.now()),
+      festivalAt: festivalNow,
+      festivalCalendar,
+      currentEvent() { const f = festivalNow(g.now()); return f.active ? g.data.events.find((e) => e.name === f.theme) : null; },
+      eventNamed: (name) => g.data.events.find((e) => e.name === name),
       festivalState: () => m().festival,
       tierNeed,
       festivalReward,

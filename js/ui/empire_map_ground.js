@@ -152,12 +152,48 @@
       G.lineStyle(P(5), 0xff4fa3, 1).lineBetween(P(p.x - 110), P(p.y - 16), P(p.x + 110), P(p.y - 26));
       for (const d of [-90, -20, 60]) rect(G, p.x + d, p.y - 24, 4, 12, 0x2a1a3a);
     },
-    bunting(G, p) { const c = [0xff4fa3, 0xffd84d, 0x52e6ff, 0xc6ff3d]; G.lineStyle(P(3), 0x2a1a3a, 1).lineBetween(P(p.x - 70), P(p.y - 34), P(p.x + 70), P(p.y - 34)); for (let i = 0; i < 7; i++) { G.fillStyle(c[i % 4], 1); poly(G, [[p.x - 66 + i * 20, p.y - 34], [p.x - 52 + i * 20, p.y - 34], [p.x - 59 + i * 20, p.y - 16]]); } rect(G, p.x - 74, p.y - 40, 5, 40, 0x7a4a2c); rect(G, p.x + 70, p.y - 40, 5, 40, 0x7a4a2c); },
+    bunting(G, p) { const c = p.colours || [0xff4fa3, 0xffd84d, 0x52e6ff, 0xc6ff3d]; G.lineStyle(P(3), 0x2a1a3a, 1).lineBetween(P(p.x - 70), P(p.y - 34), P(p.x + 70), P(p.y - 34)); for (let i = 0; i < 7; i++) { G.fillStyle(c[i % c.length], 1); poly(G, [[p.x - 66 + i * 20, p.y - 34], [p.x - 52 + i * 20, p.y - 34], [p.x - 59 + i * 20, p.y - 16]]); } rect(G, p.x - 74, p.y - 40, 5, 40, 0x7a4a2c); rect(G, p.x + 70, p.y - 40, 5, 40, 0x7a4a2c); },
     dock(G, p) { rect(G, p.x - 60, p.y - 14, 120, 28, 0xa8814f); for (let i = 0; i < 6; i++) rect(G, p.x - 58 + i * 20, p.y - 14, 3, 28, 0x7a5a34); rect(G, p.x - 56, p.y + 14, 7, 16, 0x5a3f28); rect(G, p.x + 50, p.y + 14, 7, 16, 0x5a3f28); },
     moored(G, p) { ell(G, p.x, p.y, 44, 13, 0xffffff); ell(G, p.x, p.y - 4, 34, 8, 0xff8a3d); rect(G, p.x - 2, p.y - 44, 4, 40, 0x5a3f28); G.fillStyle(0xffffff, 1); poly(G, [[p.x + 2, p.y - 44], [p.x + 30, p.y - 12], [p.x + 2, p.y - 12]]); },
     umbrella(G, p) { rect(G, p.x - 2, p.y - 36, 4, 36, 0x7a4a2c); G.fillStyle(0xff4fa3, 1); poly(G, [[p.x - 30, p.y - 30], [p.x + 30, p.y - 30], [p.x, p.y - 54]]); },
     cottage(G, p) { block(G, p.x, p.y, 92, 54, p.c || 0xe8a06a, 0x8a4a3a); },
   };
+
+  // The little things an event puts along the streets. data/events.js says which event uses which.
+  const DECO = {
+    flag(G, x, y, c) { rect(G, x - 2, y - 50, 4, 50, 0x5a3f28); G.fillStyle(c, 1); poly(G, [[x + 2, y - 50], [x + 34, y - 40], [x + 2, y - 28]]); },
+    star(G, x, y, c) { rect(G, x - 2, y - 42, 4, 42, 0x2a1a3a); G.fillStyle(c, 1); poly(G, [[x, y - 74], [x + 16, y - 34], [x - 16, y - 34]]); poly(G, [[x, y - 26], [x + 16, y - 60], [x - 16, y - 60]]); },
+    lantern(G, x, y, c) { rect(G, x - 2, y - 58, 4, 58, 0x2a1a3a); rect(G, x - 2, y - 58, 26, 3, 0x2a1a3a); circ(G, x + 22, y - 40, 24, c, 0.25); G.fillStyle(c, 1).fillRoundedRect(P(x + 11), P(y - 54), P(22), P(28), P(7)); },
+    petal(G, x, y, c) { rect(G, x - 2, y - 26, 4, 26, 0x3f9a3a); for (let i = 0; i < 5; i++) circ(G, x + Math.cos(i * 1.26) * 13, y - 34 + Math.sin(i * 1.26) * 13, 9, c); circ(G, x, y - 34, 7, 0xffd84d); },
+    disco(G, x, y, c) { rect(G, x - 2, y - 56, 4, 56, 0x2a1a3a); circ(G, x, y - 70, 19, 0xd5d8e0); for (let i = -1; i <= 1; i++) { rect(G, x - 16, y - 72 + i * 8, 32, 3, c); rect(G, x + i * 8 - 1, y - 86, 3, 32, 0xffffff, 0.7); } },
+    planet(G, x, y, c) { rect(G, x - 2, y - 40, 4, 40, 0x2a1a3a); circ(G, x, y - 58, 18, c); G.lineStyle(P(4), 0xffffff, 0.85).strokeEllipse(P(x), P(y - 58), P(58), P(14)); },
+  };
+  function paintEvent(G, L, ev) {
+    const { MapPaths } = PE;
+    const prints = MapPaths.footprints(L);
+    const lines = MapPaths.linesOf(L, (k, kind) => ['boulevard', 'road'].includes(kind));
+    const others = MapPaths.linesOf(L, (k, kind) => kind !== 'boat');
+    let n = 0;
+    for (const l of lines) {
+      for (let i = 4; i < l.pts.length - 1; i += 9) {
+        const [x0, y0] = l.pts[i], [x1, y1] = l.pts[i + 1];
+        const len = Math.hypot(x1 - x0, y1 - y0) || 1;
+        const side = i % 2 ? 1 : -1;
+        const x = x0 - ((y1 - y0) / len) * (l.width / 2 + 26) * side, y = y0 + ((x1 - x0) / len) * (l.width / 2 + 26) * side;
+        if (x < 30 || y < 30 || x > L.w - 30 || y > L.h - 30) continue;
+        if (MapPaths.onWater(L, x, y) || prints.some((f) => MapPaths.inFootprint(f, x, y, 8))) continue;
+        if (others.some((o) => MapPaths.distToLine(x, y, o.pts) < o.width / 2 + 8)) continue;
+        DECO[ev.deco](G, x, y, ev.bunting[n++ % ev.bunting.length]);
+      }
+    }
+    // Bunting in front of every place, and across any square.
+    for (const f of prints.filter((p) => !p.id.startsWith('lot'))) PROPS.bunting(G, { x: f.s.x, y: f.s.y - 2, colours: ev.bunting });
+    for (const z of (L.zones || []).filter((q) => q.type === 'plaza')) {
+      PROPS.bunting(G, { x: z.x - z.rx * 0.5, y: z.y - z.ry * 0.55, colours: ev.bunting });
+      PROPS.bunting(G, { x: z.x + z.rx * 0.5, y: z.y - z.ry * 0.55, colours: ev.bunting });
+    }
+    rect(G, 0, 0, L.w, L.h, ev.tint, ev.tintAlpha);
+  }
 
   const ZONES = {
     park(G, z, k) { ell(G, z.x, z.y, z.rx, z.ry, mix(k.grass, 0xffffff, 0.14)); },
@@ -212,7 +248,7 @@
     }
   }
 
-  function paint(G, L, key) {
+  function paint(G, L, key, ev) {
     const k = L.look;
     const { MapPaths } = PE;
     const d = MapPaths.derive(L);
@@ -252,6 +288,7 @@
       for (const dx of [-90, 90]) { rect(G, lot.x + dx - 3, lot.y - 24, 6, 26, 0xe8def8); }
     }
     for (const p of MapPaths.placeProps(L)) { const fn = PROPS[p.type]; if (fn) fn(G, p, k); }
+    if (ev) paintEvent(G, L, ev);
     // Soft edges: the ground fades into a darker border, so the end of the map looks like the end.
     for (let i = 0; i < 8; i++) {
       const m = i * 12 + 12;
@@ -263,12 +300,12 @@
   PE.MapGround = {
     PROPS,
     // Makes the picture if it isn't there yet. Only one district's ground is held in memory at a time.
-    bake(scene, L) {
-      const key = 'map-ground-' + L.id;
+    bake(scene, L, ev) {
+      const key = `map-ground-${L.id}-${ev ? ev.id : 'plain'}`;
       for (const k of scene.textures.getTextureKeys()) if (k.startsWith('map-ground-') && k !== key) scene.textures.remove(k);
       if (!scene.textures.exists(key)) {
         const G = scene.make.graphics({ x: 0, y: 0, add: false });
-        paint(G, L, L.id);
+        paint(G, L, L.id, ev);
         G.generateTexture(key, Math.ceil(P(L.w)), Math.ceil(P(L.h)));
         G.destroy();
       }

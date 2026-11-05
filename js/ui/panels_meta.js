@@ -82,7 +82,7 @@
       const game = g();
       const f = game.meta.festivalNow();
       const s = game.meta.festivalState();
-      if (!f.active) return `<p class="center"><b>No festival this week.</b></p><p class="center muted">The next one starts in ${duration((f.endsMs - game.now()) / 1000)}. You have ${Money.format(game.state.currencies.festivalTickets)} Festival Tickets.</p>`;
+      if (!f.active) return `<p class="center"><b>${esc(f.theme)} is next.</b></p><p class="center muted">It starts in ${duration((f.endsMs - game.now()) / 1000)}. You have ${Money.format(game.state.currencies.festivalTickets)} Festival Tickets.</p>`;
       const n = game.B.meta.festival.tiers;
       let rows = '';
       for (let t = 1; t <= n; t++) {

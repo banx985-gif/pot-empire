@@ -448,3 +448,23 @@ ul.plain li { padding: 3px 0; }
 .age-haze { display: block; width: min(38vw, 150px); height: min(38vw, 150px); margin: -6px auto -12px; }
 .age-q { font-size: 19px; font-weight: 800; margin: 10px 0 4px; }
 .age-box .muted { margin-top: 12px; }
+
+/* ---- Big job 3, Stage 6: events and comic chapters ---- */
+.map-event { position: absolute; left: 8px; bottom: 56px; max-width: calc(100% - 84px); display: flex; align-items: center; gap: 5px; padding: 4px 10px 4px 6px; border-radius: 16px; background: #2a1a47e6 !important; border: 1.5px solid #ffffff55 !important; box-shadow: 0 3px 8px #0008; text-align: left; }
+.map-event.on { border-color: var(--gold) !important; }
+.map-event span { display: block; min-width: 0; }
+.map-event b { display: block; font-size: 13px; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.map-event small { display: block; font-size: 11px; color: #e8def8; white-space: nowrap; }
+.map-event.on small { color: var(--gold); }
+#modal .card.story { background: radial-gradient(#ffffff10 1px, transparent 1.5px) 0 0 / 9px 9px, #2a1a47; border: 3px solid #fff; }
+.comic { display: flex; flex-direction: column; gap: 8px; }
+.comic-panel { display: flex; align-items: flex-end; gap: 6px; background: #fff; color: #1d0f33; border: 3px solid #140a24; border-radius: 6px; padding: 6px; box-shadow: 4px 4px 0 #140a24; text-align: left; }
+.comic-panel.right { flex-direction: row-reverse; text-align: right; }
+.comic-panel:not(.fresh) { opacity: .62; }
+.comic-panel.fresh { animation: pop .22s cubic-bezier(.2,1.5,.4,1); }
+.calm .comic-panel.fresh { animation: none; }
+@media (prefers-reduced-motion: reduce) { .comic-panel.fresh { animation: none; } }
+.comic .story-face { width: 96px; height: 96px; margin: 0; flex: none; }
+.comic-say { flex: 1; min-width: 0; align-self: center; }
+.comic-say p { margin: 2px 0 0; font-size: 15px; line-height: 1.28; }
+.comic .story-who { color: #a01a6f; margin: 0; font-size: 14px; }

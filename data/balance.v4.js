@@ -387,7 +387,7 @@ globalThis.PE.Data.balance = {
     festival: {
       themes: ['Rainbow Roadtrip', 'Cosmic Carnival', 'Neon Night Market', 'Peace & Petals', 'Disco Harvest', 'Galaxy Groove'],
       lengthDays: 7,
-      everyWeeks: 2,          // one week on, one week off
+      startDay: 1,            // big job 3: one event each calendar month, from this day, for lengthDays
       tiers: 20,
       tierBase: 40,
       tierPower: 2,

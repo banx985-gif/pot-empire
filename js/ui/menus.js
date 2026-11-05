@@ -60,16 +60,13 @@
       const f = game.meta.festivalNow();
       const s = game.meta.festivalState();
       const T = game.B.meta.festival;
-      const DAY = 86400000;
-      const next = [];
-      for (let w = f.week + 1; next.length < 3; w++) {
-        if (w % T.everyWeeks === 0) next.push({ theme: T.themes[Math.floor(w / T.everyWeeks) % T.themes.length], startsMs: w * T.lengthDays * DAY });
-      }
+      const next = game.meta.festivalCalendar(3);
+      const ev = game.meta.eventNamed(f.theme);
       const claimed = Object.keys(s.claimed || {}).length;
-      return `${f.active ? `<p class="bigtitle">${esc(f.theme)}</p><p class="center muted">On now · ends in ${PE.Dom.duration((f.endsMs - game.now()) / 1000)}</p>
+      return `${f.active ? `${PE.Dom.icon('GOL-03', 84, 'center-ico')}<p class="bigtitle">${esc(f.theme)}</p><p class="center">${esc(ev.blurb)}</p><p class="center muted">On now · ends in ${PE.Dom.duration((f.endsMs - game.now()) / 1000)}</p>
           <p class="center"><b>${Money.format(Math.floor(s.points))} points</b> · ${claimed} of ${T.tiers} tiers claimed</p>
           <button class="btn wide go" data-act="tiers">See the ${T.tiers} reward tiers</button>`
-        : `<p class="center"><b>No festival this week.</b></p><p class="center muted">The next one starts in ${PE.Dom.duration((f.endsMs - game.now()) / 1000)}.</p>`}
+        : `${PE.Dom.icon('GOL-03', 84, 'center-ico')}<p class="bigtitle">Next: ${esc(f.theme)}</p><p class="center">${esc(ev.blurb)}</p><p class="center muted">Starts in ${PE.Dom.duration((f.endsMs - game.now()) / 1000)}. There's a new one every month.</p>`}
         ${game.purchases && game.purchases.passActive() ? '<p class="center title-tag">Event pass: +25% Festival Tickets</p>' : ''}
         <p class="center">${PE.Dom.icon('CUR-06', 22)} ${Money.format(game.state.currencies.festivalTickets)} Festival Tickets <button class="btn small plain" data-act="shop">Spend</button></p>
         <h4>Coming up</h4>${next.map((n) => `<div class="item"><div class="grow"><b>${esc(n.theme)}</b><small>Starts ${new Date(n.startsMs).toLocaleDateString()}</small></div></div>`).join('')}

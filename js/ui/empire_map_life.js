@@ -411,17 +411,19 @@
       const rival = PE.Data.rivals.find((r) => r.id === rivalId);
       const names = Object.fromEntries(PE.Data.helpers.map((h) => [h.id, h.name]));
       PE.App.g.map.markStorySeen(rivalId);
-      const step = (i) => {
-        const line = chapter.lines[i];
-        const last = i === chapter.lines.length - 1;
+      // A comic strip: each new line pops in as a panel under the one before, speakers on alternating sides.
+      const panel = (line, i, fresh) => {
         const who = line.who === 'RIVAL' ? rival.name : names[line.who];
-        const pic = line.who === 'RIVAL'
-          ? `<img class="story-face" src="assets/characters/${rivalId}.webp" alt="${PE.Dom.esc(who)}" onerror="this.style.visibility='hidden'">`
-          : `<img class="story-face" src="${PE.HelperArt.url(line.face)}" alt="${PE.Dom.esc(who)}" onerror="this.style.visibility='hidden'">`;
+        const src = line.who === 'RIVAL' ? `assets/characters/${rivalId}.webp` : PE.HelperArt.url(line.face);
+        return `<div class="comic-panel ${i % 2 ? 'right' : ''} ${fresh ? 'fresh' : ''}"><img class="story-face" src="${src}" alt="${PE.Dom.esc(who)}" onerror="this.style.visibility='hidden'"><div class="comic-say"><b class="story-who">${PE.Dom.esc(who)}</b><p>${PE.Dom.esc(line.text)}</p></div></div>`;
+      };
+      const step = (i) => {
+        const last = i === chapter.lines.length - 1;
+        const from = Math.max(0, i - 1);   // the line before stays up, so it reads as a conversation
         PE.Dom.modal({
           title: chapter.title,
           cls: 'story',
-          html: `${pic}<p class="story-who">${PE.Dom.esc(who)}</p><p>${PE.Dom.esc(line.text)}</p>`,
+          html: `<div class="comic">${chapter.lines.slice(from, i + 1).map((l, k) => panel(l, from + k, from + k === i)).join('')}</div>`,
           buttons: last ? [{ label: 'Done', style: 'go' }] : [{ label: 'Skip', style: 'plain' }, { label: 'Next', style: 'go', onTap: () => step(i + 1) }],
         });
       };
