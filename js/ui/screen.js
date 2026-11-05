@@ -79,6 +79,20 @@
     }
   }
 
+  // Hydro station pieces for a room. Fetched as needed: a station only ever asks for its own model and levels.
+  function loadHydro(scene, ids, onReady) {
+    let left = ids.length;
+    const one = () => { left--; if (!left && scene.sys.settings.status < Phaser.Scenes.SHUTDOWN) onReady(); };
+    for (const id of ids) {
+      const key = 'hy-' + id;
+      if (scene.textures.exists(key)) { one(); continue; }
+      const img = new Image();
+      img.onload = () => { if (!scene.textures.exists(key)) scene.textures.addImage(key, img); one(); };
+      img.onerror = () => { console.warn('Art failed to load: ' + id); one(); };
+      img.src = `assets/hydro/${id.split('-')[0]}/HY-${id}.webp`;
+    }
+  }
+
   // Sheets being downloaded right now: id -> list of things waiting for it.
   // This belongs to the whole game, not one screen, because the player can leave a screen while
   // its art is still downloading (a quick tap on a slow connection).
@@ -117,5 +131,5 @@
     });
   }
 
-  PE.UI = { layout, addButton, loadIcons, loadStrain, sheetUrl, SHEET_SCALE };
+  PE.UI = { layout, addButton, loadIcons, loadHydro, loadStrain, sheetUrl, SHEET_SCALE };
 })(globalThis.PE = globalThis.PE || {});

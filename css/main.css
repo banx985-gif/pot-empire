@@ -481,3 +481,11 @@ ul.plain li { padding: 3px 0; }
 .calm #panel.enter .box, .calm #panel.enter, .calm #modal .card { animation: none !important; }
 @media (prefers-reduced-motion: reduce) { #panel.enter .box, #panel.enter, #modal .card { animation: none !important; } }
 #ui .map-side-btn, #ui .map-event, #ui .chip, #ui .gear, #ui .lvl, #ui .closer { transition: transform .12s cubic-bezier(.3,1.8,.5,1), filter .12s; }
+
+/* ---- Job 8: hydro model preview ---- */
+.hy-preview { position: relative; width: min(70%, 240px); margin: 4px auto 8px; }
+.hy-preview img { position: absolute; }
+.hy-preview .hy-frame { position: static; display: block; width: 100%; }
+.hy-pot { width: 16%; transform: translate(-50%, -78%); }
+.hy-light { width: 15%; transform: translate(-50%, 0); }
+.hy-badge { width: 22%; transform: translate(-50%, -50%); }

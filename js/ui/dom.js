@@ -283,6 +283,18 @@
   // The faces of whoever works somewhere: used on station, shop, factory and depot manager rows.
   Dom.managerFaces = (ids) => (ids.length ? `<span class="face-row">${ids.map((id) => { const m = PE.App.g.collections.item(id); return Dom.portrait(id, m.name, `small r-bg-${m.rarity}`).replace('loading="lazy" ', ''); }).join('')}</span>` : '');
 
+  // A small picture of a hydro model built from its real pieces, for the model upgrade preview.
+  Dom.hydroPreview = (m) => {
+    const A = PE.Data.hydroAnchors[m], [fw, fh] = PE.Data.hydroArt[`M${m}-FRAME`];
+    const pct = (x, y) => `left:${(x / fw) * 100}%;top:${(y / fh) * 100}%`;
+    const url = (part) => `assets/hydro/M${m}/HY-M${m}-${part}.webp`;
+    const [[x0, y0], [x1, y1]] = A.holes;
+    const pots = [2, 3].map((k) => `<img class="hy-pot" style="${pct(x0 + ((x1 - x0) * k) / 6, y0 + ((y1 - y0) * k) / 6)}" src="${url('POT-1')}" alt="">`).join('');
+    return `<div class="hy-preview" style="aspect-ratio:${fw}/${fh}"><img class="hy-frame" src="${url('FRAME')}" alt="">${pots}
+      <img class="hy-light" style="${pct(A.hangX, A.railY - 6)}" src="${url('LGT-1')}" alt="">
+      <img class="hy-badge" style="${pct(A.badge[0], A.badge[1])}" src="${url('BADGE')}" alt=""></div>`;
+  };
+
   // A strain's neon logo, always on its dark backing (they're neon linework drawn for dark).
   Dom.logo = (strainId, size = 30) => `<span class="logo-badge" style="width:${size}px;height:${size}px"><img src="assets/logos/${strainId}.webp" alt="" draggable="false" loading="lazy"></span>`;
   // A strain's graffiti name badge for the profile. Six aren't drawn yet: those show the logo instead.

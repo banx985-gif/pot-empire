@@ -20,7 +20,7 @@
   const uiRect = () => $('ui').getBoundingClientRect();
   const around = (x, y, w, h) => { const u = uiRect(); return { x: x - w / 2 - u.left, y: y - h / 2 - u.top, w, h }; };
   const relative = (b) => { if (!b) return null; const u = uiRect(); return { ...b, x: b.x - u.left, y: b.y - u.top }; };
-  const potBox = (si, pi) => { const s = garage(); if (!s || pi < 0) return null; const p = s.potPagePoint(si, pi); return around(p.x, p.y - 20, 96, 110); };
+  const potBox = (si, pi) => { const s = garage(); if (!s || pi < 0) return null; s.showStation(si); const p = s.potPagePoint(si, pi); return around(p.x, p.y - 20, 96, 110); };
   const ripePot = () => {
     const s = garage();
     if (!s) return null;

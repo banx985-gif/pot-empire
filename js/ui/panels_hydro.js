@@ -48,7 +48,7 @@
       const gate = B.hydro.mainModelGate;
       const maxed = game.grow.BRANCHES.filter((b) => st.levels[b] >= gate.maxLevel).length;
       const modelBlock = prev
-        ? `<h4>Next model: ${esc(prev.toName)}</h4>
+        ? `<h4>Next model: ${esc(prev.toName)}</h4>${PE.Dom.hydroPreview(st.model + 1)}
           <p class="muted">${esc(prev.benefit)}. Needs ${gate.branchesAtMaxLevel} of ${gate.ofBranches} parts at L${gate.maxLevel} (you have ${maxed}).</p>
           <button class="btn wide ${prev.gateMet && game.canAfford('cash', prev.cost) ? 'buy' : 'cant'}" data-act="model">${PE.Dom.icon('UPG-06', 24)}Upgrade to ${esc(prev.toName)}: ${money(prev.cost)}</button>`
         : '<p class="muted">This is the top model.</p>';
@@ -93,7 +93,7 @@
         if (!p) return;
         if (!p.gateMet) { PE.Dom.toast('Max out more parts first'); return; }
         if (!game.canAfford('cash', p.cost)) { PE.Dom.toast('Not enough cash yet'); return; }
-        PE.Dom.confirm(`Upgrade to ${p.toName}?`, `
+        PE.Dom.confirm(`Upgrade to ${p.toName}?`, `${PE.Dom.hydroPreview(g().grow.stationOf(r.fid, n).model + 1)}
           <p><b>Your plants on this station:</b></p>
           <ul class="plain">
             <li>${p.matureCount} ready plant${p.matureCount === 1 ? '' : 's'} harvested and sold now: +${money(p.matureCash)}</li>

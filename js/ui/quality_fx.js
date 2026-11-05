@@ -44,7 +44,7 @@
   function create(scene, x, potY, grade) {
     if (!grade) return null;
     makeTextures(scene);
-    const base = potY - WORLD.potHeight[0] * 0.5;
+    const base = potY - WORLD.potBaseForFx;
     const c = scene.add.container(x, base).setDepth(potY + 4);
     if (grade >= 3) c.add(scene.add.image(0, -66, 'fx-glow').setScale(1.15).setAlpha(0.8));
     if (grade === 4) c.add(scene.add.image(0, -118, 'fx-rainbow').setScale(0.85).setAlpha(0.6));
