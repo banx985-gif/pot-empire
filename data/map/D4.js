@@ -5,12 +5,12 @@ globalThis.PE.Data.map.districts.push({
   nodes: {
     south: [600, 3080], lowW: [380, 2760], lowE: [820, 2780], bridgeWS: [370, 2560], bridgeES: [850, 2510], bridgeWN: [340, 2280], bridgeEN: [870, 2230],
     petalLane: [160, 2780], firstBend: [1030, 1980], mid: [600, 2000], leftBend: [170, 1560], skyLane: [410, 1890], westRoad: [100, 1900], secondBend: [1040, 1190], midHigh: [620, 1500], stanLane: [1060, 1640],
-    thirdBend: [190, 830], gardenRoad: [640, 1050], topRing: [980, 650], summit: [600, 500], velvetLane: [230, 560], 
+    thirdBend: [190, 830], gardenRoad: [640, 1050], topRing: [980, 650], x12Stop: [820, 540], summit: [600, 500], velvetLane: [230, 560], 
   },
   paths: [
     { kind: 'boulevard', via: ['south', 'lowE', 'bridgeES'] },
     { kind: 'bridge', via: ['bridgeES', 'bridgeEN'] },
-    { kind: 'boulevard', via: ['bridgeEN', 'firstBend', 'midHigh', 'leftBend', 'gardenRoad', 'secondBend', 'topRing', 'summit'] },
+    { kind: 'boulevard', via: ['bridgeEN', 'firstBend', 'midHigh', 'leftBend', 'gardenRoad', 'secondBend', 'topRing', 'x12Stop', 'summit'] },
     { kind: 'road', via: ['south', 'lowW', 'bridgeWS'] },
     { kind: 'bridge', via: ['bridgeWS', 'bridgeWN'] },
     { kind: 'road', via: ['bridgeWN', 'mid', 'bridgeEN'] },
@@ -27,7 +27,8 @@ globalThis.PE.Data.map.districts.push({
     { rival: 'RIVAL-11', x: 1050, y: 1520, node: 'stanLane' },
     { rival: 'RIVAL-12', x: 210, y: 470, node: 'velvetLane' },
   ],
-  spareLots: [{ x: 600, y: 2230, node: 'mid' }, { x: 880, y: 960, node: 'secondBend' }, { x: 1000, y: 540, node: 'topRing' }],
+  spareLots: [{ x: 600, y: 2230, node: 'mid' }, { x: 420, y: 800, node: 'thirdBend' }, { x: 1030, y: 470, node: 'topRing' }],
+  features: { X10: { x: 820, y: 2010, node: 'firstBend' }, X11: { x: 700, y: 930, node: 'gardenRoad' }, X12: { x: 940, y: 330, node: 'x12Stop' } },
   helperSpots: [{ x: 600, y: 2600 }, { x: 460, y: 2880 }, { x: 760, y: 2900 }],
   water: [{ type: 'river', pts: [[-80, 2500], [340, 2420], [860, 2370], [1280, 2300]], width: 200 }],
   zones: [
@@ -39,8 +40,8 @@ globalThis.PE.Data.map.districts.push({
   ],
   vans: [['south', 'summit'], ['skyLane', 'stanLane']],
   props: [
-    { type: 'tower', x: 110, y: 200, c: 0x3a2f70, h: 330 }, { type: 'tower', x: 240, y: 180, c: 0x4f3f8c, h: 260 }, { type: 'tower', x: 370, y: 210, c: 0x2c2358, h: 300 }, { type: 'tower', x: 810, y: 200, c: 0x4f3f8c, h: 340 }, { type: 'tower', x: 950, y: 190, c: 0x2c2358, h: 280 }, { type: 'tower', x: 1090, y: 210, c: 0x3a2f70, h: 320 },
-    { type: 'tower', x: 470, y: 800, c: 0x4f3f8c, h: 130 }, { type: 'tower', x: 720, y: 830, c: 0x2c2358, h: 150 }, { type: 'tower', x: 1140, y: 800, c: 0x3a2f70, h: 230 }, { type: 'tower', x: 130, y: 1230, c: 0x4f3f8c, h: 240 }, { type: 'tower', x: 870, y: 2040, c: 0x3a2f70, h: 210 }, { type: 'tower', x: 760, y: 1720, c: 0x2c2358, h: 200 }, { type: 'tower', x: 110, y: 2260, c: 0x4f3f8c, h: 230 },
+    { type: 'tower', x: 110, y: 200, c: 0x3a2f70, h: 330 }, { type: 'tower', x: 240, y: 180, c: 0x4f3f8c, h: 260 }, { type: 'tower', x: 370, y: 210, c: 0x2c2358, h: 300 }, 
+    { type: 'tower', x: 1140, y: 800, c: 0x3a2f70, h: 230 }, { type: 'tower', x: 130, y: 1230, c: 0x4f3f8c, h: 240 }, { type: 'tower', x: 760, y: 1720, c: 0x2c2358, h: 200 }, { type: 'tower', x: 110, y: 2260, c: 0x4f3f8c, h: 230 },
     { type: 'roofgarden', x: 420, y: 1240 }, { type: 'roofgarden', x: 870, y: 1420 }, { type: 'roofgarden', x: 380, y: 980 },
     { type: 'statue', x: 460, y: 540 }, { type: 'fountain', x: 720, y: 520 }, { type: 'lamp', x: 340, y: 650 }, { type: 'lamp', x: 860, y: 660 }, { type: 'lamp', x: 620, y: 1170 }, { type: 'bench', x: 540, y: 1310 }, { type: 'bench', x: 740, y: 1250 }, { type: 'lamp', x: 460, y: 1500 },
     { type: 'car', x: 470, y: 2170 }, { type: 'car', x: 740, y: 2130 }, { type: 'car', x: 450, y: 1090 }, { type: 'moored', x: 120, y: 2470 }, { type: 'moored', x: 1080, y: 2340 }, { type: 'dock', x: 610, y: 2500 },

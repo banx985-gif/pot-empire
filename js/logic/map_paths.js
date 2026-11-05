@@ -6,7 +6,7 @@
 // In a district file:
 //   nodes   named points: { a: [x, y] }. Two paths meet by naming the same point.
 //   paths   { kind, via: ['a', 'b', 'c'] }   kinds are listed in KINDS below
-//   spots / rivalSpots / spareLots   a building's middle-front x, y, and node: the point its drive joins
+//   spots / features / rivalSpots / spareLots   a building's middle-front x, y, and node: the point its drive joins
 //   water   { type: 'pond', x, y, rx, ry } | { type: 'river', pts, width } | { type: 'shape', pts }
 //   base    'land' (the default) or 'sea', and then land: [ [[x, y], ...], ... ] are the islands
 //   zones   flat painted areas under everything (park, plaza, hill, sand, yard, concrete)
@@ -97,7 +97,7 @@
   const lengthOf = (pts) => { let t = 0; for (let i = 1; i < pts.length; i++) t += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); return t; };
 
   function buildingSpots(L) {
-    return [...Object.values(L.spots), ...(L.rivalSpots || []), ...(L.spareLots || [])];
+    return [...Object.values(L.spots), ...Object.values(L.features || {}), ...(L.rivalSpots || []), ...(L.spareLots || [])];
   }
 
   const distToLine = (x, y, pts) => {
@@ -130,7 +130,8 @@
   // The space a building takes. Facilities are the biggest; a spare lot is flat ground.
   function footprints(L) {
     return [
-      ...Object.entries(L.spots).map(([id, s]) => ({ id, s, x0: s.x - 175, x1: s.x + 175, y0: s.y - 300, y1: s.y + 62 })),
+      ...Object.entries(L.spots).map(([id, s]) => ({ id, s, x0: s.x - 175, x1: s.x + 175, y0: s.y - 320, y1: s.y + 62 })),
+      ...Object.entries(L.features || {}).map(([id, s]) => ({ id, s, x0: s.x - 150, x1: s.x + 150, y0: s.y - 270, y1: s.y + 58 })),
       ...(L.rivalSpots || []).map((s) => ({ id: s.rival, s, x0: s.x - 125, x1: s.x + 125, y0: s.y - 270, y1: s.y + 58 })),
       ...(L.spareLots || []).map((s) => ({ id: `lot ${s.x},${s.y}`, s, x0: s.x - 130, x1: s.x + 130, y0: s.y - 70, y1: s.y + 60 })),
     ];

@@ -19,7 +19,7 @@
         if (!open && !levelOk && st.unlockLevel > lvl + 3) return '';
         return `<div class="item ${open ? '' : 'locked'}" ${open ? `data-act="plant:${s.id}"` : ''}>
           ${strainThumb(s.id, 5, 60)}
-          ${PE.Dom.logo(s.id, 34)}<div class="grow"><b>${esc(s.name)}</b><small class="r-${s.rarity}">${PE.Dom.rarityIcon(s.rarity)}${s.rarity} · ${esc(st.roleLabel)} · Mastery ${game.grow.masteryLevel(s.id)}</small>
+          ${PE.Dom.avatarPic(s.id, 38)}<div class="grow"><b>${esc(s.name)}</b><small class="r-${s.rarity}">${PE.Dom.rarityIcon(s.rarity)}${s.rarity} · ${esc(st.roleLabel)} · Mastery ${game.grow.masteryLevel(s.id)}</small>
           <small>${duration(seconds)} · about ${money(value)} a harvest</small></div>
           ${open ? '<span class="tag go">Plant</span>'
     : levelOk ? `<button class="btn buy small" data-act="unlock:${s.id}">Unlock ${money(st.unlockCost)}</button>`

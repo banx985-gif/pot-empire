@@ -86,6 +86,7 @@
       const ran = g.once(`wheel:${day}`, () => {
         m().wheelDay = day;
         text = payReward(slice, 'wheel');
+        count('wheelSpins', 1);
         g.emit('changed');
       });
       return { ok: ran, text };
@@ -197,6 +198,7 @@
       let text = '';
       const ran = g.once(`festival:${fest.id}:${tier}`, () => {
         fest.claimed[tier] = true;
+        count('festivalTiers', 1);
         text = payReward(festivalReward(tier), 'festival');
         g.emit('changed');
       });

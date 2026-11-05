@@ -82,10 +82,12 @@
             <div class="grow"><b>${esc(row.name)}</b><small>${esc(row.mode)} · ${count}</small>
             ${own ? `<div class="bar thin"><i style="width:${(F.localProgress(fid) * 100).toFixed(0)}%"></i></div>` : ''}</div>${right}</div>`;
         }).join('');
+        html += game.map.featuresIn(d.id).map((f) => `<div class="item" data-act="feature:${f.id}"><span class="fac-ico">${PE.Dom.icon('BIZ-06', 30)}</span><div class="grow"><b>${esc(f.name)}${game.map.status(f.id).kind === 'idle' ? ` ${PE.Dom.icon('STA-03', 16)}` : ''}</b><small>${esc(game.map.status(f.id).text || 'Tap to go in')}</small></div><span class="tag go">Go</span></div>`).join('');
       }
       return html;
     },
     actions: {
+      feature(id) { PE.App.openPanel(g().map.featureRow(id).route, {}); },
       go(fid) { PE.App.goToRoom(fid); },
       buy(fid) {
         const r = g().facilities.buy(fid);

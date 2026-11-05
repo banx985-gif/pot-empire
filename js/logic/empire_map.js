@@ -127,7 +127,67 @@
       const can = defs().some((d) => { const p = g.meta.prestigePreview(d.id); return p && p.unlocked && p.shares >= 1; });
       return can ? { kind: 'idle', text: 'A district can prestige' } : { kind: 'none', text: '' };
     }
+    // ---- The feature buildings ------------------------------------------------------------------------------
+    const featureRow = (id) => data.featureBuildings.find((x) => x.id === id);
+    const featuresIn = (did) => data.featureBuildings.filter((x) => x.district === did && layoutOf(did) && layoutOf(did).features && layoutOf(did).features[x.id]);
+    function featureMetric(name) {
+      const c = state.meta.counters;
+      const cats = (list) => list.filter((it) => state.collections.owned[it.id]).length;
+      switch (name) {
+        case 'calendarDays': return (state.calendar.round - 1) * g.calendar.days().length + state.calendar.claimed;
+        case 'strains': return Object.keys(state.unlockedStrains).length;
+        case 'managers': return Object.keys(state.managers.owned).length;
+        case 'collectibles': { const C = data.collectibles; return cats(C.relics) + cats(C.stickers) + cats(C.decorations); }
+        case 'rivalsBeaten': return Object.keys(state.meta.rivals).length;
+        case 'hallFilled': return state.hallOfFameFeaturedStrainIds.filter(Boolean).length;
+        case 'prestiges': return state.prestigeHistory.length;
+        case 'achievementsClaimed': return g.meta.achievementList().filter((a) => a.claimed).length;
+        default: return c[name] || 0;   // festivalTiers, wheelSpins, tasksClaimed, vipDone
+      }
+    }
+    function featureStage(id) {
+      const f = featureRow(id);
+      const v = featureMetric(f.metric);
+      return v >= f.stages[1] ? 3 : v >= f.stages[0] ? 2 : 1;
+    }
+    // "!" only when there's really something to do in there. Never saved: worked out fresh every time.
+    const FEATURE_DUE = {
+      X01: () => g.calendar.canClaim(),
+      X02: () => data.strains.some((s) => {
+        const st = g.grow.strainStats(s.id);
+        return !g.grow.isStrainUnlocked(s.id) && g.progress.level() >= st.unlockLevel && g.canAfford('cash', st.unlockCost);
+      }),
+      X03: () => state.player.pendingChoices.length > 0,
+      X04: () => {
+        const fest = g.meta.festivalState();
+        if (!fest.active) return false;
+        for (let t = 1; t <= B.meta.festival.tiers; t++) if (!fest.claimed[t] && fest.points >= g.meta.tierNeed(t)) return true;
+        return false;
+      },
+      X05: () => !g.meta.wheelUsed(),
+      X06: () => {
+        const tk = g.meta.tasks();
+        return [...tk.daily, ...tk.weekly].some((t) => !t.claimed && g.meta.taskProgress(t) >= t.target) || g.meta.inbox().length > 0;
+      },
+      X07: () => g.progress.hasFeature('vip') && g.meta.vipOffers().some((o) => g.meta.vipDone(o)),
+      X08: () => {
+        const C = data.collectibles;
+        return [...C.relics, ...C.stickers, ...C.decorations].some((it) => !state.collections.owned[it.id] && it.duplicateConversion
+          && g.progress.level() >= it.levelGate && g.canAfford('collectionTokens', it.duplicateConversion.shopPrice));
+      },
+      X09: () => g.meta.rivalList().some((r) => r.done && !r.beaten),
+      X10: () => g.profile.hallUnlocked() && state.hallOfFameFeaturedStrainIds.some((id) => !id)
+        && Object.keys(state.unlockedStrains).some((id) => !state.hallOfFameFeaturedStrainIds.includes(id)),
+      X11: () => prestigeStatus().kind === 'idle',
+      X12: () => g.meta.achievementList().some((a) => a.done && !a.claimed),
+    };
+    function featureStatus(id) {
+      const f = featureRow(id);
+      return FEATURE_DUE[id]() ? { kind: 'idle', feature: true, text: f.why } : { kind: 'none', feature: true, text: '' };
+    }
+
     function status(fid) {
+      if (featureRow(fid)) return featureStatus(fid);
       const row = g.facilities.row(fid);
       if (!g.facilities.isOwned(fid)) {
         if (!g.facilities.isAvailable(fid)) return { kind: 'none', locked: true, text: `Opens at level ${row.playerLevel}` };
@@ -189,6 +249,10 @@
       },
       status,
       collect,
+      featuresIn,
+      featureRow,
+      featureStage,
+      featureMetric,
       // Which renovation picture a building shows: 0 = locked lot, then 1, 2, 3.
       look(fid) {
         if (!g.facilities.isOwned(fid)) return 0;
@@ -197,7 +261,7 @@
       // What's waiting in a district, for the "!" on the district switcher.
       needsYou(id) {
         const d = defs().find((x) => x.id === id);
-        return !!d && d.facilities.some((f) => ['ready', 'idle', 'buy'].includes(status(f).kind));
+        return !!d && [...d.facilities, ...featuresIn(id).map((f) => f.id)].some((f) => ['ready', 'idle', 'buy'].includes(status(f).kind));
       },
       // Where the helpers stand: beside what's new here (a lot you can buy, or your newest place).
       helperSpots(id) {

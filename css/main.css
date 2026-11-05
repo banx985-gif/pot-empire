@@ -489,3 +489,7 @@ ul.plain li { padding: 3px 0; }
 .hy-pot { width: 16%; transform: translate(-50%, -78%); }
 .hy-light { width: 15%; transform: translate(-50%, 0); }
 .hy-badge { width: 22%; transform: translate(-50%, -50%); }
+
+/* ---- Job 9: inside the feature buildings ---- */
+.seed-packet { position: relative; flex: none; width: 56px; height: 56px; display: inline-flex; align-items: center; justify-content: center; }
+.seed-packet .thumb { position: absolute; right: -4px; bottom: -3px; }

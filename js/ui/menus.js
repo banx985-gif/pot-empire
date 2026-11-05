@@ -119,6 +119,12 @@
     { ui: 'UI33', name: 'Regional prestige', route: 'prestige' },
     { ui: 'UI34', name: 'Shop', route: 'shop' },
     { ui: 'UI35', name: 'Settings/help', route: 'settings' },
+    { ui: 'X01', name: "Uncle Haze's Shack", route: 'hazeShack' },
+    { ui: 'X02', name: 'Seed Shop', route: 'seedShop' },
+    { ui: 'X03', name: 'Talent Agency', route: 'talentAgency' },
+    { ui: 'X05', name: 'Arcade', route: 'arcade' },
+    { ui: 'X07', name: 'VIP Lounge', route: 'vipLounge' },
+    { ui: 'X08', name: "Collector's Warehouse", route: 'collectorsWarehouse' },
     { ui: 'UI36', name: 'Offline earnings', route: 'welcomeBack', modal: true, note: 'the welcome-back pop-up (PE.Offline.showIfPending)' },
   ];
 })(globalThis.PE = globalThis.PE || {});

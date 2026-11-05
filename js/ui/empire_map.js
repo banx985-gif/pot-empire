@@ -94,7 +94,7 @@
     entry: (id) => PE.Data.assetRegistry.entries.find((e) => e.id === id),
     url(id) { const e = this.entry(id); return e && e.status === 'imported' && e.gamePath ? e.gamePath.replace(/^game\//, '') : null; },
     // Calls back with a texture key when the real picture is ready. Does nothing while it's still a stand-in.
-    load(scene, id, onReady) {
+    load(scene, id, onReady, onFail) {
       const url = this.url(id);
       if (!url) return false;
       const key = 'art-' + id;
@@ -105,6 +105,7 @@
         if (!scene.textures.exists(key)) scene.textures.addImage(key, img);
         onReady(key);
       };
+      img.onerror = () => { if (onFail && scene.sys.settings.status < Phaser.Scenes.SHUTDOWN) onFail(); };
       img.src = url;
       return true;
     },
@@ -128,7 +129,9 @@
       this.lastRefresh = 0;
       this.cameras.main.setBackgroundColor(this.layout.look.sky);
       this.drawGround();
+      this.freeOtherDistrictArt();
       this.buildBuildings();
+      this.buildFeatures();
       PE.UI.loadIcons(this, ['STA-03', 'STA-06', 'STA-02', 'CUR-01'], () => { this.bubbleArtReady = true; this.refresh(); });
       this.setUpCamera();
       this.setUpInput();
@@ -177,6 +180,31 @@
         G.destroy();
       }
       return key;
+    }
+    // Building pictures are big. Only this district's are kept in memory.
+    freeOtherDistrictArt() {
+      const mine = [...this.def.facilities, ...Object.keys(this.layout.features || {})];
+      for (const k of this.textures.getTextureKeys()) {
+        if (k.startsWith('art-BLD-') && !mine.some((id) => k.startsWith(`art-BLD-${id}-`))) this.textures.remove(k);
+      }
+    }
+    // Fits a building's real picture to its space, standing on its spot, and puts the bubble over its roof.
+    fitArt(v, key, maxW, maxH) {
+      const src = this.textures.get(key).getSourceImage();
+      const k = Math.min(maxW / src.width, maxH / src.height);
+      v.image.setTexture(key).setOrigin(0.5, 0.93).setDisplaySize(src.width * k, src.height * k).setVisible(true);
+      v.artTop = src.height * k * 0.93;
+      v.bubble.c.y = v.s.y - v.artTop + 6;
+    }
+    buildFeatures() {
+      for (const f of this.g.map.featuresIn(this.district)) {
+        const s = this.layout.features[f.id];
+        const image = this.add.image(s.x, s.y + 20, this.lotKey(false)).setDepth(s.y).setVisible(false);
+        const name = this.add.text(s.x, s.y + 28, f.name, { fontFamily: FONT, fontStyle: 'bold', fontSize: '25px', color: '#ffe9a0', stroke: '#1d0f33', strokeThickness: 6 }).setOrigin(0.5, 0).setDepth(s.y + 1);
+        const sign = this.add.text(s.x, s.y, '', { fontSize: '1px' }).setVisible(false);
+        const bubble = this.makeBubble(s.x, s.y - 230, s.y + 2);
+        this.views.set(f.id, { fid: f.id, s, image, name, sign, bubble, shown: null, feature: f, half: 150 });
+      }
     }
     buildBuildings() {
       for (const fid of this.def.facilities) {
@@ -254,6 +282,18 @@
       for (const v of this.views.values()) {
         const st = g.map.status(v.fid);
         v.status = st;
+        if (v.feature) {
+          const stage = g.map.featureStage(v.fid);
+          if (v.shown !== stage) {
+            v.shown = stage;
+            const id = `BLD-${v.fid}-${stage}`;
+            v.artId = id;
+            MapArt.load(this, id, (key) => { if (v.artId === id) this.fitArt(v, key, 310, 350); }, () => { v.image.setVisible(true); });
+          }
+          v.bubble.c.setVisible(st.kind !== 'none');
+          if (st.kind !== 'none') { this.drawBubble(v.bubble, st); v.bubble.c.setScale(k); }
+          continue;
+        }
         const own = g.facilities.isOwned(v.fid);
         const row = g.facilities.row(v.fid);
         const open = g.facilities.isAvailable(v.fid);
@@ -279,10 +319,14 @@
       v.artId = id;
       v.image.setTexture(own ? this.standInKey(v.fid, Math.min(3, tier)) : this.lotKey(open));
       v.image.setOrigin((BOX_W / 2 - 12) / BOX_W, 1).setScale(1);
-      MapArt.load(this, id, (key) => {
+      v.bubble.c.y = v.s.y - 230;
+      v.artTop = 0;
+      // The stand-in stays hidden while the real picture comes, so a building never flashes as a box.
+      const waiting = MapArt.load(this, id, (key) => {
         if (v.artId !== id) return;
-        v.image.setTexture(key).setOrigin(0.5, 0.92).setDisplaySize(BOX_W, BOX_W);
-      });
+        this.fitArt(v, key, 345, 400);
+      }, () => { v.image.setVisible(true); });
+      v.image.setVisible(!waiting || (this.textures.exists('art-' + id)));
     }
 
     // ---- Camera -------------------------------------------------------------------------------------------
@@ -409,7 +453,7 @@
         }
       }
       // Nearest building front wins where two overlap.
-      const hits = [...this.views.values()].filter((v) => Math.abs(pt.x - v.s.x) < 175 && pt.y < v.s.y + 70 && pt.y > v.s.y - 330).sort((a, b) => b.s.y - a.s.y);
+      const hits = [...this.views.values()].filter((v) => Math.abs(pt.x - v.s.x) < (v.half || 175) && pt.y < v.s.y + 70 && pt.y > v.s.y - Math.max(v.artTop || 0, v.feature ? 200 : 330)).sort((a, b) => b.s.y - a.s.y);
       if (hits.length) this.openBuilding(hits[0].fid);
     }
     collectAt(v) {
@@ -428,7 +472,9 @@
     }
     openBuilding(fid) {
       this.rememberView();
-      if (this.g.facilities.isOwned(fid)) PE.App.goToRoom(fid);
+      const feature = this.g.map.featureRow(fid);
+      if (feature) PE.App.openPanel(feature.route, {});
+      else if (this.g.facilities.isOwned(fid)) PE.App.goToRoom(fid);
       else PE.App.openPanel('lotInfo', { fid });
     }
     onGameEvent(type) {
@@ -443,7 +489,7 @@
       const sy = (wy - cam.midPoint.y) * cam.zoom + cam.height / 2;
       return { x: r.left + (sx * r.width) / this.scale.width, y: r.top + (sy * r.height) / this.scale.height };
     }
-    buildingPagePoint(fid) { const s = this.layout.spots[fid]; return this.worldToPage(s.x, s.y - 60); }
+    buildingPagePoint(fid) { const s = this.layout.spots[fid] || this.layout.features[fid]; return this.worldToPage(s.x, s.y - 60); }
     bubblePagePoint(fid) { const b = this.views.get(fid).bubble.c; return this.worldToPage(b.x, b.y); }
   }
 
