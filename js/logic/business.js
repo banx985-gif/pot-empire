@@ -313,6 +313,7 @@
         const s = slots(fid)[i];
         if (!s || !s.levels || s.levels[what] === undefined) return { ok: false, why: 'bad' };
         if (s.levels[what] >= E().maxUpgradeLevel) return { ok: false, why: 'max' };
+        if (s.levels[what] >= E().deepUpgradeFromLevel && g.progress.level() < E().deepUpgradeRank) return { ok: false, why: 'level' };
         const cost = upgradeCost(fid, what, s.levels[what]);
         if (!g.spend('cash', cost, 'business')) return { ok: false, why: 'cash' };
         s.levels[what] += 1;
@@ -454,10 +455,39 @@
         return T().branches.some((b) => b.flags && b.flags[flag] !== undefined && rankOf(b.id) >= b.flags[flag]);
       },
       hasOfflineCapUpgrade: () => g.research.hasFlag('offlineCap'),
+
+      // Refinements (big job 2): once a branch has all six ranks it can keep being refined for ever.
+      // Each refinement adds a part of one rank's effect, costs more each time, and stays under the
+      // same effect caps, so it's always a useful next buy without breaking the balance.
+      refineOf: (branch) => (state.researchRefine && state.researchRefine[branch]) || 0,
+      refineCost(branch) {
+        if (rankOf(branch) < T().ranks) return null;
+        const n = g.research.refineOf(branch);
+        const R = T().refine;
+        return {
+          tokens: Math.round(R.tokenBase * Math.pow(R.tokenGrowth, n)),
+          cash: Math.round(T().cashBase * Math.pow(T().cashGrowth, T().ranks) * R.cashMult * Math.pow(R.cashGrowth, n)),
+        };
+      },
+      refine(branch) {
+        if (!g.facilities.isOwned('F06')) return { ok: false, why: 'lab' };
+        const c = g.research.refineCost(branch);
+        if (!c) return { ok: false, why: 'rank' };
+        if (!g.canAfford('researchTokens', c.tokens)) return { ok: false, why: 'tokens' };
+        if (!g.canAfford('cash', c.cash)) return { ok: false, why: 'cash' };
+        g.spend('researchTokens', c.tokens, 'research');
+        g.spend('cash', c.cash, 'research');
+        if (!state.researchRefine) state.researchRefine = {};
+        state.researchRefine[branch] = g.research.refineOf(branch) + 1;
+        g.effects.invalidate();
+        if (g.meta) g.meta.count('research', 1);
+        g.emit('changed');
+        return { ok: true };
+      },
     };
 
     g.effects.addProvider(() => T().branches.filter((b) => rankOf(b.id) > 0).map((b) => ({
-      key: b.effectKey, value: b.perRank * rankOf(b.id), group: `research:${b.id}`,
+      key: b.effectKey, value: b.perRank * (rankOf(b.id) + g.research.refineOf(b.id) * T().refine.shareOfRank), group: `research:${b.id}`,
     })));
   });
 })(globalThis.PE = globalThis.PE || {});

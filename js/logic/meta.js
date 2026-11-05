@@ -208,7 +208,8 @@
       if (!d) return null;
       const P = T().prestige;
       const earned = m().districtEarned[districtId] || 0;
-      const threshold = P.thresholds[districtId];
+      const before = state.prestigeHistory.filter((h) => h.district === districtId).length;
+      const threshold = P.thresholds[districtId] * Math.pow(P.repeatGrowth, before);
       const shares = Math.floor(Math.sqrt(earned / threshold) * shareBonus());
       const resets = [];
       let matureCash = 0, growingCash = 0, matureCount = 0, growingCount = 0;
@@ -413,6 +414,15 @@
       claimTask,
       spinWheel,
       wheelUsed: () => m().wheelDay === dayOf(g.now()),
+      // An extra spin (from an optional ad). label makes each one pay once.
+      spinBonus(label) {
+        const r = PE.Rng.roll(`${state.rng.seed}:wheel:${label}`);
+        const slices = T().wheel;
+        const slice = slices[PE.Rng.pick(slices.map((s) => s.chance), r)];
+        let text = '';
+        g.once(`wheel:${label}`, () => { text = payReward(slice, 'wheel'); g.emit('changed'); });
+        return { ok: true, text };
+      },
       achievementList,
       claimAchievement,
       achievementCount: () => T().achievements.length * T().achievements[0].tiers.length,

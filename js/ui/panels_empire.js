@@ -60,12 +60,16 @@
     const reno = F.renovationInfo(fid);
     if (reno) {
       out += `<button class="btn wide ${reno.ready && game.canAfford('cash', reno.cost) ? 'buy' : 'plain'}" data-act="renovate">${reno.ready ? `Renovation ${reno.index + 1}: ${money(reno.cost)} (+${Math.round(reno.bonus * 100)}% value here)` : `Renovation ${reno.index + 1} at ${Math.round(reno.at * 100)}% local progress`}</button>`;
-    } else out += '<p class="muted">All renovations done.</p>';
+    } else {
+      const ex = F.expansionInfo(fid);
+      out += ex ? `<button class="btn wide ${game.canAfford('cash', ex.cost) ? 'buy' : 'plain'}" data-act="expand">Expansion ${ex.level + 1}: ${money(ex.cost)} (+${Math.round(ex.bonus * 100)}% value here)</button><p class="muted">All renovations done. Expansions never run out.</p>` : '<p class="muted">All renovations done.</p>';
+    }
     return out;
   }
   const expansionActions = {
     slot() { const r = g().facilities.buyStation(params().fid); if (!r.ok) why(r); },
     renovate() { const r = g().facilities.renovate(params().fid); if (!r.ok) why(r); },
+    expand() { const r = g().facilities.expand(params().fid); if (!r.ok) why(r); },
   };
   PE.Panels.facilityInfo = {
     title: ({ fid }) => g().facilities.row(fid).name,
@@ -143,6 +147,13 @@
     return `<p class="muted">${owned.length} vehicles owned. ${game.state.depot.offers.length} contracts on offer.</p>${routes}${expansionBlock(fid)}${bizAssign(fid)}`;
   }
 
+  // After rank 6: endless refinements.
+  function refineBtn(id) {
+    const game = g();
+    const c = game.research.refineCost(id);
+    const n = game.research.refineOf(id);
+    return `<button class="btn small ${game.canAfford('researchTokens', c.tokens) && game.canAfford('cash', c.cash) ? 'buy' : 'plain'}" data-act="refine:${id}">Refine ${n + 1}<br>${c.tokens} tokens · ${money(c.cash)}</button>`;
+  }
   function researchBody() {
     const game = g();
     const R = game.research;
@@ -151,7 +162,7 @@
       const c = R.cost(b.id);
       const dots = Array.from({ length: game.B.research.ranks }, (_, i) => `<span class="dot ${i < rank ? 'on' : ''}"></span>`).join('');
       return `<div class="item"><div class="grow"><b>${esc(b.id)}</b> ${dots}<small>${esc(b.text)}</small></div>
-        ${c ? `<button class="btn small ${game.canAfford('researchTokens', c.tokens) && game.canAfford('cash', c.cash) ? 'buy' : 'plain'}" data-act="research:${b.id}">${c.tokens} tokens<br>${money(c.cash)}</button>` : '<span class="tag go">MAX</span>'}</div>`;
+        ${c ? `<button class="btn small ${game.canAfford('researchTokens', c.tokens) && game.canAfford('cash', c.cash) ? 'buy' : 'plain'}" data-act="research:${b.id}">${c.tokens} tokens<br>${money(c.cash)}</button>` : refineBtn(b.id)}</div>`;
     }).join('');
     return `<p><b>Research Tokens: ${Money.format(game.state.currencies.researchTokens)}</b></p><p class="muted">Permanent. Tokens come from chests${game.meta ? ', daily tasks and achievements' : ''}.</p>${rows}${bizAssign('F06')}`;
   }
@@ -197,6 +208,7 @@
       dispatch(i) { PE.App.router.go('contractPicker', { fid: params().fid, i: Number(i) }); },
       catalogue() { PE.App.router.go('catalogue'); },
       research(id) { const r = g().research.buy(id); if (!r.ok && r.why !== 'max') why(r); else if (r.ok) PE.App.saveGame(); },
+      refine(id) { const r = g().research.refine(id); if (!r.ok) why(r); else PE.App.saveGame(); },
       managers() { PE.App.router.go('managerBinder', { target: params().fid }); },
     },
   };

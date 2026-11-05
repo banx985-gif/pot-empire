@@ -169,12 +169,14 @@
       // re-rolled by closing the game.
       const grade = PE.Rng.pick(chancesFor(fid, si, strainId), g.nextRoll('quality'));
       const floor = g.effects.get('qualityFloor', contextFor(fid, si, strainId));
+      // An optional ad reward makes the next seed planted by hand at least Premium (grade 2).
+      const boosted = !automated && g.ads && g.ads.takeQualityBoost() ? 2 : 0;
       st.pots[pi] = {
         s: strainId,
         plantedAtUtc: new Date(atMs).toISOString(),
         plantedMs: atMs,
         readyMs: atMs + seconds * 1000,
-        q: Math.max(grade, Math.round(floor)),
+        q: Math.max(grade, Math.round(floor), boosted),
       };
       st.lastStrains[pi] = strainId;
       return st.pots[pi];

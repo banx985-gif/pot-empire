@@ -128,7 +128,31 @@
       }
     }
 
-    return { load, save, isBlocked: () => blocked, KEYS };
+    // Save backup (Settings): the whole save as one piece of text, with its checksum.
+    function exportText(state) { return makeEnvelope(version, state, clock.nowUtc()); }
+    // Save restore: checks the text exactly like a load (checksum, upgrade, sanity), then makes it the
+    // main save. The save it replaces becomes the backup. After this nothing more is saved until the
+    // game restarts, so the running game can't write over the restored one.
+    function importText(text) {
+      const read = readEnvelope(String(text || '').trim());
+      if (read.missing || read.error) return { ok: false, why: read.error || 'empty' };
+      const env = read.envelope;
+      if (env.saveVersion > version) return { ok: false, why: 'from a newer build' };
+      try {
+        const state = migrate(JSON.parse(env.data), env.saveVersion, version, migrations);
+        const problems = schema.checkState(state);
+        if (problems.length) return { ok: false, why: problems.join(', ') };
+        const current = storage.getItem(KEYS.main);
+        if (current !== null && readEnvelope(current).envelope) storage.setItem(KEYS.backup, current);
+        storage.setItem(KEYS.main, makeEnvelope(version, state, clock.nowUtc()));
+        blocked = true;
+        return { ok: true };
+      } catch (e) {
+        return { ok: false, why: e.message };
+      }
+    }
+
+    return { load, save, exportText, importText, isBlocked: () => blocked, KEYS };
   }
 
   PE.Save = { createSaveSystem, makeEnvelope, readEnvelope, checksum, KEY_PREFIX };

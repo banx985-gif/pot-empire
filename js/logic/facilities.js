@@ -120,12 +120,34 @@
         g.emit('changed');
         return { ok: true };
       },
+      // Expansions (big job 2): after R3 a grow room can keep expanding, each step adding a little
+      // local value for a cost that grows faster than the reward. Never ends, never required.
+      expansionInfo(fid) {
+        const f = get(fid);
+        if (!f || f.renovation < 3 || byId.get(fid).mode !== 'Grow') return null;
+        const X = B.facilityEconomy.expansion;
+        const n = f.expansion || 0;
+        return {
+          level: n,
+          cost: Math.round(Math.max(econ(fid).stationCostBase, 200) * B.facilityEconomy.renovationCostMult[2] * X.costMult * Math.pow(X.costGrowth, n)),
+          bonus: X.valueBonus,
+        };
+      },
+      expand(fid) {
+        const info = g.facilities.expansionInfo(fid);
+        if (!info) return { ok: false, why: 'progress' };
+        if (!g.spend('cash', info.cost, 'expansion')) return { ok: false, why: 'cash' };
+        get(fid).expansion = info.level + 1;
+        if (get(fid).expansion % 5 === 0) g.emit('celebrate', { kind: 'expansion', text: `${byId.get(fid).name}: expansion ${get(fid).expansion}!` });
+        g.emit('changed');
+        return { ok: true };
+      },
       localValueBonus(fid) {
         const f = get(fid);
         if (!f) return 0;
         let sum = 0;
         for (let i = 0; i < f.renovation; i++) sum += B.facilityEconomy.renovationValueBonus[i];
-        return sum;
+        return sum + (f.expansion || 0) * B.facilityEconomy.expansion.valueBonus;
       },
       upgradeCostScale: (fid) => econ(fid).upgradeScale || 1,
     };

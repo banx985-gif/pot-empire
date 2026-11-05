@@ -5,7 +5,7 @@
 //
 // Saves hold plain facts only (ids, numbers, UTC times), never anything from Phaser.
 (function (PE) {
-  const CURRENT_VERSION = 6;
+  const CURRENT_VERSION = 7;
 
   function newCollections() {
     return { owned: {}, productsUnlocked: {}, relicsByDistrict: {}, stickersByBusiness: {}, decorByFacility: {}, packagingBySku: {}, loadouts: [] };
@@ -63,6 +63,9 @@
       pendingOffline: null,
       settings: newSettings(),
       helpers: newHelpers(),
+      entitlements: { noAds: false, themes: {}, passUntilMs: 0 },
+      ads: { day: null, counts: {}, qualityBoost: false },
+      shopOwned: {},
       facilities: { F01: { unlocked: true, renovation: 0, localXp: 0, stations: { 0: newStation(nowMs), 1: newStation(nowMs) } } },
       mastery: {},
       managers: { owned: {}, assigned: {} },
@@ -136,6 +139,15 @@
       s.profile = { businessName: '', username: '', avatarStrainId: null, favouriteStrainId: null, title: null, ...(s.profile || {}) };
       if (!Array.isArray(s.hallOfFameFeaturedStrainIds)) s.hallOfFameFeaturedStrainIds = [null, null, null, null, null, null];
       s.milestones = s.milestones || {};
+      return s;
+    },
+    // Version 7 (big job 2, Stage 3): shop entitlements, rewarded-ad counters, gem shop items.
+    6(old) {
+      const s = old;
+      s.entitlements = { noAds: false, themes: {}, passUntilMs: 0, ...(s.entitlements || {}) };
+      s.ads = s.ads || { day: null, counts: {}, qualityBoost: false };
+      s.shopOwned = s.shopOwned || {};
+      if (!Array.isArray(s.purchases)) s.purchases = [];
       return s;
     },
   };
