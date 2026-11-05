@@ -26,6 +26,7 @@
       },
       current: () => stack[stack.length - 1] || null,
       depth: () => stack.length,
+      below: () => stack[stack.length - 2] || null,
       onChange(fn) { listeners.push(fn); },
     };
   }

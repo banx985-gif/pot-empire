@@ -324,6 +324,11 @@
       upgradeCost,
 
       // Factory
+      lineWaiting: () => false,
+      anyRecipeReady(fid) {
+        if (stock().crop < 1) return false;
+        return Object.keys(state.collections.productsUnlocked).length > 0;
+      },
       startLine, claimLine, batchSeconds, batchInput, batchOutputMult,
       productCost: (id) => Math.round(E().productCostBase * Math.pow(E().productCostGrowth, data.collectibles.products.findIndex((p) => p.id === id))),
       unlockProduct(id) {

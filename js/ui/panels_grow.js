@@ -148,7 +148,6 @@
 
   // Tabs that aren't built yet say so plainly.
   const later = (title, stage) => ({ title, sheet: false, render: () => `<p class="center muted">${esc(title)} arrives in ${stage}.</p>`, actions: {} });
-  PE.Panels.empire = later('Empire map', 'Stage 3');
   PE.Panels.collection = later('Collection', 'Stage 4');
   PE.Panels.contracts = later('Contracts', 'Stage 3');
   PE.Panels.shop = later('Shop', 'a later milestone (M6)');

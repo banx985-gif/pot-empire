@@ -86,8 +86,10 @@
   // open: what a player taps, as a route + params. Grow-room screens open inside the garage scene.
   PE.Menus = [
     { ui: 'UI01', name: 'Splash/title', route: 'title', scene: true },
-    { ui: 'UI02', name: 'Empire map', route: 'empire' },
+    { ui: 'UI02', name: 'Empire map', route: 'empire', scene: true },
     { ui: 'UI03', name: 'Facility selector', route: 'facilitySelector' },
+    { ui: 'UI03b', name: 'All places list', route: 'empireList' },
+    { ui: 'UI03c', name: 'District switcher', route: 'districts' },
     { ui: 'UI04', name: 'Grow room', route: 'garage', scene: true },
     { ui: 'UI05', name: 'Grow station details', route: 'station', params: { fid: 'F01', si: 0 } },
     { ui: 'UI06', name: 'Strain picker', route: 'strainPicker', params: { fid: 'F01', si: 0, pi: 0 } },

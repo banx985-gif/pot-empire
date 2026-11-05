@@ -23,6 +23,7 @@ globalThis.PE.Data.helperSprites = {
   // A kind that isn't listed (the small "new station" banner) has no helper.
   celebrate: {
     rank: ['BUDZ-48', 'HAZE-42', 'LEAFY-31'],
+    district: ['HAZE-27', 'BUDZ-37', 'LEAFY-28'],
     facility: ['HAZE-40', 'BUDZ-45', 'LEAFY-28'],
     renovation: ['LEAFY-28', 'BUDZ-21', 'HAZE-22'],
     expansion: ['BUDZ-21', 'LEAFY-24', 'HAZE-38'],

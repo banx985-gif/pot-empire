@@ -223,6 +223,7 @@
         if (g.facilities.rows.filter((r) => g.facilities.isOwned(r.id)).length > 1) bar += '<button class="btn rooms" data-act="rooms">🏢 Rooms</button>';
         if (g.facilities.canBuyStation(fid)) bar += `<button class="btn buy" data-act="buyStation">+ Station ${money(g.facilities.nextStationCost(fid))}</button>`;
       }
+      if (route && route.name === 'empire' && !Dom.panelRoute && PE.MapBar) bar = PE.MapBar.html();
       this.set('actionbar', bar);
 
       const tab = app.currentTab();

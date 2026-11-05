@@ -5,7 +5,7 @@
 //
 // Saves hold plain facts only (ids, numbers, UTC times), never anything from Phaser.
 (function (PE) {
-  const CURRENT_VERSION = 7;
+  const CURRENT_VERSION = 8;
 
   function newCollections() {
     return { owned: {}, productsUnlocked: {}, relicsByDistrict: {}, stickersByBusiness: {}, decorByFacility: {}, packagingBySku: {}, loadouts: [] };
@@ -24,6 +24,17 @@
   // Every setting with its default. Old saves get any missing ones filled in.
   function newSettings() {
     return { reducedMotion: false, helpers: true, sound: 0.8, music: 0.5, bigText: false, colourBlind: false, showFps: false, pretendShop: false };
+  }
+
+  // The Empire map: which district is open and where you were looking. Status bubbles aren't saved:
+  // they're worked out fresh every time.
+  function newMapState() {
+    return { district: 'D1', unlocked: { D1: true }, view: {}, introDone: false, gift: { day: null, count: 0, nextMs: 0 }, storySeen: {} };
+  }
+
+  // The daily login calendar. Missing days only pauses it.
+  function newCalendar() {
+    return { id: 'standard', round: 1, claimed: 0, lastClaimDay: null, lastShownDay: null };
   }
 
   function newHelpers() {
@@ -71,7 +82,9 @@
       managers: { owned: {}, assigned: {} },
       collections: newCollections(),
       meta: newMeta(),
-      stock: { crop: 0, products: {}, contractCredit: 0 },
+      stock: { crop: 0, products: {}, contractCredit: 0, units: {} },
+      map: newMapState(),
+      calendar: newCalendar(),
       depot: { day: null, seed: 0, rerolls: 0, offers: [] },
       research: {},
       contracts: { active: [], history: [] },
@@ -151,6 +164,14 @@
       if (!Array.isArray(s.purchases)) s.purchases = [];
       return s;
     },
+    // Version 8 (job 5): the Empire map, the login calendar and counted strain harvests for recipes.
+    7(old) {
+      const s = old;
+      s.map = { ...newMapState(), ...(s.map || {}) };
+      s.calendar = { ...newCalendar(), ...(s.calendar || {}) };
+      s.stock = { units: {}, ...s.stock };
+      return s;
+    },
   };
 
   // The minimum a save must have to be usable. Returns a list of what's wrong (empty = fine).
@@ -165,5 +186,5 @@
     return problems;
   }
 
-  PE.SaveSchema = { CURRENT_VERSION, MIGRATIONS, createNewState, newStation, newSettings, checkState };
+  PE.SaveSchema = { CURRENT_VERSION, MIGRATIONS, createNewState, newStation, newSettings, newMapState, newCalendar, checkState };
 })(globalThis.PE = globalThis.PE || {});

@@ -98,7 +98,7 @@
     // ---- Which screen is showing ------------------------------------------------------------------
     let sceneNow = null;   // { key, fid } of the scene under any panels
     function showScene(route) {
-      const same = sceneNow && sceneNow.key === route.name && sceneNow.fid === route.params.fid
+      const same = sceneNow && sceneNow.key === route.name && sceneNow.fid === route.params.fid && sceneNow.district === route.params.district
         && (game.scene.isActive(route.name) || game.scene.isSleeping(route.name));
       if (same) {
         if (game.scene.isSleeping(route.name)) game.scene.wake(route.name);
@@ -107,7 +107,7 @@
         if (sceneNow && game.scene.isSleeping(sceneNow.key)) game.scene.stop(sceneNow.key);
         game.scene.getScenes(true).forEach((s) => game.scene.stop(s.scene.key));
         game.scene.start(route.name, route.params);
-        sceneNow = { key: route.name, fid: route.params.fid };
+        sceneNow = { key: route.name, fid: route.params.fid, district: route.params.district };
       }
       PE.Dom.closePanel();
       PE.Dom.setBarsVisible(route.name !== 'title');
@@ -174,6 +174,14 @@
     app.navTo = (id) => {
       if (id === 'grow') { app.goToRoom(app.state.ui.lastRoom || 'F01'); return; }
       popPanels();
+      if (id === 'empire') {
+        // The map is a screen, not a menu. Coming back to it steps back, so Back keeps working
+        // and the history can't pile up.
+        const top = router.current();
+        if (top.name === 'empire') return;
+        const under = router.below();
+        if (under && under.name === 'empire') { router.back(); return; }
+      }
       router.go(id);
     };
 

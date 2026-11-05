@@ -9,17 +9,15 @@
   const bar = (p) => `<div class="bar thin"><i style="width:${Math.min(100, p * 100).toFixed(0)}%"></i></div>`;
   const paid = (r) => { if (r.ok && r.text) toast(r.text); PE.App.saveGame(); };
 
-  // A row of big buttons at the top of the Empire map.
+  // The round buttons down the side of the Empire map (js/ui/empire_map.js).
   const MENU = [
     { id: 'tasks', label: 'Tasks', icon: '✅' },
     { id: 'festival', label: 'Festival', icon: '🎪' },
-    { id: 'achievements', label: 'Achievements', icon: '🏆' },
+    { id: 'achievements', label: 'Awards', icon: '🏆' },
     { id: 'rivals', label: 'Rivals', icon: '🥊' },
     { id: 'prestige', label: 'Prestige', icon: '🌟' },
   ];
-  const baseEmpire = PE.Panels.empire.render;
-  PE.Panels.empire.render = () => `<div class="menu-row">${MENU.map((m) => `<button class="menu-btn" data-act="menu:${m.id}"><span>${m.icon}</span>${m.label}</button>`).join('')}</div>${baseEmpire()}`;
-  PE.Panels.empire.actions.menu = (id) => PE.App.router.go(id, {});
+  PE.MapMenu = MENU;
 
   PE.Panels.tasks = {
     title: 'Daily and weekly tasks',

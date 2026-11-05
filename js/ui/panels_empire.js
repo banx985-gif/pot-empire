@@ -12,9 +12,57 @@
   const worth = (v) => money(Math.floor(v));
   const MODE_ICON = { Grow: '🌱', Retail: '🛍️', Factory: '🏭', Research: '🔬', Logistics: '🚚', Prestige: '🏛️' };
 
-  // ---- Empire map (UI02, UI03) -----------------------------------------------------------------------
-  PE.Panels.empire = {
-    title: 'Empire map',
+  // ---- District switcher: a sheet over the map ---------------------------------------------------------
+  PE.Panels.districts = {
+    title: 'Districts',
+    sheet: true,
+    render() {
+      const game = g();
+      return game.map.districts().map((d) => {
+        const open = game.map.isUnlocked(d.id);
+        const here = game.map.current() === d.id;
+        const owned = d.facilities.filter((f) => game.facilities.isOwned(f)).length;
+        const right = here ? '<span class="tag go">Here</span>' : open ? '<span class="tag go">Go</span>' : `<span class="tag">Level ${game.map.unlockLevel(d)}</span>`;
+        return `<div class="item ${open ? '' : 'locked'}" ${open && !here ? `data-act="go:${d.id}"` : ''}><span class="fac-ico">🗺️</span><div class="grow"><b>${esc(d.name)}${open && game.map.needsYou(d.id) ? ' <em class="alert-dot">!</em>' : ''}</b><small>${open ? `${owned} of ${d.facilities.length} places owned` : 'Keep growing to open this district'}</small></div>${right}</div>`;
+      }).join('');
+    },
+    actions: {
+      go(id) {
+        if (!g().map.setCurrent(id)) return;
+        PE.App.back();
+        PE.App.router.replace('empire', { district: id });
+      },
+    },
+  };
+
+  // ---- A lot on the map that isn't bought yet ----------------------------------------------------------
+  PE.Panels.lotInfo = {
+    title: ({ fid }) => g().facilities.row(fid).name,
+    sheet: true,
+    render({ fid }) {
+      const game = g();
+      const F = game.facilities;
+      const row = F.row(fid);
+      const cost = F.econ(fid).cost;
+      if (F.isOwned(fid)) return '<p class="center">It\'s yours!</p><button class="btn wide go" data-act="enter">Go inside</button>';
+      const count = row.stations ? `${row.stations} ${row.mode === 'Grow' ? 'stations' : 'slots'} at full size` : row.mode;
+      const body = `<div class="item"><span class="fac-ico">${MODE_ICON[row.mode]}</span><div class="grow"><b>${esc(row.mode)}</b><small>${count}</small></div></div>`;
+      if (!F.isAvailable(fid)) return `${body}<p class="center"><b>Opens at level ${row.playerLevel}.</b> You're level ${game.progress.level()}.</p>`;
+      return `${body}<button class="btn wide ${game.canAfford('cash', cost) ? 'buy' : 'plain'}" data-act="buy">Buy for ${money(cost)}</button>`;
+    },
+    actions: {
+      buy() {
+        const { fid } = params();
+        const r = g().facilities.buy(fid);
+        if (!r.ok) why(r); else { PE.App.saveGame(); PE.App.back(); }
+      },
+      enter() { PE.App.goToRoom(params().fid); },
+    },
+  };
+
+  // ---- Every place as a plain list, one tap from the map (UI03) ------------------------------------------
+  PE.Panels.empireList = {
+    title: 'All places',
     render() {
       const game = g();
       const F = game.facilities;
