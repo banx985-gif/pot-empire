@@ -34,7 +34,7 @@
     },
     pump() {
       if (this.now || !this.waiting.length || !PE.App || !PE.App.game) return;
-      if (PE.Dom.modalNow || PE.Dom.isTouching() || (PE.HelperUI && PE.HelperUI.now)) return;
+      if (PE.Dom.modalNow || PE.Dom.isTouching() || (PE.HelperUI && PE.HelperUI.now) || PE.App.g.tutorial.active()) return;
       const top = PE.App.router.current();
       if (!top || top.name === 'title') return;
       const e = this.now = this.waiting.shift();

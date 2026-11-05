@@ -64,6 +64,8 @@
     PE.ChestReveal.init();
     PE.Look.init();
     PE.Settings.init();
+    PE.AgeGate.init();
+    PE.Tutorial.init();
 
     const fromFile = location.protocol === 'file:';
     const game = new Phaser.Game({
@@ -132,7 +134,7 @@
       } else {
         showScene(route);
         // First open of the day: the calendar comes up once, if today's reward is waiting. Skippable.
-        if (route.name !== 'title' && !route.params.test && g.calendar.shouldShow()) {
+        if (route.name !== 'title' && !route.params.test && !g.tutorial.active() && g.calendar.shouldShow()) {
           g.calendar.markShown();
           setTimeout(() => { if (!PE.Dom.panelRoute) router.go('calendar', { auto: true }); }, 0);
         }

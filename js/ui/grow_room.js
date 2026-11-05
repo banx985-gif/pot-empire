@@ -245,6 +245,7 @@
       const pos = this.room.stations[si];
       return this.worldToPage(pos.x + PE.Layout.anchorX(pi), pos.y - 10);
     }
+    benchPagePoint(si) { const pos = this.room.stations[si]; return this.worldToPage(pos.x, pos.y + 40); }
     worldToPage(wx, wy) {
       const cam = this.cameras.main;
       const r = this.game.canvas.getBoundingClientRect();

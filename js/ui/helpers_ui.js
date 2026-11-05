@@ -43,12 +43,13 @@
     ready: {},     // pictures held ready for the line on screen, let go on close
     face: null,    // the expression showing now (a blink frame comes back to this)
     add(e) {
+      if (PE.App && PE.App.g.tutorial.active() && !e.replay) return;
       if (e.replay) this.waiting.unshift(e);
       else if (this.waiting.length < 2) this.waiting.push(e);
     },
     canShow() {
       const app = PE.App;
-      if (!app || !app.game || PE.Dom.modalNow || PE.Dom.isTouching() || (PE.ChestReveal && PE.ChestReveal.now)) return false;
+      if (!app || !app.game || PE.Dom.modalNow || PE.Dom.isTouching() || (PE.ChestReveal && PE.ChestReveal.now) || app.g.tutorial.active() || !PE.AgeGate.answered()) return false;
       const top = app.router.current();
       return !!top && top.name !== 'title';
     },

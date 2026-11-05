@@ -50,7 +50,7 @@
       Sound.syncMusic();
     },
     fetchSound(name) {
-      if (Sound.buffers[name] || Sound.fetching[name] || !Sound.ctx) return;
+      if (Sound.buffers[name] || Sound.fetching[name] || !Sound.ctx || location.protocol === 'file:') return;
       Sound.fetching[name] = true;
       fetch(`assets/audio/${name}.${Sound.ext()}`)
         .then((r) => { if (!r.ok) throw new Error('missing'); return r.arrayBuffer(); })
@@ -92,7 +92,8 @@
     // A long looping file. Fetched whole first: that also makes it work from the offline copy.
     track(name) {
       if (Sound.tracks[name]) return Sound.tracks[name];
-      const tr = Sound.tracks[name] = { el: null, gain: null, failed: false };
+      const tr = Sound.tracks[name] = { el: null, gain: null, failed: location.protocol === 'file:' };
+      if (tr.failed) return tr;
       fetch(`assets/audio/${name}.${Sound.ext()}`)
         .then((r) => { if (!r.ok) throw new Error('missing'); return r.blob(); })
         .then((blob) => {

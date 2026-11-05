@@ -188,7 +188,7 @@
     8(old) {
       const s = old;
       s.settings = { ...newSettings(), ...(s.settings || {}) };
-      s.tutorial = { ...newTutorial(), done: true, ...(s.tutorial || {}), oldSave: true };
+      s.tutorial = { ...newTutorial(), ...(s.tutorial || {}), done: true, oldSave: true };
       s.consent = { ...newConsent(), ...(s.consent || {}) };
       return s;
     },
