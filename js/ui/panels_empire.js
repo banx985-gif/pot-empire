@@ -6,7 +6,7 @@
   const params = () => PE.App.router.current().params;
   const toast = (t) => PE.Dom.toast(t);
   const why = (r, fallback) => {
-    const text = { cash: 'Not enough cash yet', level: 'Your level is too low', progress: 'Needs more local progress', tokens: 'Not enough tokens', crop: 'Not enough crop stock yet: keep harvesting', stock: 'Not enough stock for that', vehicleBusy: 'That vehicle is out on a route', lab: 'Buy the Research Lab first', busy: 'That one is busy' };
+    const text = { inputs: 'Missing an ingredient: see the red line', storeFull: 'That store is full', cash: 'Not enough cash yet', level: 'Your level is too low', progress: 'Needs more local progress', tokens: 'Not enough tokens', crop: 'Not enough crop stock yet: keep harvesting', stock: 'Not enough stock for that', vehicleBusy: 'That vehicle is out on a route', lab: 'Buy the Research Lab first', busy: 'That one is busy' };
     toast(text[r.why] || fallback || 'Not available yet');
   };
   const worth = (v) => money(Math.floor(v));
@@ -151,6 +151,29 @@
     return `<p class="muted">Customers buy by themselves. Harvests add crop stock; factories add products. Demand shifts every few hours.</p>${shelves}${expansionBlock(fid)}${bizAssign(fid)}`;
   }
 
+  // A recipe card: inputs on one side, output and timer on the other.
+  function inputRow(x) {
+    const amount = x.kind === 'strain'
+      ? `${Money.format(x.have)}/${Money.format(x.need)}`
+      : `${worth(Money.toNumber(x.have))} / ${worth(x.need)}`;
+    return `<div class="in ${x.ok ? 'met' : 'short'}"><span class="mark">${x.ok ? '✓' : '✗'}</span><span class="what">${esc(x.label)}</span><span class="amt">${amount}</span></div>`;
+  }
+  function usesText(game, id) {
+    const uses = game.business.productUses(id);
+    const recipes = uses.filter((u) => u.startsWith('recipe:')).map((u) => game.stock.skuName(u.slice(7)));
+    return ['Shop shelves', ...(uses.includes('vip') ? ['VIP orders'] : []), ...(uses.includes('contracts') ? ['delivery contracts'] : []), ...recipes].join(', ');
+  }
+  function recipeCard(game, fid, i, p) {
+    const r = game.business.recipe(fid, i, p.id);
+    return `<div class="recipe ${r.ok ? 'ready' : ''}">
+      <div class="r-top"><b>${esc(p.name)}</b><small>${esc(p.family)}</small></div>
+      <div class="r-body"><div class="r-in">${r.inputs.map(inputRow).join('')}</div>
+        <div class="r-arrow">➜</div>
+        <div class="r-out"><span class="card-ph small">${esc(p.id)}</span><b>${worth(r.output)}</b><small>⏱ ${duration(r.seconds)}</small></div></div>
+      <small class="r-uses">Used for: ${esc(usesText(game, p.id))}</small>
+      <button class="btn wide ${r.ok ? 'go' : 'plain'}" data-act="set:${p.id}">${r.ok ? 'Make it' : 'Missing something'}</button></div>`;
+  }
+
   function factoryBody(fid) {
     const game = g();
     const b = game.business;
@@ -158,17 +181,21 @@
     const lines = b.slots(fid).map((l, i) => {
       if (l.job) {
         const ready = now >= l.job.endMs;
+        const waiting = b.lineWaiting(fid, l);
         const t = Math.min(1, (now - l.job.startMs) / (l.job.endMs - l.job.startMs));
+        const cost = b.speedUpCost(fid, i);
+        const rush = cost !== null ? `<button class="btn small ${game.canAfford('rainbowGems', cost) ? 'buy' : 'plain'}" data-act="rush:${i}">⚡ ${cost} 💎</button>` : '';
         return `<div class="shelf"><div class="item"><div class="grow"><b>Line ${i + 1}: ${esc(game.stock.skuName(l.sku))}</b>
-          <small>${ready ? `Done: ${worth(l.job.output)} of product` : `${duration((l.job.endMs - now) / 1000)} left, makes ${worth(l.job.output)}`}</small>
+          <small>${waiting ? `Waiting: the ${esc(game.stock.skuName(l.sku))} store is full (${worth(b.storeCap())}). Sell some and it comes in. Nothing is lost.` : ready ? `Done: ${worth(l.job.output)} of product` : `${duration((l.job.endMs - now) / 1000)} left, makes ${worth(l.job.output)}`}</small>
           <div class="bar thin"><i style="width:${(t * 100).toFixed(0)}%"></i></div></div>
-          ${ready ? `<button class="btn small go" data-act="claim:${i}">Claim</button>` : ''}</div>
+          ${ready && !waiting ? `<button class="btn small go" data-act="claim:${i}">Claim</button>` : rush}</div>
           <div class="row-btns">${levelsBlock(fid, i, l, { speed: 'Speed', batch: 'Batch', value: 'Value' })}</div></div>`;
       }
       return `<div class="shelf"><div class="item" data-act="pick:${i}"><div class="grow"><b>Line ${i + 1}</b><small>Idle${l.sku ? `, last made ${esc(game.stock.skuName(l.sku))}` : ''}. Tap to choose a product.</small></div><span class="tag go">Start</span></div>
         <div class="row-btns">${levelsBlock(fid, i, l, { speed: 'Speed', batch: 'Batch', value: 'Value' })}</div></div>`;
     }).join('');
     return `<p><b>Crop stock: ${worth(game.state.stock.crop)}</b></p>
+      <p class="muted">Harvests by rarity: ${PE.DataCheck.RARITIES.map((r) => `${r} ${Money.format((game.state.stock.units || {})[r] || 0)}`).join(' · ')}</p>
       <button class="btn wide plain" data-act="catalogue">Product catalogue</button>
       ${lines}${expansionBlock(fid)}${bizAssign(fid)}`;
   }
@@ -241,10 +268,16 @@
         const fid = params().fid;
         PE.App.router.go('skuPicker', { fid, i: Number(i), mode: g().facilities.row(fid).mode });
       },
+      rush(i) {
+        const r = g().business.speedUpLine(params().fid, Number(i));
+        if (!r.ok) toast(r.why === 'gems' ? 'Not enough Rainbow Gems. It\'ll finish by itself soon.' : 'Already done');
+        else PE.App.saveGame();
+      },
       claim(i) {
         const fid = params().fid;
         const mode = g().facilities.row(fid).mode;
         const r = mode === 'Factory' ? g().business.claimLine(fid, Number(i)) : g().business.claimRoute(fid, Number(i));
+        if (!r.ok && r.why === 'storeFull') toast('That store is full. Nothing is lost: it waits here.');
         if (r.ok && r.cash) toast(`Delivered: +${worth(r.cash)}`);
         PE.App.saveGame();
       },
@@ -263,11 +296,17 @@
 
   // Shelf or line: choose what it handles.
   PE.Panels.skuPicker = {
-    title: ({ mode }) => (mode === 'Retail' ? 'Stock this shelf' : 'Choose a product'),
+    title: ({ mode }) => (mode === 'Retail' ? 'Stock this shelf' : 'Recipes'),
     sheet: true,
+    live: true,
     render({ fid, i, mode }) {
       const game = g();
       const open = game.data.collectibles.products.filter((p) => game.state.collections.productsUnlocked[p.id]);
+      if (mode !== 'Retail') {
+        if (!open.length) return '<p class="muted">No products yet.</p>';
+        const list = open.slice().sort((a, b) => Number(game.business.recipe(fid, i, b.id).ok) - Number(game.business.recipe(fid, i, a.id).ok) || b.magnitude - a.magnitude);
+        return `<p class="muted">Green ticks are what you have. Red needs more.</p>${list.map((p) => recipeCard(game, fid, i, p)).join('')}`;
+      }
       let rows = '';
       if (mode === 'Retail') {
         rows += `<div class="item" data-act="set:CROP"><div class="grow"><b>House Bags</b><small>Your crop stock: ${worth(game.state.stock.crop)}</small></div><span class="tag go">Use</span></div>`;
@@ -286,6 +325,15 @@
     },
   };
 
+  function needsText(game, id) {
+    const row = game.data.recipes.rows[id] || {};
+    const bits = ['crop'];
+    if (row.strain) bits.push(`${row.strain.units} ${row.strain.rarity}+ harvests`);
+    for (const p of row.products || []) bits.push(game.stock.skuName(p));
+    if (row.cashShare) bits.push('cash');
+    return 'Needs: ' + bits.join(', ');
+  }
+
   // UI15 product catalogue.
   PE.Panels.catalogue = {
     title: 'Product catalogue',
@@ -299,7 +347,7 @@
           const on = game.state.collections.productsUnlocked[p.id];
           const open = lvl >= p.levelGate;
           const c = game.business.productCost(p.id);
-          return `<div class="item ${on ? '' : 'locked'}"><span class="card-ph small">${esc(p.id)}</span><div class="grow"><b>${esc(p.name)}</b><small>Crop x${p.magnitude} · batch ${duration(p.batchSeconds)}${on ? ` · stock ${worth(game.stock.getStock(p.id))}` : ''}</small></div>
+          return `<div class="item ${on ? '' : 'locked'}"><span class="card-ph small">${esc(p.id)}</span><div class="grow"><b>${esc(p.name)}</b><small>Crop x${p.magnitude} · batch ${duration(p.batchSeconds)}${on ? ` · stock ${worth(game.stock.getStock(p.id))}` : ''}</small><small>${esc(needsText(game, p.id))}</small></div>
             ${on ? '<span class="tag go">Owned</span>' : open ? `<button class="btn small ${game.canAfford('cash', c) ? 'buy' : 'plain'}" data-act="unlock:${p.id}">${money(c)}</button>` : `<span class="tag">Level ${p.levelGate}</span>`}</div>`;
         }).join('');
       }

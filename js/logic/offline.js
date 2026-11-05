@@ -94,7 +94,7 @@
             state.stats.harvests += extra;
             st.harvests += extra;
             if (g.facilities) g.facilities.addLocalXp(fid, B.facilityEconomy.localXpPerHarvest * extra * eff);
-            if (g.stock) g.stock.onOfflineCycles(s, each * extra * eff);
+            if (g.stock) g.stock.onOfflineCycles(s, each * extra * eff, extra);
             if (g.meta) g.meta.onOfflineCycles(s, extra * eff, fid, each * extra * eff);
           }
           // Replant: partway through a cycle if the time ran out naturally, fresh if the cap cut it off.

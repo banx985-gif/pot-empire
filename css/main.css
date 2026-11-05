@@ -270,3 +270,21 @@ ul.plain li { padding: 3px 0; }
 .card.story { text-align: center; }
 .story-face { display: block; width: 170px; height: 170px; margin: 0 auto; }
 .story-who { margin: 2px 0 0; font-weight: 800; color: var(--gold); }
+
+/* ---- Job 5: recipe cards ---- */
+.recipe { background: #3a2666; border: 2px solid var(--line); border-radius: 14px; padding: 10px; margin-bottom: 10px; }
+.recipe.ready { border-color: var(--lime); }
+.r-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.r-top small { color: #cbbfe3; }
+.r-body { display: flex; align-items: center; gap: 6px; }
+.r-in { flex: 1; min-width: 0; }
+.r-in .in { display: flex; align-items: center; gap: 5px; font-size: 12px; padding: 3px 5px; margin-bottom: 3px; border-radius: 7px; background: #0003; }
+.r-in .mark { font-weight: 900; flex: none; }
+.r-in .what { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.r-in .amt { flex: none; font-weight: 700; white-space: nowrap; }
+.r-in .met .mark, .r-in .met .amt { color: #7dff7d; }
+.r-in .short .mark, .r-in .short .amt { color: #ff7a7a; }
+.r-arrow { font-size: 20px; color: var(--gold); flex: none; }
+.r-out { flex: none; width: 82px; display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; font-size: 13px; }
+.r-out small { color: var(--cyan); }
+.r-uses { display: block; margin: 6px 0; color: #cbbfe3; font-size: 11px; }

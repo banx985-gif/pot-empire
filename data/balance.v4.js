@@ -444,6 +444,17 @@ globalThis.PE.Data.balance = {
     nameMaxLength: 20,
   },
 
+  // v4: recipes. Storage never throws anything away: a full store only makes finished batches wait.
+  factoryStore: {
+    source: 'STAND-IN. Job 5 card: if a store is full, production waits and shows why.',
+    minValue: 2000000,       // every product's store holds at least this much value
+    typicalHarvests: 5000,   // and grows with the game: this many typical harvests of value
+  },
+  speedUp: {
+    source: 'STAND-IN. Job 5 card: optional Rainbow Gems speed-up, never needed.',
+    secondsPerGem: 900,      // one gem per this much time left, rounded up
+  },
+
   // v4: the Empire map's free gift. Occasional, capped, never an ad.
   map: {
     source: 'STAND-IN. Job 5 card: free little-reward ticker, occasional, capped per day.',

@@ -26,10 +26,29 @@
     const skuName = (sku) => (sku === CROP ? 'House Bags' : products.get(sku).name);
     const ownsAnyBusiness = () => ['F04', 'F05', 'F08', 'F09'].some((f) => g.facilities.isOwned(f));
 
+    // Harvests counted by rarity, for recipes that ask for a strain.
+    const RARITIES = PE.DataCheck.RARITIES;
+    function addUnits(rarity, n) {
+      if (!n) return;
+      if (!stock().units) stock().units = {};
+      stock().units[rarity] = (stock().units[rarity] || 0) + n;
+    }
+    const unitsFrom = (rarity) => RARITIES.slice(RARITIES.indexOf(rarity)).reduce((sum, r) => sum + ((stock().units && stock().units[r]) || 0), 0);
+    // Spends the commonest ones that qualify first, so rarer harvests are kept for recipes that need them.
+    function spendUnits(rarity, n) {
+      let left = n;
+      for (const r of RARITIES.slice(RARITIES.indexOf(rarity))) {
+        const take = Math.min(left, stock().units[r] || 0);
+        if (take) stock().units[r] -= take;
+        left -= take;
+      }
+    }
+
     // ---- Stock from harvests ----------------------------------------------------------------------
     g.stock = {
       CROP, getStock, addStock, skuName, familyOf,
       onHarvest(strain, grade, cash, ctx) {
+        addUnits(strain.rarity, 1);
         if (!ownsAnyBusiness()) {
           if (strain.contractCredit) stock().contractCredit = Math.min(E().contractCreditCap, stock().contractCredit + strain.contractCredit * E().creditPerHarvest);
           return;
@@ -40,7 +59,8 @@
           stock().contractCredit = Math.min(E().contractCreditCap, stock().contractCredit + strain.contractCredit * E().creditPerHarvest * (1 + extra));
         }
       },
-      onOfflineCycles(strain, cashTotal) {
+      onOfflineCycles(strain, cashTotal, cycles) {
+        addUnits(strain.rarity, Math.floor(cycles || 0));
         if (ownsAnyBusiness()) addStock(CROP, cashTotal * E().cropShare * strain.cropMult);
       },
     };
@@ -119,23 +139,65 @@
       return p.magnitude * (1 + (line.levels.value - 1) * E().valuePerLevel)
         * (1 + g.effects.get('productValue', ctx) + g.effects.get('familyDemand', ctx) + g.effects.get('reputation', ctx) * E().reputationToValue);
     }
+    const recipeRow = (sku) => data.recipes.rows[sku] || {};
+    // What a batch of this product needs right now, with have and need for each input. The recipe card
+    // shows exactly this list, and startLine spends exactly this list.
+    function recipe(fid, i, sku) {
+      const line = slots(fid)[i];
+      const row = recipeRow(sku);
+      const crop = line ? batchInput(line) : 0;
+      const inputs = [{ kind: 'crop', id: CROP, label: 'Crop stock', have: stock().crop, need: Math.max(1, crop), ok: crop >= 1 }];
+      if (row.strain) {
+        const have = unitsFrom(row.strain.rarity);
+        inputs.push({ kind: 'strain', rarity: row.strain.rarity, label: `${row.strain.rarity} or rarer harvests`, have, need: row.strain.units, ok: have >= row.strain.units });
+      }
+      for (const id of row.products || []) {
+        const need = Math.max(1, crop * data.recipes.productShare);
+        const have = getStock(id);
+        inputs.push({ kind: 'product', id, label: products.get(id).name, have, need, ok: have >= need });
+      }
+      if (row.cashShare) {
+        const need = Math.max(1, Math.ceil(crop * row.cashShare));
+        inputs.push({ kind: 'cash', label: 'Cash', have: g.balance('cash'), need, ok: g.canAfford('cash', need) });
+      }
+      const value = crop + inputs.filter((x) => x.kind === 'product').reduce((a, x) => a + x.need, 0);
+      return {
+        sku, inputs,
+        ok: inputs.every((x) => x.ok),
+        seconds: line ? batchSeconds(fid, line, sku) : products.get(sku).batchSeconds,
+        output: line ? value * batchOutputMult(fid, line, sku) : 0,
+      };
+    }
     function startLine(fid, i, sku) {
       const line = slots(fid)[i];
       if (!line || line.job) return { ok: false, why: 'busy' };
       if (!state.collections.productsUnlocked[sku]) return { ok: false, why: 'locked' };
-      const input = batchInput(line);
-      if (input < 1) return { ok: false, why: 'crop' };
-      addStock(CROP, -input);
-      const seconds = batchSeconds(fid, line, sku);
+      const r = recipe(fid, i, sku);
+      const short = r.inputs.find((x) => !x.ok);
+      if (short) return { ok: false, why: short.kind === 'crop' ? 'crop' : short.kind === 'cash' ? 'cash' : 'inputs', short };
+      for (const x of r.inputs) {
+        if (x.kind === 'crop') addStock(CROP, -x.need);
+        else if (x.kind === 'strain') spendUnits(x.rarity, x.need);
+        else if (x.kind === 'product') addStock(x.id, -x.need);
+        else if (x.kind === 'cash') g.spend('cash', x.need, 'recipe');
+      }
+      const seconds = r.seconds;
       const now = g.now();
       line.sku = sku;
-      line.job = { input, output: input * batchOutputMult(fid, line, sku), startMs: now, endMs: now + seconds * 1000 };
+      line.job = { input: r.inputs[0].need, output: r.output, startMs: now, endMs: now + seconds * 1000 };
       g.emit('changed');
       return { ok: true };
     }
+    // How much of a product can be in store. It only makes finished batches wait; nothing is ever lost.
+    function storeCap() {
+      const T = B.factoryStore;
+      return Math.max(T.minValue, (state.meta.typicalHarvest || 0) * T.typicalHarvests);
+    }
+    const storeFull = (sku) => getStock(sku) >= storeCap();
     function claimLine(fid, i) {
       const line = slots(fid)[i];
       if (!line || !line.job || g.now() < line.job.endMs) return { ok: false, why: 'notReady' };
+      if (storeFull(line.sku)) return { ok: false, why: 'storeFull' };
       const job = line.job;
       line.job = null;
       addStock(line.sku, job.output);
@@ -174,7 +236,7 @@
       const type = pool[Math.floor(dice('type') * pool.length)];
       const unlocked = Object.keys(state.collections.productsUnlocked);
       // A contract is only useful for stock you actually have. Crop is the fallback.
-      const stocked = [CROP, ...unlocked].filter((s) => getStock(s) >= 1);
+      const stocked = [CROP, ...unlocked].filter((s) => getStock(s) >= 1 && (s === CROP || data.recipes.usedBy.contracts.includes(familyOf(s))));
       const options = stocked.length ? stocked : [CROP];
       const sku = options[Math.floor(dice('sku') * options.length)];
       return { id: `${nowDay}-${seed}`, type: type.id, name: type.name, sku, seconds: type.seconds, mult: type.mult };
@@ -302,6 +364,7 @@
         const s = slots(fid)[i];
         if (!s) return false;
         if (sku !== CROP && !state.collections.productsUnlocked[sku]) return false;
+        if (sku !== CROP && !data.recipes.usedBy.shelves.includes(familyOf(sku))) return false;
         s.sku = sku;
         g.emit('changed');
         return true;
@@ -324,10 +387,35 @@
       upgradeCost,
 
       // Factory
-      lineWaiting: () => false,
+      // A finished batch held back because that product's store is full.
+      lineWaiting: (fid, line) => !!line.job && g.now() >= line.job.endMs && storeFull(line.sku),
+      storeCap,
+      storeFull,
+      recipe,
+      // Is there an idle line and something it could really make right now?
       anyRecipeReady(fid) {
-        if (stock().crop < 1) return false;
-        return Object.keys(state.collections.productsUnlocked).length > 0;
+        const free = slots(fid).findIndex((l) => !l.job);
+        if (free < 0) return false;
+        return Object.keys(state.collections.productsUnlocked).some((sku) => recipe(fid, free, sku).ok);
+      },
+      unitsFrom,
+      // What a product is good for. The data check fails if this is ever empty.
+      productUses: (id) => PE.DataCheck.productUses(data, id),
+      // Optional: Rainbow Gems finish a running batch now. Nothing ever needs this.
+      speedUpCost(fid, i) {
+        const line = slots(fid)[i];
+        if (!line || !line.job) return null;
+        const left = (line.job.endMs - g.now()) / 1000;
+        if (left <= 0) return null;
+        return Math.max(1, Math.ceil(left / B.speedUp.secondsPerGem));
+      },
+      speedUpLine(fid, i) {
+        const cost = g.business.speedUpCost(fid, i);
+        if (cost === null) return { ok: false, why: 'notRunning' };
+        if (!g.spend('rainbowGems', cost, 'speedUp')) return { ok: false, why: 'gems' };
+        slots(fid)[i].job.endMs = g.now();
+        g.emit('changed');
+        return { ok: true, cost };
       },
       startLine, claimLine, batchSeconds, batchInput, batchOutputMult,
       productCost: (id) => Math.round(E().productCostBase * Math.pow(E().productCostGrowth, data.collectibles.products.findIndex((p) => p.id === id))),
@@ -392,7 +480,7 @@
         let batches = 0;
         for (const fid of g.business.ids('Factory')) {
           slots(fid).forEach((line, i) => {
-            if (line.job && now >= line.job.endMs && g.research.hasFlag('factoryAuto')) {
+            if (line.job && now >= line.job.endMs && g.research.hasFlag('factoryAuto') && !storeFull(line.sku)) {
               const boost = 1 + g.effects.get('factoryOffline', factoryCtx(fid, line, line.sku));
               line.job.output *= boost;
               const sku = line.sku;

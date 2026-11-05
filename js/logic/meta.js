@@ -277,7 +277,7 @@
       const dice = (l) => PE.Rng.roll(`${state.rng.seed}:vip:${seed}:${l}`);
       const person = data.vips[Math.floor(dice('who') * data.vips.length)];
       // A VIP only asks for a product you have some of.
-      const owned = Object.keys(state.collections.productsUnlocked).filter((sku) => g.stock.getStock(sku) >= 1);
+      const owned = Object.keys(state.collections.productsUnlocked).filter((sku) => g.stock.getStock(sku) >= 1 && data.recipes.usedBy.vip.includes(g.stock.familyOf(sku)));
       const wantsSku = owned.length > 0;
       const skuWeight = V.skuChance + Object.values(state.collections.packagingBySku).reduce((a, id) => {
         const k = g.collections.item(id);

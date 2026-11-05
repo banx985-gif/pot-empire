@@ -14,6 +14,20 @@
     rows.forEach((r) => { if (!r.name) problems.push(`${label}: ${r.id} has no name`); });
   }
 
+  // Everything a product is good for. Recipes, VIP orders and contracts count as a use. A shelf alone
+  // doesn't: that would let a product nobody asks for slip through.
+  function productUses(d, id) {
+    const p = d.collectibles.products.find((x) => x.id === id);
+    const R = d.recipes;
+    const uses = [];
+    for (const [sku, row] of Object.entries(R.rows)) {
+      if ((row.products || []).includes(id)) uses.push('recipe:' + sku);
+    }
+    if (R.usedBy.vip.includes(p.family)) uses.push('vip');
+    if (R.usedBy.contracts.includes(p.family)) uses.push('contracts');
+    return uses;
+  }
+
   function checkData(d) {
     const problems = [];
     checkIds(problems, 'strains', d.strains, range('STR-', 60, 3));
@@ -71,6 +85,22 @@
       for (const k of ['title', 'howToPlay', 'noLinesYet']) need(S.screens[k], null, 'screens.' + k);
     }
 
+    // Recipes: every product has one, inputs are real and open sooner, and nothing is made for nobody.
+    if (d.recipes && d.collectibles) {
+      const prods = d.collectibles.products;
+      const byId = new Map(prods.map((p) => [p.id, p]));
+      for (const p of prods) {
+        const row = d.recipes.rows[p.id];
+        if (!row) { problems.push(`recipes: ${p.id} has no recipe`); continue; }
+        for (const id of row.products || []) {
+          if (!byId.has(id)) problems.push(`recipes: ${p.id} needs unknown product ${id}`);
+          else if (byId.get(id).levelGate > p.levelGate) problems.push(`recipes: ${p.id} needs ${id}, which opens later`);
+        }
+        if (row.strain && !RARITIES.includes(row.strain.rarity)) problems.push(`recipes: ${p.id} asks for an unknown rarity`);
+        if (!productUses(d, p.id).length) problems.push(`recipes: ${p.id} has no use: nobody wants it`);
+      }
+    }
+
     if (!d.balance) problems.push('balance table missing');
     else {
       if (d.balance.status !== 'provisional') problems.push('balance table must be marked provisional until the simulator passes');
@@ -80,5 +110,5 @@
     return problems;
   }
 
-  PE.DataCheck = { checkData, RARITIES };
+  PE.DataCheck = { checkData, productUses, RARITIES };
 })(globalThis.PE = globalThis.PE || {});
