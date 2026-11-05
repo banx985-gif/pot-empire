@@ -39,6 +39,20 @@
       checkIds(problems, 'avatars', c.avatars, range('AV-', 60, 3));
     }
 
+    // Helper jokes: each one has a stable unique id, a real helper and a known event.
+    if (d.jokes) {
+      const EVENTS = ['firstHarvest', 'automation', 'rareFind', 'bigUpgrade', 'facility', 'prestige', 'idleReturn', 'rank', 'setComplete', 'rival'];
+      const seen = new Set();
+      d.jokes.forEach((j) => {
+        if (seen.has(j.id)) problems.push(`jokes: ${j.id} used twice`);
+        seen.add(j.id);
+        if (!['HAZE', 'BUDZ', 'LEAFY'].includes(j.helper)) problems.push(`jokes: ${j.id} has an unknown helper`);
+        if (!EVENTS.includes(j.event)) problems.push(`jokes: ${j.id} has an unknown event`);
+        if (!j.text || j.text.length > 160) problems.push(`jokes: ${j.id} is empty or too long`);
+      });
+      EVENTS.forEach((e) => { if (!d.jokes.some((j) => j.event === e)) problems.push(`jokes: none for ${e}`); });
+    }
+
     if (!d.balance) problems.push('balance table missing');
     else {
       if (d.balance.status !== 'provisional') problems.push('balance table must be marked provisional until the simulator passes');

@@ -57,6 +57,8 @@
     // action has to run here, after the cancel.
     el.addEventListener('pointerup', (e) => { if (e.pointerType !== 'touch') finish(e.clientX, e.clientY); });
     el.addEventListener('touchend', (e) => {
+      // A text box needs the browser's own touch handling to get the keyboard up.
+      if (e.target.closest && e.target.closest('input, textarea, select')) { down = null; return; }
       if (e.cancelable) e.preventDefault();
       const c = e.changedTouches[0];
       if (c) finish(c.clientX, c.clientY);
@@ -65,7 +67,8 @@
   }
 
   const Dom = {
-    esc, money, duration, strainThumb,
+    esc, money, duration, strainThumb, attachTaps,
+    isTouching: () => touching,
     panelRoute: null,
 
     init() {
@@ -214,7 +217,7 @@
 
     actions: {
       nav(id) { PE.App.navTo(id); },
-      profile() { PE.App.openPanel('talents'); },
+      profile() { PE.App.openPanel('profile'); },
       settings() { PE.App.openPanel('settings'); },
       chest() { PE.Hud.showChoice(); },
       harvestAll() {

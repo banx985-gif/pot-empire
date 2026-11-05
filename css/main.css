@@ -151,3 +151,57 @@ ul.plain li { padding: 3px 0; }
 .menu-btn { flex: 1; min-width: 0; min-height: 62px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10.5px !important; font-weight: 800; border-radius: 12px; background: linear-gradient(135deg, #7a3fb0, #ff4fa366) !important; border: 1px solid #ffffff30 !important; padding: 2px; }
 .menu-btn span { font-size: 22px; }
 .bigtitle { font-size: 24px; font-weight: 900; text-align: center; color: var(--gold); margin: 6px 0 !important; }
+
+/* ---- Big job 2, Stage 1: helpers, celebrations, profile, Hall of Fame ---- */
+#helper { position: absolute; inset: 0; z-index: 8; pointer-events: auto; }
+.helper-pop { position: absolute; inset: 0; background: #0b0518d9; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; padding: 0 14px calc(env(safe-area-inset-bottom) + 96px); animation: fadein .2s ease-out; }
+.helper-pop .splash { position: absolute; left: 50%; bottom: 210px; width: 300px; height: 300px; transform: translateX(-50%); pointer-events: none; }
+.helper-pop .splash i { position: absolute; border-radius: 50%; background: #9a5be0; opacity: .55; }
+.helper-pop .splash i:nth-child(1) { inset: 30px; border-radius: 46% 54% 38% 62%; }
+.helper-pop .splash i:nth-child(2) { width: 90px; height: 90px; right: -6px; top: 10px; background: var(--pink); opacity: .45; }
+.helper-pop .splash i:nth-child(3) { width: 60px; height: 60px; left: 4px; bottom: 30px; background: var(--cyan); opacity: .4; }
+.helper-pop .who { position: relative; width: 190px; animation: rise .32s cubic-bezier(.2,1.4,.4,1); }
+.who-img { display: block; width: 100%; border-radius: 22px; border: 3px solid #fff; box-shadow: 0 8px 30px #000a; }
+.who-ph { width: 170px; height: 200px; margin: 0 auto; border-radius: 26px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; border: 3px dashed #fff8; text-align: center; }
+.who-ph span { font-size: 74px; }
+.who-ph em { font-style: normal; font-size: 12px; color: #fffc; }
+.who-ph.budz { background: radial-gradient(circle at 40% 35%, #c6ff3d, #3f8a1c); }
+.who-ph.leafy { background: radial-gradient(circle at 40% 35%, #52e6ff, #1c5f8a); }
+.helper-pop .bubble { position: relative; margin-top: 12px; max-width: 360px; background: #fff; color: #1d0f33; border-radius: 18px; padding: 12px 16px 10px; box-shadow: 0 6px 24px #000a; animation: pop .25s ease-out; }
+.helper-pop .bubble::before { content: ''; position: absolute; top: -10px; left: 50%; margin-left: -10px; border: 10px solid transparent; border-top: 0; border-bottom-color: #fff; }
+.helper-pop .bubble b { color: #a01a6f; }
+.helper-pop .bubble p { margin: 4px 0 6px; font-size: 16px; line-height: 1.35; }
+.helper-pop .bubble small { color: #6a5a85; font-size: 12px; }
+#helper.still .helper-pop, #helper.still .who, #helper.still .bubble { animation: none; }
+@keyframes fadein { from { opacity: 0; } }
+@keyframes rise { from { transform: translateY(60px) scale(.9); opacity: 0; } }
+
+#celebrate { position: absolute; inset: 0; z-index: 7; pointer-events: none; overflow: hidden; }
+#celebrate .banner { pointer-events: auto; position: absolute; left: 16px; right: 16px; top: calc(env(safe-area-inset-top) + 130px); padding: 14px 16px; border-radius: 20px; text-align: center; background: linear-gradient(135deg, #ff4fa3, #9a5be0 50%, #52e6ff); border: 3px solid var(--gold); box-shadow: 0 8px 30px #000b; animation: pop .3s cubic-bezier(.2,1.6,.4,1); }
+#celebrate .banner b { display: block; font-size: 20px; text-shadow: 0 2px 3px #0008; }
+#celebrate .stars { display: block; color: var(--gold); letter-spacing: 6px; font-size: 18px; }
+#celebrate.small .banner { top: calc(env(safe-area-inset-top) + 150px); left: 60px; right: 60px; padding: 8px 12px; border-width: 2px; }
+#celebrate.small .banner b { font-size: 16px; }
+#celebrate.still .banner { animation: none; }
+.confetti i { position: absolute; top: -20px; left: calc(var(--i) * 7% + 2%); width: 9px; height: 14px; border-radius: 2px; background: hsl(calc(var(--i) * 47), 95%, 62%); animation: fall 2.2s linear forwards; animation-delay: calc(var(--i) * 60ms); }
+@keyframes fall { to { transform: translateY(105vh) rotate(calc(var(--i) * 97deg)); } }
+@media (prefers-reduced-motion: reduce) { .confetti { display: none; } #celebrate .banner, .helper-pop, .helper-pop .who, .helper-pop .bubble { animation: none; } }
+
+.logo-ph { display: inline-flex; align-items: center; justify-content: center; flex: none; border-radius: 50%; background: #05020b; color: var(--c); border: 2px solid var(--c); font-weight: 900; text-shadow: 0 0 6px var(--c); box-shadow: 0 0 8px color-mix(in srgb, var(--c) 50%, transparent); }
+.avatar { display: inline-flex; align-items: center; justify-content: center; flex: none; border-radius: 50%; background: #05020b; border: 3px solid var(--lime); overflow: hidden; }
+.av-none { font-size: 40px; }
+.profile-head { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
+.profile-head .biz { display: block; font-size: 20px; }
+.profile-head small { display: block; color: #e8def8; }
+.title-tag { color: var(--gold) !important; font-weight: 700; }
+.field { display: block; margin-bottom: 8px; }
+.field span { display: block; font-size: 13px; color: #e8def8; margin-bottom: 3px; }
+.field input { width: 100%; box-sizing: border-box; font: inherit; font-size: 16px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: #0006; color: #fff; -webkit-user-select: text; user-select: text; touch-action: auto; }
+.hall-mini { display: flex; gap: 4px; flex-wrap: wrap; }
+.hall-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.hall-slot { position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 10px 6px; border-radius: 16px; background: radial-gradient(circle at 50% 30%, #3b2466, #160b28); border: 1px solid #ffffff2a; min-height: 190px; }
+.hall-slot b { margin-top: 4px; font-size: 14px; }
+.hall-slot small { font-size: 12px; color: #e8def8; }
+.hall-slot.empty { justify-content: center; border-style: dashed; }
+.hall-slot .plus { font-size: 44px; color: #ffffff66; }
+.hall-logo { position: absolute; top: 8px; right: 8px; }

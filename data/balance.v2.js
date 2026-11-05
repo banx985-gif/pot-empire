@@ -407,6 +407,29 @@ globalThis.PE.Data.balance = {
     },
   },
 
+  // Big job 2, Stage 1. The bible: occasional, short, skippable; never constant chatter.
+  helpers: {
+    source: 'STAND-IN. Bible sections 1, 9: helpers speak only at meaningful moments.',
+    cooldownMinutes: 6,      // after a line, nothing more for this long (first-time events excepted)
+    repeatChance: 0.35,      // after the first time, the chance an event gets a line at all
+    idleReturnHours: 2,      // "welcome back" lines only after being away this long
+    showSeconds: 9,          // a line closes by itself after this long; one tap closes it sooner
+  },
+  celebrations: {
+    source: 'STAND-IN. Bible section 10A: short and skippable, reduced-motion option.',
+    rankEvery: 10,
+    majorRanks: [25, 60, 100, 250, 500, 1000],
+    seconds: 2.4,
+    reducedMotionSeconds: 1.6,
+    maxWaiting: 3,
+  },
+  profile: {
+    source: 'Bible section 10A for the six slots, STAND-IN for the rest',
+    hallSlots: 6,
+    hallOfFameLevel: 4,      // "a simple early feature gate"
+    nameMaxLength: 20,
+  },
+
   offline: {
     source: 'bible section 6 for the cap, STAND-IN for the rest',
     minAwaySeconds: 60,          // shorter gaps are treated as normal play

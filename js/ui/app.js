@@ -59,6 +59,7 @@
     };
     PE.App = app;
     PE.Dom.init();
+    PE.HelperUI.init();
 
     const fromFile = location.protocol === 'file:';
     const game = new Phaser.Game({
@@ -172,7 +173,9 @@
       if (type === 'levelUp') {
         PE.Dom.toast(`Level ${e.level}!${e.rewards.length ? ' ' + e.rewards[0] : ''}`, 'big');
       } else if (type === 'celebrate') {
-        PE.Dom.toast(e.text, 'big');
+        PE.Celebrate.add(e);
+      } else if (type === 'helperSay') {
+        PE.HelperUI.add(e);
       } else if (type === 'masteryReward') {
         PE.Dom.toast(`${g.grow.strainStats(e.strainId).name} Mastery ${e.level}: ${e.text}`, 'big');
       } else if (type === 'offlineReady') {

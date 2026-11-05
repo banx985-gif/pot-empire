@@ -5,7 +5,7 @@
 //
 // Saves hold plain facts only (ids, numbers, UTC times), never anything from Phaser.
 (function (PE) {
-  const CURRENT_VERSION = 5;
+  const CURRENT_VERSION = 6;
 
   function newCollections() {
     return { owned: {}, productsUnlocked: {}, relicsByDistrict: {}, stickersByBusiness: {}, decorByFacility: {}, packagingBySku: {}, loadouts: [] };
@@ -19,6 +19,15 @@
       festival: { id: null, theme: null, active: false, points: 0, claimed: {} },
       vip: { seed: 0, offers: [], history: [] },
     };
+  }
+
+  // Every setting with its default. Old saves get any missing ones filled in.
+  function newSettings() {
+    return { reducedMotion: false, helpers: true, sound: 0.8, music: 0.5, bigText: false, colourBlind: false, showFps: false };
+  }
+
+  function newHelpers() {
+    return { seen: {}, firstDone: {}, lastMs: 0, lastId: null, said: 0, tries: 0 };
   }
 
   function newStation(nowMs) {
@@ -52,7 +61,8 @@
       stats: { harvests: 0, lifetimeCash: '0', offlineClaims: 0, bestGrade: {}, lastHarvestDay: null, deliveries: 0 },
       unlockedStrains: { 'STR-001': true },
       pendingOffline: null,
-      settings: { reducedMotion: false },
+      settings: newSettings(),
+      helpers: newHelpers(),
       facilities: { F01: { unlocked: true, renovation: 0, localXp: 0, stations: { 0: newStation(nowMs), 1: newStation(nowMs) } } },
       mastery: {},
       managers: { owned: {}, assigned: {} },
@@ -66,7 +76,7 @@
       prestigeHistory: [],
       purchases: [],
       appliedTransactionIds: [],   // so an offline claim or reward can never pay out twice
-      profile: { businessName: '', username: '', avatarStrainId: null, favouriteStrainId: null },
+      profile: { businessName: '', username: '', avatarStrainId: null, favouriteStrainId: null, title: null },
       hallOfFameFeaturedStrainIds: [null, null, null, null, null, null],
       milestones: {},
       ui: { garageStrainId: 'STR-001' },
@@ -118,6 +128,16 @@
       s.meta = s.meta || newMeta();
       return s;
     },
+    // Version 6 (big job 2, Stage 1): helpers, profile title, all settings with their defaults.
+    5(old) {
+      const s = old;
+      s.settings = { ...newSettings(), ...(s.settings || {}) };
+      s.helpers = s.helpers || newHelpers();
+      s.profile = { businessName: '', username: '', avatarStrainId: null, favouriteStrainId: null, title: null, ...(s.profile || {}) };
+      if (!Array.isArray(s.hallOfFameFeaturedStrainIds)) s.hallOfFameFeaturedStrainIds = [null, null, null, null, null, null];
+      s.milestones = s.milestones || {};
+      return s;
+    },
   };
 
   // The minimum a save must have to be usable. Returns a list of what's wrong (empty = fine).
@@ -132,5 +152,5 @@
     return problems;
   }
 
-  PE.SaveSchema = { CURRENT_VERSION, MIGRATIONS, createNewState, newStation, checkState };
+  PE.SaveSchema = { CURRENT_VERSION, MIGRATIONS, createNewState, newStation, newSettings, checkState };
 })(globalThis.PE = globalThis.PE || {});
