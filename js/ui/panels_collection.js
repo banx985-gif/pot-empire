@@ -1,5 +1,5 @@
 // Collection screens (UI19-27): managers, relics, stickers, vehicles, packaging, decorations, avatars,
-// loadouts and the token shop. Cards are PLACEHOLDERS: id + name on a plain card. No portraits exist yet.
+// loadouts and the token shop. Managers show their real portraits. Other cards are PLACEHOLDERS: id + name on a plain card.
 (function (PE) {
   const { esc, strainThumb } = PE.Dom;
   const { Money } = PE;
@@ -8,7 +8,7 @@
   const toast = (t) => PE.Dom.toast(t);
   const C = () => PE.Data.collectibles;
 
-  const card = (it) => `<span class="card-ph r-bg-${it.rarity}">${esc(it.id)}</span>`;
+  const card = (it) => (it.category === 'manager' ? `<span class="card-ph r-bg-${it.rarity} has-portrait">${PE.Dom.portrait(it.id, it.name)}</span>` : `<span class="card-ph r-bg-${it.rarity}">${esc(it.id)}</span>`);
   const percent = (v) => `${Math.round(v * 1000) / 10}%`;
   const NICE = {
     growSpeed: 'grow speed', saleBonus: 'sale value', yieldBonus: 'yield', masteryXp: 'mastery XP', extraHarvestChance: 'double-sale chance',

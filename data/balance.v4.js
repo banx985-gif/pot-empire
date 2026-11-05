@@ -444,6 +444,23 @@ globalThis.PE.Data.balance = {
     nameMaxLength: 20,
   },
 
+  // v4: the Empire map's free gift. Occasional, capped, never an ad.
+  map: {
+    source: 'STAND-IN. Job 5 card: free little-reward ticker, occasional, capped per day.',
+    gift: {
+      perDay: 5,             // the most that can be claimed in one day
+      minMinutes: 8,         // shortest wait before the next one
+      maxMinutes: 25,        // longest wait
+      missedMinutes: 6,      // if one flies past untapped, the next comes this soon (nothing is lost)
+      flySeconds: 28,        // how long it stays on screen
+      prizes: [
+        { chance: 0.7, cashHarvests: 3 },
+        { chance: 0.2, collectionTokens: 2 },
+        { chance: 0.1, researchTokens: 1 },
+      ],
+    },
+  },
+
   offline: {
     source: 'bible section 6 for the cap, STAND-IN for the rest',
     minAwaySeconds: 60,          // shorter gaps are treated as normal play

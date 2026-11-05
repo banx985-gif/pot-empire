@@ -119,6 +119,18 @@
       say,
       isMajorRank,
       heard: () => data.jokes.filter((j) => hs().seen[j.id]),
+      // Tapped on the map: always answers, never touches the cooldown, doesn't repeat itself straight away.
+      chat(helperId) {
+        const list = data.jokes.filter((j) => j.event === 'chat' && j.helper === helperId);
+        if (!list.length) return null;
+        const fresh = list.filter((j) => !hs().seen[j.id]);
+        const pool = fresh.length ? fresh : list.filter((j) => j.id !== hs().lastId);
+        const j = pool[Math.floor(roll('chat') * pool.length)] || list[0];
+        hs().seen[j.id] = (hs().seen[j.id] || 0) + 1;
+        hs().lastId = j.id;
+        g.emit('helperSay', { jokeId: j.id, helper: j.helper, name: helperName[j.helper], text: j.text, event: 'chat', face: j.face, face2: j.face2, replay: true });
+        return j;
+      },
       // Help replay: says a joke heard before, without touching the cooldown.
       replay(jokeId) {
         const j = data.jokes.find((x) => x.id === jokeId);

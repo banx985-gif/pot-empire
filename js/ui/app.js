@@ -199,6 +199,8 @@
         PE.Dom.toast(`Level ${e.level}!${e.rewards.length ? ' ' + e.rewards[0] : ''}`, 'big');
       } else if (type === 'celebrate') {
         PE.Celebrate.add(e);
+      } else if (type === 'rivalBeaten') {
+        PE.Story.show(e.id);
       } else if (type === 'helperSay') {
         PE.HelperUI.add(e);
       } else if (type === 'masteryReward') {

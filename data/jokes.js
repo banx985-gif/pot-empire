@@ -14,6 +14,7 @@
 //   facility      a facility bought                prestige    a regional prestige
 //   idleReturn    back after a long time away      rank        every 10th Empire Rank
 //   setComplete   a six-piece set finished         rival       a rival CEO beaten
+//   chat          tapped on the Empire map (the rules never say these by themselves)
 (globalThis.PE = globalThis.PE || {}).Data = globalThis.PE.Data || {};
 globalThis.PE.Data.jokes = [
   // ---- First harvest ----
@@ -74,4 +75,15 @@ globalThis.PE.Data.jokes = [
   { id: 'J090', helper: 'BUDZ', event: 'rival', face: 'BUDZ-43', face2: 'BUDZ-44', text: "You beat a rival CEO! No hard feelings. Okay, some hard feelings. Theirs, not ours." },
   { id: 'J091', helper: 'HAZE', event: 'rival', face: 'HAZE-28', face2: 'HAZE-05', text: "Rivals come and go. Good plants stay. That's on a poster somewhere. I made the poster." },
   { id: 'J092', helper: 'LEAFY', event: 'rival', face: 'LEAFY-25', face2: 'LEAFY-21', text: "Rival beaten. I'll add them to the list of people who underestimated a garage." },
+
+  // ---- Tapped on the Empire map ----
+  { id: 'J100', helper: 'HAZE', event: 'chat', face: 'HAZE-27', face2: 'HAZE-03', text: "Hey, you found me. I was just standing here, supervising. It's harder than it looks." },
+  { id: 'J101', helper: 'HAZE', event: 'chat', face: 'HAZE-29', face2: 'HAZE-05', text: "See that road? I'm almost sure it goes somewhere. I've been meaning to check since 1974." },
+  { id: 'J102', helper: 'HAZE', event: 'chat', face: 'HAZE-30', face2: 'HAZE-06', text: "Nice little empire you've got. Mind if I lean on it?" },
+  { id: 'J103', helper: 'BUDZ', event: 'chat', face: 'BUDZ-53', face2: 'BUDZ-07', text: "Hi! Hi! You tapped me! Nobody ever taps me! Well, you did. Just then. Hi!" },
+  { id: 'J104', helper: 'BUDZ', event: 'chat', face: 'BUDZ-43', face2: 'BUDZ-03', text: "I counted the vans. There's more of them than yesterday. Or I can't count. Either way, good news." },
+  { id: 'J105', helper: 'BUDZ', event: 'chat', face: 'BUDZ-37', face2: 'BUDZ-10', text: "Did you see the balloon? There's a balloon sometimes! Tap it! It's free! I love free!" },
+  { id: 'J106', helper: 'LEAFY', event: 'chat', face: 'LEAFY-25', face2: 'LEAFY-14', text: "Yes? I'm busy watching things grow. It's slower than you'd think, and I'm very good at it." },
+  { id: 'J107', helper: 'LEAFY', event: 'chat', face: 'LEAFY-26', face2: 'LEAFY-13', text: "A red mark means something's ready. It goes away when it isn't. Unlike some games I could mention.", fourthWall: true },
+  { id: 'J108', helper: 'LEAFY', event: 'chat', face: 'LEAFY-27', face2: 'LEAFY-18', text: "That empty patch of grass is reserved. For what? Nobody tells me anything." },
 ];

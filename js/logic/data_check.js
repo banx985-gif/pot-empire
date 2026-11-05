@@ -41,7 +41,7 @@
 
     // Helper jokes: each one has a stable unique id, a real helper and a known event.
     if (d.jokes) {
-      const EVENTS = ['firstHarvest', 'automation', 'rareFind', 'bigUpgrade', 'facility', 'prestige', 'idleReturn', 'rank', 'setComplete', 'rival'];
+      const EVENTS = ['firstHarvest', 'automation', 'rareFind', 'bigUpgrade', 'facility', 'prestige', 'idleReturn', 'rank', 'setComplete', 'rival', 'chat'];
       const seen = new Set();
       d.jokes.forEach((j) => {
         if (seen.has(j.id)) problems.push(`jokes: ${j.id} used twice`);

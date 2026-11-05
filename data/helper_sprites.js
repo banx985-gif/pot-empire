@@ -35,6 +35,9 @@ globalThis.PE.Data.helperSprites = {
     prestige: ['HAZE-42', 'BUDZ-48', 'LEAFY-31'],
   },
 
+  // How the helpers stand on the Empire map.
+  mapPose: { HAZE: 'HAZE-27', BUDZ: 'BUDZ-05', LEAFY: 'LEAFY-25' },
+
   // Pictures on the menus and the title screen.
   screens: {
     title: 'HAZE-27',             // Uncle Haze waving on the title screen

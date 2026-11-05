@@ -129,6 +129,7 @@
         m().rivals[id] = true;
         text = payReward({ cashHarvests: T().rivalCashHarvests * (i + 1), researchTokens: T().rivalTokens * (i + 1), title: `Beat ${r.name}` }, 'rival');
         g.emit('celebrate', { kind: 'rival', text: `You beat ${r.name}!` });
+        g.emit('rivalBeaten', { id });
         g.emit('changed');
       });
       return { ok: ran, text };
@@ -373,6 +374,7 @@
     // ---- Public --------------------------------------------------------------------------------------------
     g.meta = {
       count,
+      payReward,
       metric,
       globalMultiplier: () => bonusFor(Money.toNumber(state.currencies.empireShares)),
       festivalActive: () => m().festival.active === true,

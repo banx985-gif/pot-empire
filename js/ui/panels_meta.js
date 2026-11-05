@@ -1,5 +1,5 @@
 // Tasks (UI29), achievements (UI30), rivals (UI28), festivals (UI31, 32), regional prestige (UI33),
-// VIP orders. Rival and VIP pictures are PLACEHOLDER cards: no portraits are drawn yet.
+// VIP orders.
 (function (PE) {
   const { esc, money, duration } = PE.Dom;
   const { Money } = PE;
@@ -68,11 +68,11 @@
     title: 'Rivals',
     render() {
       const list = g().meta.rivalList();
-      return `<p class="muted">Twelve rival CEOs. Beat each one by reaching their milestone. Portraits aren't drawn yet.</p>` + list.map((r) => `<div class="item"><span class="card-ph">${esc(r.id.replace('RIVAL-', 'R'))}</span>
+      return `<p class="muted">Twelve rival CEOs. Beat each one by reaching their milestone. Their buildings stand at the edges of the Empire map.</p>` + list.map((r) => `<div class="item" ${r.beaten ? `data-act="story:${r.id}"` : ''}>${PE.Dom.portrait(r.id, r.name)}
         <div class="grow"><b>${esc(r.name)}</b><small>${esc(r.text)}</small><small>${fmt(Math.min(r.progress, r.target))} / ${fmt(r.target)}</small>${bar(r.progress / r.target)}</div>
         ${r.beaten ? '<span class="tag go">Beaten</span>' : r.done ? `<button class="btn small go" data-act="beat:${r.id}">Claim</button>` : ''}</div>`).join('');
     },
-    actions: { beat(id) { paid(g().meta.beatRival(id)); } },
+    actions: { beat(id) { paid(g().meta.beatRival(id)); }, story(id) { PE.Story.show(id); } },
   };
 
   PE.Panels.festival = {
@@ -151,11 +151,11 @@
     const rows = game.meta.vipOffers().map((o) => {
       const ready = game.meta.vipDone(o);
       const left = duration((o.expiresMs - now) / 1000);
-      return `<div class="item"><span class="card-ph small">${esc(o.vipId.replace('VIP-', 'V'))}</span><div class="grow"><b>${esc(o.name)}</b><small>${esc(o.text)}</small>
+      return `<div class="item">${PE.Dom.portrait(o.vipId, o.name, 'small')}<div class="grow"><b>${esc(o.name)}</b><small>${esc(o.text)}</small>
         <small>${o.kind === 'sku' ? (o.accepted ? `Reserved ${money(Math.floor(o.reserved))} of stock` : 'Reserves stock when accepted') : `${o.done}/${o.units}`} · ${left} left${o.accepted ? ` · pays ${money(game.meta.vipReward(o))}` : ''}</small></div>
         ${ready ? `<button class="btn small go" data-act="vipClaim:${o.id}">Claim</button>` : o.accepted ? `<button class="btn small plain" data-act="vipCancel:${o.id}">Cancel</button>` : `<button class="btn small buy" data-act="vipTake:${o.id}">Accept</button>`}</div>`;
     }).join('');
-    return `<h4>VIP orders</h4><p class="muted">Optional. Cancelling or running out of time gives back anything you reserved. Portraits aren't drawn yet.</p>${rows}`;
+    return `<h4>VIP orders</h4><p class="muted">Optional. Cancelling or running out of time gives back anything you reserved.</p>${rows}`;
   };
   Object.assign(PE.Panels.contracts.actions, {
     vipTake(id) { const r = g().meta.acceptVip(id); if (!r.ok) toast(r.why === 'stock' ? 'Not enough of that stock yet' : 'Not available'); PE.App.saveGame(); },

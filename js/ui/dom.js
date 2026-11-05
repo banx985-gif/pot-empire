@@ -260,6 +260,9 @@
     },
   };
 
+  // A character portrait (manager, rival or VIP). Hides itself if it can't load.
+  Dom.portrait = (id, name, cls = '') => `<img class="portrait ${cls}" src="assets/characters/${id}.webp" alt="${esc(name)}" loading="lazy" draggable="false" onerror="this.style.visibility='hidden'">`;
+
   PE.Dom = Dom;
   PE.Hud = Hud;
   PE.Panels = {};

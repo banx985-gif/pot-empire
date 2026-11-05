@@ -43,6 +43,23 @@
     }
     if (!isUnlocked(mapState().district) || !layoutOf(mapState().district)) mapState().district = layouts[0].id;
 
+    // The gift counter belongs to one day (game time, so winding the clock back earns nothing).
+    function scheduleGift(G) {
+      const T = B.map.gift;
+      const roll = PE.Rng.roll(`${state.rng.seed}:giftwait:${G.day}:${G.count}`);
+      G.nextMs = g.now() + (T.minMinutes + roll * (T.maxMinutes - T.minMinutes)) * 60000;
+    }
+    function giftState() {
+      const m = mapState();
+      const day = Math.floor(g.now() / 86400000);
+      if (m.gift.day !== day) {
+        m.gift.day = day;
+        m.gift.count = 0;
+        scheduleGift(m.gift);
+      }
+      return m.gift;
+    }
+
     // ---- Status ---------------------------------------------------------------------------------------
     function growStatus(fid) {
       const now = g.now();
@@ -181,6 +198,48 @@
       needsYou(id) {
         const d = defs().find((x) => x.id === id);
         return !!d && d.facilities.some((f) => ['ready', 'idle', 'buy'].includes(status(f).kind));
+      },
+      // Where the helpers stand: beside what's new here (a lot you can buy, or your newest place).
+      helperSpots(id) {
+        const L = layoutOf(id);
+        const d = defs().find((x) => x.id === id);
+        const forSale = d.facilities.find((f) => !g.facilities.isOwned(f) && g.facilities.isAvailable(f));
+        const owned = d.facilities.filter((f) => g.facilities.isOwned(f));
+        const focus = forSale || owned[owned.length - 1];
+        if (!focus) return L.helperSpots;
+        const s = L.spots[focus];
+        const inside = (v, hi) => Math.max(90, Math.min(hi - 90, v));
+        return [[-210, 74], [215, 86], [-40, 225]].map(([dx, dy]) => ({ x: inside(s.x + dx, L.w), y: inside(s.y + dy, L.h) }));
+      },
+      markStorySeen(id) { mapState().storySeen[id] = true; },
+
+      // ---- The free gift: a little thing that crosses the map now and then. Capped per day. --------
+      giftDue() {
+        const G = giftState();
+        return G.count < B.map.gift.perDay && g.now() >= G.nextMs;
+      },
+      giftsLeftToday() { return Math.max(0, B.map.gift.perDay - giftState().count); },
+      // It flew past untapped: nothing's lost, another comes soon.
+      giftMissed() {
+        const G = giftState();
+        G.nextMs = g.now() + B.map.gift.missedMinutes * 60000;
+      },
+      claimGift() {
+        if (!g.map.giftDue()) return { ok: false, why: 'notDue' };
+        const G = giftState();
+        const n = G.count;
+        let text = '';
+        const ran = g.once(`gift:${G.day}:${n}`, () => {
+          const roll = PE.Rng.roll(`${state.rng.seed}:gift:${G.day}:${n}`);
+          let sum = 0;
+          const prizes = B.map.gift.prizes;
+          const prize = prizes.find((p) => { sum += p.chance; return roll < sum; }) || prizes[0];
+          text = g.meta.payReward(prize, 'gift');
+          G.count = n + 1;
+          scheduleGift(G);
+          g.emit('changed');
+        });
+        return { ok: ran, text };
       },
       saveView(id, view) { mapState().view[id] = view; },
       savedView: (id) => mapState().view[id] || null,
