@@ -4,11 +4,11 @@
 //
 // Kept light on purpose: about 20 small pictures moved with simple sums, no physics and no timers per
 // object. With reduced motion on, nothing moves but everything can still be tapped.
-// ALL STAND-INS until map art arrives. Real pictures take over by file name (VEH-01, WLK-01, FX-01 ...).
+// The pieces are real art, by file name (art/map/MAP_PIECES_ART.md). The boats and the train have no art yet.
+// Vehicles and walkers are drawn facing left: the game mirrors them for the other way.
 (function (PE) {
   const FONT = 'system-ui, sans-serif';
   const proto = PE.EmpireMapScene.prototype;
-  const RIVAL_COLOURS = [0xb5533c, 0xff8a3d, 0xb79ce0, 0xd4af37, 0x8a4fff, 0x62d04b, 0xff7ad9, 0x38b6a8, 0xe0566e, 0x8b8fa3, 0xff9ecb, 0x2a1f3d];
 
   function tex(scene, key, w, h, draw) {
     if (!scene.textures.exists(key)) {
@@ -19,12 +19,20 @@
     }
     return key;
   }
-  // A moving piece: it starts as a stand-in and swaps to real art if that's been imported.
-  function piece(scene, x, y, key, artId, size) {
-    const s = scene.add.image(x, y, key);
-    if (artId) PE.MapArt.load(scene, artId, (k) => { if (s.scene) s.setTexture(k).setDisplaySize(size, size); });
+  // A piece of real art, shown size tall once its picture has come. Nothing shows until then.
+  function piece(scene, x, y, artId, size) {
+    const s = scene.add.image(x, y, '__WHITE').setVisible(false);
+    s.artReady = false;
+    PE.MapArt.load(scene, artId, (k) => {
+      if (!s.scene) return;
+      const src = scene.textures.get(k).getSourceImage();
+      s.setTexture(k).setDisplaySize((src.width / src.height) * size, size).setVisible(true);
+      s.artReady = true;
+      s.base = s.scaleY;
+    });
     return s;
   }
+  const VAN_ART = ['VEH-01', 'VEH-02', 'VEH-04', 'VEH-05', 'VEH-03'];
   function lengths(pts) {
     const seg = [];
     let total = 0;
@@ -40,9 +48,10 @@
   }
 
   proto.setUpLife = function setUpLife() {
-    this.life = { movers: [], walkers: [], puffs: [], glows: [], sways: [], flyers: [], helpers: new Map(), rivals: new Map(), gift: null, giftCheck: 0, loaded: [], t: 0 };
+    this.life = { movers: [], walkers: [], puffs: [], glows: [], flyers: [], props: [], helpers: new Map(), rivals: new Map(), gift: null, giftCheck: 0, loaded: [], t: 0 };
     this.calmNow = this.calm();
     this.makeLifeTextures();
+    this.buildProps();
     this.buildRivals();
     this.buildVans();
     this.buildWalkers();
@@ -52,19 +61,6 @@
   };
 
   proto.makeLifeTextures = function makeLifeTextures() {
-    tex(this, 'map-van', 76, 52, (G) => {
-      G.fillStyle(0x000000, 0.2).fillEllipse(38, 46, 70, 12);
-      G.fillStyle(0xff4fa3, 1).fillRoundedRect(4, 8, 68, 32, 8);
-      G.fillStyle(0x52e6ff, 1).fillRect(52, 13, 16, 13);
-      G.fillStyle(0xffd84d, 1).fillCircle(26, 22, 7);
-      G.fillStyle(0x140a24, 1).fillCircle(20, 41, 8).fillCircle(56, 41, 8);
-    });
-    ['0xc6ff3d', '0xff8a3d', '0x52e6ff', '0xff4fa3'].forEach((c, i) => tex(this, `map-walker-${i}`, 30, 58, (G) => {
-      G.fillStyle(0x000000, 0.2).fillEllipse(15, 54, 24, 7);
-      G.fillStyle(0xf2c9a0, 1).fillCircle(15, 11, 9);
-      G.fillStyle(Number(c), 1).fillRoundedRect(6, 20, 18, 22, 5);
-      G.fillStyle(0x2c1a4d, 1).fillRect(8, 40, 6, 13).fillRect(16, 40, 6, 13);
-    }));
     tex(this, 'map-boat', 110, 60, (G) => {
       G.fillStyle(0xffffff, 0.5).fillEllipse(55, 50, 106, 14);
       G.fillStyle(0xff8a3d, 1).fillRoundedRect(10, 26, 90, 22, 9);
@@ -78,57 +74,34 @@
       G.fillStyle(0x8b8fa3, 1).fillRoundedRect(84, 12, 80, 30, 4);
       G.fillStyle(0x140a24, 1).fillCircle(20, 44, 7).fillCircle(58, 44, 7).fillCircle(104, 44, 7).fillCircle(144, 44, 7);
     });
-    tex(this, 'map-puff', 52, 52, (G) => { G.fillStyle(0xe8def8, 1).fillCircle(26, 28, 18).fillCircle(16, 24, 12).fillCircle(36, 22, 12); });
     tex(this, 'map-glow', 128, 128, (G) => { for (let r = 62; r > 0; r -= 6) G.fillStyle(0xc6ff3d, 0.07).fillCircle(64, 64, r); });
-    tex(this, 'map-plant', 40, 70, (G) => {
-      G.lineStyle(5, 0x2f7a1c, 1).lineBetween(20, 70, 20, 26);
-      G.fillStyle(0x62c23a, 1).fillEllipse(20, 18, 20, 36).fillEllipse(8, 32, 22, 12).fillEllipse(32, 32, 22, 12).fillEllipse(8, 48, 18, 10).fillEllipse(32, 48, 18, 10);
-    });
-    tex(this, 'map-butterfly', 28, 22, (G) => { G.fillStyle(0xff4fa3, 1).fillEllipse(8, 9, 14, 16).fillEllipse(20, 9, 14, 16); G.fillStyle(0xffd84d, 1).fillEllipse(9, 16, 9, 9).fillEllipse(19, 16, 9, 9); G.fillStyle(0x1d0f33, 1).fillRect(13, 4, 2, 15); });
-    tex(this, 'map-bird', 36, 18, (G) => { G.lineStyle(4, 0x1d0f33, 1).lineBetween(2, 4, 18, 12).lineBetween(18, 12, 34, 4); });
-    tex(this, 'map-balloon', 110, 170, (G) => {
-      G.fillStyle(0xff4fa3, 1).fillCircle(55, 54, 50);
-      G.fillStyle(0xffd84d, 1).fillEllipse(55, 54, 48, 100);
-      G.fillStyle(0x52e6ff, 1).fillEllipse(55, 54, 16, 100);
-      G.fillStyle(0xc6ff3d, 1).fillTriangle(55, 30, 40, 66, 70, 66);
-      G.lineStyle(3, 0x1d0f33, 1).lineBetween(28, 96, 42, 130).lineBetween(82, 96, 68, 130);
-      G.fillStyle(0xb8834a, 1).fillRoundedRect(36, 128, 38, 30, 5);
-      G.fillStyle(0xffd84d, 1).fillRect(52, 128, 6, 30);
-    });
+  };
+
+  // ---- A few real props standing on the painting, placed in the district's file ---------------------------
+  proto.buildProps = function buildProps() {
+    for (const p of PE.MapPaths.placeProps(this.layout)) {
+      const s = piece(this, p.x, p.y, p.art, p.size).setOrigin(0.5, 0.97).setDepth(p.y);
+      this.life.props.push(s);
+    }
   };
 
   // ---- Rival buildings at the edges: beating a rival takes the spot over ---------------------------------
-  proto.rivalKey = function rivalKey(rid, beaten) {
-    const i = Number(rid.split('-')[1]) - 1;
-    const key = `map-rival-${rid}-${beaten ? 1 : 0}`;
-    return tex(this, key, 260, 300, (G) => {
-      const wall = beaten ? 0x5fbf3a : RIVAL_COLOURS[i];
-      G.fillStyle(0x000000, 0.18).fillEllipse(120, 284, 220, 34);
-      G.fillStyle(0x000000, 0.25).fillRect(180, 92, 34, 190);
-      G.fillStyle(wall, 1).fillRect(36, 96, 150, 188);
-      G.fillStyle(0x1d0f33, 1).fillPoints([{ x: 36, y: 96 }, { x: 186, y: 96 }, { x: 214, y: 74 }, { x: 64, y: 74 }], true);
-      G.lineStyle(4, 0x140a24, 1).strokeRect(36, 96, 150, 188);
-      for (let x = 0; x < 3; x++) for (let y = 0; y < 3; y++) G.fillStyle(beaten ? 0xc6ff3d : 0x1d0f33, 0.85).fillRect(52 + x * 44, 112 + y * 44, 30, 30);
-      G.fillStyle(0x2c1a4d, 1).fillRect(92, 240, 38, 44);
-      if (beaten) {
-        G.lineStyle(6, 0x1d0f33, 1).lineBetween(110, 74, 110, 8);
-        G.fillStyle(0xc6ff3d, 1).fillTriangle(112, 10, 176, 26, 112, 44);
-      } else {
-        G.fillStyle(0xffffff, 1).fillTriangle(110, 40, 92, 70, 128, 70);
-      }
-    });
-  };
   proto.buildRivals = function buildRivals() {
     for (const spot of this.layout.rivalSpots) {
       const rival = PE.Data.rivals.find((r) => r.id === spot.rival);
-      const image = this.add.image(spot.x, spot.y + 20, this.rivalKey(spot.rival, false)).setOrigin(0.46, 1).setDepth(spot.y);
       const num = Number(spot.rival.split('-')[1]);
       const artId = 'RBL-' + String(num).padStart(2, '0');
-      PE.MapArt.load(this, artId, (k) => { if (image.scene) image.setTexture(k).setDisplaySize(300, 300); });
-      const label = this.add.text(spot.x, spot.y + 28, rival.name, {
-        fontFamily: FONT, fontStyle: 'bold', fontSize: '22px', color: '#ffd9d9', stroke: '#1d0f33', strokeThickness: 5,
+      const image = this.add.image(spot.x, spot.y, '__WHITE').setOrigin(0.5, 1).setDepth(spot.y).setVisible(false);
+      PE.MapArt.load(this, artId, (k) => {
+        if (!image.scene) return;
+        const src = this.textures.get(k).getSourceImage();
+        const f = Math.min(spot.w / src.width, (spot.w * 1.3) / src.height);
+        image.setTexture(k).setDisplaySize(src.width * f, src.height * f).setVisible(true);
+      });
+      const label = this.add.text(spot.x, spot.y + 6, rival.name, {
+        fontFamily: FONT, fontStyle: 'bold', fontSize: '18px', color: '#ffd9d9', stroke: '#1d0f33', strokeThickness: 5,
       }).setOrigin(0.5, 0).setDepth(spot.y + 1);
-      this.life.rivals.set(spot.rival, { spot, image, label, beaten: null, realArt: !!PE.MapArt.url(artId), rival });
+      this.life.rivals.set(spot.rival, { spot, image, label, beaten: null, rival });
     }
   };
 
@@ -143,63 +116,63 @@
     const way = PE.MapPaths.routeBetween(this.layout, this.layout.spots[from], this.layout.spots[to]);
     return way && way.length > 1 ? [way] : [];
   };
-  proto.addMover = function addMover(pts, key, artId, size, speed, i, opts = {}) {
+  proto.addMover = function addMover(pts, sprite, speed, i, opts = {}) {
     const { seg, total } = lengths(pts);
-    const sprite = piece(this, pts[0][0], pts[0][1], key, artId, size);
-    this.life.movers.push({ sprite, pts, seg, total, d: total * (0.2 + 0.3 * i), dir: i % 2 ? -1 : 1, speed, lane: opts.lane === undefined ? 20 : opts.lane });
+    this.life.movers.push({ sprite, pts, seg, total, d: total * (0.2 + 0.3 * i), dir: i % 2 ? -1 : 1, speed, lane: opts.lane === undefined ? 9 : opts.lane, artFaces: opts.artFaces || -1 });
   };
   proto.buildVans = function buildVans() {
     const L = this.layout;
     const owned = this.def.facilities.filter((f) => this.g.facilities.isOwned(f)).length;
     const paths = [...this.deliveryRoutes()];
     (L.vans || []).slice(0, Math.min(2, owned)).forEach(([a, b]) => { const way = PE.MapPaths.route(L, a, b); if (way && way.length > 1) paths.push(way); });
-    paths.forEach((pts, i) => this.addMover(pts, 'map-van', 'VEH-01', 90, 62 + i * 10, i));
+    const first = Number(this.district.slice(1)) - 1;
+    paths.forEach((pts, i) => this.addMover(pts, piece(this, pts[0][0], pts[0][1], VAN_ART[(first + i) % VAN_ART.length], 58).setOrigin(0.5, 0.85), 62 + i * 10, i));
     // Boats and trains are there whether or not you own anything: it's their town too.
-    PE.MapPaths.linesOf(L, (k) => k.boat).slice(0, 2).forEach((l, i) => this.addMover(l.pts, 'map-boat', 'VEH-05', 100, 34, i, { lane: 0 }));
-    PE.MapPaths.linesOf(L, (k) => k.train).slice(0, 1).forEach((l, i) => this.addMover(l.pts, 'map-train', null, 150, 110, i, { lane: 0 }));
+    PE.MapPaths.linesOf(L, (k) => k.boat).slice(0, 2).forEach((l, i) => this.addMover(l.pts, this.add.image(l.pts[0][0], l.pts[0][1], 'map-boat').setDisplaySize(90, 49), 26, i, { lane: 0, artFaces: 1 }));
+    PE.MapPaths.linesOf(L, (k) => k.train).slice(0, 1).forEach((l, i) => this.addMover(l.pts, this.add.image(l.pts[0][0], l.pts[0][1], 'map-train').setDisplaySize(130, 43), 110, i, { lane: 0 }));
   };
 
-  // ---- Walkers: into your shops if you own one, otherwise strolling down a lane or path ---------------------
+  // ---- Walkers: along the painted streets, into your shops if you own one --------------------------------------
   proto.buildWalkers = function buildWalkers() {
+    const L = this.layout;
+    const onFoot = (k) => (PE.MapPaths.KINDS[k] || {}).walk;
     const shops = this.def.facilities.filter((f) => this.g.facilities.isOwned(f) && this.g.facilities.row(f).mode === 'Retail');
-    const count = shops.length ? 4 : 2;
-    const strolls = PE.MapPaths.linesOf(this.layout, (k, kind) => k.walk && kind !== 'drive' && kind !== 'boulevard' && kind !== 'bridge').filter((l) => l.pts.length > 3);
+    const count = shops.length ? 4 : 3;
+    const strolls = PE.MapPaths.linesOf(L, (k, kind) => k.walk && kind !== 'drive').filter((l) => l.pts.length > 3).sort((a, b) => b.pts.length - a.pts.length);
     for (let i = 0; i < count; i++) {
-      const key = `map-walker-${i % 4}`, artId = 'WLK-0' + ((i % 6) + 1);
+      const artId = 'WLK-0' + (((i + Number(this.district.slice(1))) % 6) + 1);
+      let way = null, entering = false;
       if (shops.length) {
-        const s = this.layout.spots[shops[i % shops.length]];
-        const from = { x: s.x + (i % 2 ? 210 : -210), y: s.y + 80 + i * 8 };
-        const to = { x: s.x + 4, y: s.y + 8 };
-        const sprite = piece(this, from.x, from.y, key, artId, 80).setOrigin(0.5, 1);
-        this.life.walkers.push({ sprite, from, to, t: (i * 0.27) % 1, entering: true, speed: 0.05 + i * 0.006 });
-      } else if (strolls.length) {
-        const pts = strolls[i % strolls.length].pts;
-        const { seg, total } = lengths(pts);
-        const sprite = piece(this, pts[0][0], pts[0][1], key, artId, 80).setOrigin(0.5, 1);
-        this.life.walkers.push({ sprite, pts, seg, total, d: total * ((i * 0.37) % 1), dir: i % 2 ? -1 : 1, speed: 22 + i * 3 });
+        // Customers walk the streets from a few junctions away, up to the shop door, and go in.
+        const s = L.spots[shops[i % shops.length]];
+        const from = Object.keys(L.nodes).filter((n) => PE.MapPaths.route(L, n, PE.MapPaths.doorId(s), onFoot)).sort((a, b) => Math.hypot(L.nodes[b][0] - s.x, L.nodes[b][1] - s.y) - Math.hypot(L.nodes[a][0] - s.x, L.nodes[a][1] - s.y))[1 + i * 2];
+        way = from ? PE.MapPaths.route(L, from, PE.MapPaths.doorId(s), onFoot) : null;
+        entering = !!way;
       }
+      if (!way && strolls.length) way = strolls[i % strolls.length].pts;
+      if (!way || way.length < 2) continue;
+      const { seg, total } = lengths(way);
+      const sprite = piece(this, way[0][0], way[0][1], artId, 44).setOrigin(0.5, 0.95);
+      this.life.walkers.push({ sprite, pts: way, seg, total, d: total * ((i * 0.37) % 1), dir: entering || i % 2 === 0 ? 1 : -1, speed: 17 + i * 2, entering, side: i % 2 ? 6 : -6 });
     }
   };
 
-  // ---- Smoke, lights, swaying plants ---------------------------------------------------------------------------
+  // ---- Smoke and lights ---------------------------------------------------------------------------
   proto.buildBuildingLife = function buildBuildingLife() {
     for (const fid of this.def.facilities) {
       if (!this.g.facilities.isOwned(fid)) continue;
       const s = this.layout.spots[fid];
       const mode = this.g.facilities.row(fid).mode;
       if (mode === 'Factory') {
+        // Placed on the chimney once the building's picture is up (see onBuildingArt): each look's chimney is elsewhere.
         for (let i = 0; i < 4; i++) {
-          const p = piece(this, s.x + 74, s.y - 200, 'map-puff', 'FX-01', 52).setDepth(s.y + 2).setAlpha(0);
-          this.life.puffs.push({ sprite: p, x: s.x + 74, y: s.y - 200, phase: i / 4 });
+          const p = piece(this, s.x, s.y, 'FX-01', 34).setDepth(s.y + 2).setAlpha(0);
+          this.life.puffs.push({ sprite: p, fid, x: s.x, y: s.y - s.w * 0.8, phase: i / 4 });
         }
       }
       if (mode === 'Grow') {
-        const glow = this.add.image(s.x, s.y - 66, 'map-glow').setDepth(s.y + 2).setBlendMode(Phaser.BlendModes.ADD).setScale(2.7, 1.8);
+        const glow = this.add.image(s.x, s.y - s.w * 0.12, 'map-glow').setDepth(s.y + 2).setBlendMode(Phaser.BlendModes.ADD).setScale(s.w / 128, s.w / 220);
         this.life.glows.push({ sprite: glow, phase: s.x % 7 });
-        for (let i = 0; i < 3; i++) {
-          const p = this.add.image(s.x - 150 + i * 30, s.y + 2 + (i % 2) * 8, 'map-plant').setOrigin(0.5, 1).setDepth(s.y + 3);
-          this.life.sways.push({ sprite: p, phase: i * 1.7 + s.y });
-        }
       }
     }
   };
@@ -207,11 +180,15 @@
     const { w, h } = this.layout;
     const dice = (l) => PE.Rng.roll(`life:${this.district}:${l}`);
     for (let i = 0; i < 3; i++) {
-      const s = piece(this, 0, 0, 'map-butterfly', 'FX-03', 40).setDepth(70000);
+      const s = piece(this, 0, 0, 'FX-03', 26).setDepth(70000);
       this.life.flyers.push({ sprite: s, kind: 'butterfly', cx: 160 + dice('x' + i) * (w - 320), cy: 300 + dice('y' + i) * (h - 600), r: 80 + dice('r' + i) * 80, phase: i * 2 });
     }
-    const bird = piece(this, 0, 0, 'map-bird', 'FX-04', 50).setDepth(71000);
+    const bird = piece(this, 0, 0, 'FX-04', 34).setDepth(71000);
     this.life.flyers.push({ sprite: bird, kind: 'bird', y: 300 + dice('by') * (h - 600), phase: 0 });
+    for (let i = 0; i < 2; i++) {
+      const s = piece(this, 0, 0, 'FX-05', 18).setDepth(69000);
+      this.life.flyers.push({ sprite: s, kind: 'leaf', x: 120 + dice('lx' + i) * (w - 240), top: 200 + dice('ly' + i) * (h - 700), phase: i * 3 });
+    }
   };
 
   // ---- Helpers: near what's new ---------------------------------------------------------------------------------
@@ -226,7 +203,7 @@
       this.life.helpers.set(h.id, entry);
       const place = () => {
         if (this.sys.settings.status >= Phaser.Scenes.SHUTDOWN) return;
-        entry.image = this.add.image(at.x, at.y + 8, key).setOrigin(0.5, 0.96).setDisplaySize(170, 170).setDepth(at.y);
+        entry.image = this.add.image(at.x, at.y + 8, key).setOrigin(0.5, 0.96).setDisplaySize(110, 110).setDepth(at.y);
       };
       if (this.textures.exists(key)) { place(); return; }
       const img = new Image();
@@ -253,45 +230,43 @@
       const len = Math.hypot(p.dx, p.dy) || 1;
       const lane = m.lane * m.dir;
       m.sprite.setPosition(p.x + (p.dy / len) * lane, p.y - (p.dx / len) * lane);
-      m.sprite.setFlipX((p.dx * m.dir) < -4);
+      m.sprite.setFlipX((p.dx * m.dir * m.artFaces) < -4);
       m.sprite.setDepth(m.sprite.y);
     }
     for (const w of L.walkers) {
-      if (w.pts) {   // strolling along a street, on the pavement
-        w.d += w.dir * w.speed * dt;
+      w.d += w.dir * w.speed * dt;
+      if (w.entering) {
+        // Fades out at the shop door, and the next customer comes along the street.
+        if (w.d > w.total) w.d = 0;
+        w.sprite.setAlpha(Math.min(1, (w.total - w.d) / 24, w.d / 24));
+      } else {
         if (w.d > w.total) { w.d = w.total; w.dir = -1; }
         if (w.d < 0) { w.d = 0; w.dir = 1; }
-        const p = along(w.pts, w.seg, w.d);
-        const len = Math.hypot(p.dx, p.dy) || 1;
-        w.sprite.setPosition(p.x + (p.dy / len) * 30, p.y - (p.dx / len) * 30 - Math.abs(Math.sin(T * 7 + w.d)) * 4);
-        w.sprite.setFlipX(p.dx * w.dir < 0);
-        w.sprite.setDepth(p.y);
-        continue;
       }
-      w.t += w.speed * dt;
-      if (w.t > 1) w.t = 0;
-      const x = w.from.x + (w.to.x - w.from.x) * w.t;
-      const y = w.from.y + (w.to.y - w.from.y) * w.t;
-      w.sprite.setPosition(x, y - Math.abs(Math.sin(T * 7 + w.t * 40)) * 4);
-      w.sprite.setFlipX(w.to.x < w.from.x);
-      w.sprite.setDepth(y);
-      // Fades out at the shop door, then the next customer arrives.
-      w.sprite.setAlpha(w.entering ? Math.min(1, (1 - w.t) * 8, w.t * 8) : 1);
+      const p = along(w.pts, w.seg, w.d);
+      const len = Math.hypot(p.dx, p.dy) || 1;
+      w.sprite.setPosition(p.x + (p.dy / len) * w.side, p.y - (p.dx / len) * w.side - Math.abs(Math.sin(T * 7 + w.d)) * 3);
+      w.sprite.setFlipX(p.dx * w.dir > 0);
+      w.sprite.setDepth(p.y);
     }
     for (const p of L.puffs) {
       const k = (T * 0.22 + p.phase) % 1;
-      p.sprite.setPosition(p.x + k * 26, p.y - k * 90).setAlpha(0.75 * (1 - k)).setScale(0.55 + k * 0.9);
+      p.sprite.setPosition(p.x + k * 18, p.y - k * 66).setAlpha(0.75 * (1 - k));
+      if (p.sprite.base) p.sprite.setScale(p.sprite.base * (0.55 + k * 0.9));
     }
     for (const g of L.glows) g.sprite.setAlpha(0.42 + 0.2 * Math.sin(T * 1.6 + g.phase));
-    for (const s of L.sways) s.sprite.setRotation(Math.sin(T * 1.5 + s.phase) * 0.09);
     for (const f of L.flyers) {
       if (f.kind === 'butterfly') {
         f.sprite.setPosition(f.cx + Math.sin(T * 0.6 + f.phase) * f.r, f.cy + Math.sin(T * 1.1 + f.phase) * f.r * 0.6);
-        f.sprite.setScale(1, 0.6 + Math.abs(Math.sin(T * 9 + f.phase)) * 0.5);
+        if (f.sprite.base) f.sprite.setScale(f.sprite.base, f.sprite.base * (0.6 + Math.abs(Math.sin(T * 9 + f.phase)) * 0.5));
+      } else if (f.kind === 'leaf') {
+        // Drifts down a little way, fading, then starts again.
+        const k = (T * 0.09 + f.phase) % 1;
+        f.sprite.setPosition(f.x + Math.sin(T * 1.4 + f.phase) * 26, f.top + k * 220).setRotation(Math.sin(T + f.phase) * 0.8).setAlpha(Math.min(1, (1 - k) * 4, k * 4));
       } else {
         const w = this.layout.w + 240;
         f.sprite.setPosition(((T * 42) % w) - 120, f.y + Math.sin(T) * 18);
-        f.sprite.setScale(1, 0.7 + Math.abs(Math.sin(T * 5)) * 0.4);
+        if (f.sprite.base) f.sprite.setScale(f.sprite.base, f.sprite.base * (0.7 + Math.abs(Math.sin(T * 5)) * 0.4));
       }
     }
   };
@@ -306,8 +281,7 @@
       const beaten = !!this.g.state.meta.rivals[v.spot.rival];
       if (beaten !== v.beaten) {
         v.beaten = beaten;
-        if (v.realArt) v.image.setTint(beaten ? 0xbfffa0 : 0xffffff);
-        else v.image.setTexture(this.rivalKey(v.spot.rival, beaten));
+        v.image.setTint(beaten ? 0xbfffa0 : 0xffffff);
         v.label.setText(beaten ? `${v.rival.name}: taken over!` : v.rival.name).setColor(beaten ? '#c6ff3d' : '#ffd9d9');
       }
     }
@@ -317,7 +291,6 @@
   proto.settleLife = function settleLife() {
     const L = this.life;
     for (const p of L.puffs) p.sprite.setAlpha(0);
-    for (const s of L.sways) s.sprite.setRotation(0);
     for (const g of L.glows) g.sprite.setAlpha(0.4);
     for (const w of L.walkers) w.sprite.setAlpha(1);
     for (const f of L.flyers) f.sprite.setVisible(false);
@@ -353,7 +326,7 @@
     const margin = 70;
     const x = this.calmNow ? cam.midPoint.x : (fromLeft ? cam.midPoint.x - vw / 2 - margin : cam.midPoint.x + vw / 2 + margin);
     const dist = vw + margin * 2;
-    const sprite = piece(this, x, y, 'map-balloon', 'VEH-06', 170).setDepth(80000);
+    const sprite = piece(this, x, y, 'VEH-06', 150).setDepth(80000);
     this.life.gift = { sprite, x, y, vx: (fromLeft ? 1 : -1) * dist / seconds, left: seconds };
   };
 
@@ -377,13 +350,13 @@
     }
     for (const h of L.helpers.values()) {
       if (!h.image || !h.image.visible) continue;
-      if (Math.abs(x - h.at.x) < 60 && y < h.at.y + 16 && y > h.at.y - 130) {
+      if (Math.abs(x - h.at.x) < 40 && y < h.at.y + 12 && y > h.at.y - 95) {
         this.g.helpers.chat(h.id);
         return true;
       }
     }
     for (const v of L.rivals.values()) {
-      if (Math.abs(x - v.spot.x) < 120 && y < v.spot.y + 60 && y > v.spot.y - 280) {
+      if (Math.abs(x - v.spot.x) < Math.max(v.spot.w / 2, 70) && y < v.spot.y + 46 && y > v.spot.y - Math.max(v.spot.w * 0.95, 170)) {
         this.rememberView();
         if (v.beaten && PE.Story.has(v.spot.rival)) PE.Story.show(v.spot.rival);
         else PE.App.openPanel('rivals', {});
@@ -391,6 +364,28 @@
       }
     }
     return false;
+  };
+
+  // Smoke comes out of the chimney on whichever look the factory has now.
+  proto.onBuildingArt = function onBuildingArt(v) {
+    const at = PE.Data.map.chimney[v.artId];
+    if (!at || !this.life) return;
+    for (const p of this.life.puffs) {
+      if (p.fid !== v.fid) continue;
+      p.x = v.s.x + (at[0] - 0.5) * v.artW;
+      p.y = v.s.y - v.artTop * (1 - at[1]);
+    }
+  };
+  // A little burst of cash where you collected (FX-06).
+  proto.cashPop = function cashPop(x, y) {
+    PE.MapArt.load(this, 'FX-06', (k) => {
+      const s = this.add.image(x, y, k).setDepth(90000);
+      const size = 60 * PE.App.dpr / this.cameras.main.zoom;
+      const src = this.textures.get(k).getSourceImage();
+      s.setDisplaySize((src.width / src.height) * size, size);
+      if (this.calm()) { this.time.delayedCall(350, () => s.destroy()); return; }
+      this.tweens.add({ targets: s, y: y - size * 0.9, alpha: 0, duration: 650, ease: 'Sine.easeOut', onComplete: () => s.destroy() });
+    });
   };
 
   proto.lifeShutdown = function lifeShutdown() {
@@ -401,7 +396,7 @@
   // Used by the automatic browser test to really tap things.
   proto.giftPagePoint = function giftPagePoint() { const s = this.life.gift.sprite; return this.worldToPage(s.x, s.y); };
   proto.helperPagePoint = function helperPagePoint(id) { const h = this.life.helpers.get(id); return this.worldToPage(h.at.x, h.at.y - 60); };
-  proto.rivalPagePoint = function rivalPagePoint(id) { const v = this.life.rivals.get(id); return this.worldToPage(v.spot.x, v.spot.y - 100); };
+  proto.rivalPagePoint = function rivalPagePoint(id) { const v = this.life.rivals.get(id); return this.worldToPage(v.spot.x, v.spot.y - 50); };
 
   // ---- The story scene for a beaten rival: short, and one tap skips it --------------------------------------------------
   const Story = {

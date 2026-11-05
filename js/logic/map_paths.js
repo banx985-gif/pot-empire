@@ -83,7 +83,7 @@
       if (!s.node) continue;
       if (!L.nodes[s.node]) throw new Error(`${L.id}: building uses unknown point "${s.node}"`);
       const n = L.nodes[s.node];
-      const door = [s.x, s.y + 34];
+      const door = s.door || [s.x, s.y + 34];
       const pts = [door, n];
       d.lines.push({ kind: 'drive', pts: smooth(pts), width: KINDS.drive.width });
       add(doorId(s), s.node, 'drive', smooth(pts));
@@ -129,11 +129,15 @@
   }
   // The space a building takes. Facilities are the biggest; a spare lot is flat ground.
   function footprints(L) {
+    // A painted plot is the ground it covers. (A tall building's top may rise over whatever's behind it, as on any map.)
+    const print = (id, s, wide, back, front) => (s.pw
+      ? { id, s, x0: s.cx - s.pw / 2, x1: s.cx + s.pw / 2, y0: s.cy - s.ph / 2, y1: s.cy + s.ph / 2 }
+      : { id, s, x0: s.x - wide, x1: s.x + wide, y0: s.y - back, y1: s.y + front });
     return [
-      ...Object.entries(L.spots).map(([id, s]) => ({ id, s, x0: s.x - 175, x1: s.x + 175, y0: s.y - 320, y1: s.y + 62 })),
-      ...Object.entries(L.features || {}).map(([id, s]) => ({ id, s, x0: s.x - 150, x1: s.x + 150, y0: s.y - 270, y1: s.y + 58 })),
-      ...(L.rivalSpots || []).map((s) => ({ id: s.rival, s, x0: s.x - 125, x1: s.x + 125, y0: s.y - 270, y1: s.y + 58 })),
-      ...(L.spareLots || []).map((s) => ({ id: `lot ${s.x},${s.y}`, s, x0: s.x - 130, x1: s.x + 130, y0: s.y - 70, y1: s.y + 60 })),
+      ...Object.entries(L.spots).map(([id, s]) => print(id, s, 175, 320, 62)),
+      ...Object.entries(L.features || {}).map(([id, s]) => print(id, s, 150, 270, 58)),
+      ...(L.rivalSpots || []).map((s) => print(s.rival, s, 125, 270, 58)),
+      ...(L.spareLots || []).map((s) => print(`lot ${s.x},${s.y}`, s, 130, 70, 60)),
     ];
   }
   const inFootprint = (f, x, y, r = 0) => x > f.x0 - r && x < f.x1 + r && y > f.y0 - r && y < f.y1 + r;
@@ -194,50 +198,10 @@
   }
   const linesOf = (L, test) => derive(L).lines.filter((l) => test(KINDS[l.kind] || {}, l.kind));
 
-  // ---- Filler --------------------------------------------------------------------------------------------
-  // Everything standing on the ground, in one list, the same every time (fixed dice), and clear of roads,
-  // water and buildings.
-  //   { type: 'tree', x, y }                        one thing, placed by hand
-  //   { type: 'scatter', what: ['tree', 'bush'], area: [x0, y0, x1, y1], count }   thrown around an area
-  //   { type: 'clump', what: ['tree'], x, y, r, count }                            a natural-looking group
-  const SIZE = { tree: 46, pine: 36, palm: 36, bush: 22, flowers: 22, rock: 22, house: 78, shed: 42, shop: 74, warehouse: 118, container: 44, tower: 74, crate: 22, cottage: 66, stall: 34, umbrella: 22 };
-  function placeProps(L) {
-    const d = derive(L);
-    if (d.props) return d.props;
-    const out = [];
-    const roads = d.lines;
-    const prints = footprints(L);
-    const dice = (label) => PE.Rng.roll(`layout:${L.id}:${label}`);
-    const clear = (x, y, type, r) => {
-      if (x < r || y < r || x > L.w - r || y > L.h - r) return false;
-      if (type !== 'reed' && onWater(L, x, y, r)) return false;
-      if (roads.some((l) => distToLine(x, y, l.pts) < l.width / 2 + r)) return false;
-      if (prints.some((f) => inFootprint(f, x, y, r))) return false;
-      if ((L.keepClear || []).some((z) => Math.hypot(x - z.x, y - z.y) < z.r + r)) return false;
-      return !out.some((o) => o.solid && Math.hypot(o.x - x, (o.y - y) * 1.4) < (o.r + r) * 0.82);
-    };
-    const put = (type, x, y, extra = {}) => out.push({ type, x, y, r: SIZE[type] || 20, solid: !!SIZE[type], ...extra });
-    (L.props || []).forEach((p) => { if (!['scatter', 'clump'].includes(p.type)) put(p.type, p.x, p.y, p); });
-    (L.props || []).forEach((p, pi) => {
-      if (p.type !== 'scatter' && p.type !== 'clump') return;
-      for (let i = 0; i < p.count; i++) {
-        const type = p.what[Math.floor(dice(`${pi}:k${i}`) * p.what.length)];
-        let x, y;
-        if (p.type === 'scatter') {
-          const [x0, y0, x1, y1] = p.area;
-          x = x0 + dice(`${pi}:x${i}`) * (x1 - x0);
-          y = y0 + dice(`${pi}:y${i}`) * (y1 - y0);
-        } else {
-          const a = dice(`${pi}:a${i}`) * Math.PI * 2, r = Math.sqrt(dice(`${pi}:r${i}`)) * p.r;
-          x = p.x + Math.cos(a) * r;
-          y = p.y + Math.sin(a) * r * 0.7;
-        }
-        if (clear(x, y, type, SIZE[type] || 20)) put(type, x, y, { tone: dice(`${pi}:t${i}`) });
-      }
-    });
-    d.props = out.sort((a, b) => a.y - b.y);
-    return d.props;
-  }
+  // ---- Hand-placed pieces -----------------------------------------------------------------------------
+  // The painting has the trees and flowers. A district's props list adds a few real pieces on top:
+  //   { art: 'PRP-02', x, y, size }   standing with its feet at x, y, size = how tall it's shown
+  const placeProps = (L) => (L.props || []).slice().sort((a, b) => a.y - b.y);
 
   PE.MapPaths = { KINDS, smooth, smoothLoop, derive, route, routeBetween, reachable, loops, onWater, footprints, inFootprint, placeProps, linesOf, doorId, buildingSpots, distToLine, lengthOf };
 })(globalThis.PE = globalThis.PE || {});
