@@ -56,10 +56,13 @@
     const app = {
       dpr: size.dpr, router, g, state: loaded.state, saveNotice: notice, loadResult: loaded,
       saveGame: () => saves.save(app.state),
+      saves,
     };
     PE.App = app;
     PE.Dom.init();
     PE.HelperUI.init();
+    PE.Look.init();
+    PE.Settings.init();
 
     const fromFile = location.protocol === 'file:';
     const game = new Phaser.Game({
@@ -71,12 +74,26 @@
       disableContextMenu: true,
       scale: { mode: Phaser.Scale.NONE, width: size.W, height: size.H, zoom: 1 / size.dpr },
       loader: fromFile ? { imageLoadType: 'HTMLImageElement' } : undefined,
-      fps: { target: 60, min: 20 },
+      // limit only switches on Phaser's frame-skipping step; the real limit is set below (idle speed).
+      fps: { target: 60, min: 20, limit: 60 },
       audio: { noAudio: true },
       // Menus sit over the canvas. Phaser must only hear touches that really land on the canvas.
       input: { windowEvents: false },
     });
     app.game = game;
+
+    // ---- Speed: full frame rate while a finger is on the screen or something was just tapped, and a
+    // calmer rate when nobody has touched it for a few seconds. Growing, timers and animations still
+    // move at the right speed (Phaser passes on the time that passed), just with fewer pictures.
+    const IDLE_FPS = 30, IDLE_AFTER_MS = 4000;
+    let lastInput = performance.now();
+    const busy = () => { lastInput = performance.now(); if (game.loop) game.loop._limitRate = 0; };
+    ['pointerdown', 'pointermove', 'wheel', 'keydown'].forEach((t) => window.addEventListener(t, busy, { capture: true, passive: true }));
+    game.events.once('ready', () => { game.loop._limitRate = 0; });
+    setInterval(() => {
+      if (game.loop && performance.now() - lastInput > IDLE_AFTER_MS) game.loop._limitRate = 1000 / IDLE_FPS - 2;
+    }, 500);
+    app.wakeFrames = busy;
 
     // ---- Which screen is showing ------------------------------------------------------------------
     let sceneNow = null;   // { key, fid } of the scene under any panels

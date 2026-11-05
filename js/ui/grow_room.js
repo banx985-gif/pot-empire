@@ -59,8 +59,11 @@
       const reno = f ? f.renovation : 0;
       const G = this.add.graphics().setDepth(-1000);
       this.roomG = G;
-      const wallColor = [0x2c1a4d, 0x33205a, 0x3a2666, 0x452d78][reno];
-      const floorColor = [0x3a3346, 0x41394f, 0x4a4159, 0x544a66][reno];
+      // A bought or earned room theme (Shop) swaps the base colours; renovations still lighten them.
+      const theme = PE.App.g.purchases ? PE.App.g.purchases.theme() : null;
+      const custom = theme && theme.name !== 'Classic';
+      const wallColor = custom ? lighten(theme.wall, reno * 0.06) : [0x2c1a4d, 0x33205a, 0x3a2666, 0x452d78][reno];
+      const floorColor = custom ? lighten(theme.floor, reno * 0.06) : [0x3a3346, 0x41394f, 0x4a4159, 0x544a66][reno];
 
       G.fillStyle(wallColor, 1).fillRect(0, 0, w, wall);
       G.fillStyle(floorColor, 1).fillRect(0, wall, w, h - wall);

@@ -171,7 +171,11 @@
           label: 'Collect',
           style: 'go',
           onTap: () => { game.offline.claim(); PE.App.saveGame(); },
-        }],
+        }].concat(PE.Store && PE.Store.adsOn() && game.ads.canOffer('doubleOfflineClaim') ? [{
+          label: `${game.ads.noAds() ? '🎁' : '▶️'} Double it (${game.ads.left('doubleOfflineClaim')} left today)`,
+          style: 'ad',
+          onTap: () => PE.Store.watchAd('doubleOfflineClaim', (res) => { if (!res.ok) { game.offline.claim(); PE.App.saveGame(); } }),
+        }] : []),
       });
     },
   };

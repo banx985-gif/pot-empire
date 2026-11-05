@@ -176,7 +176,7 @@ ul.plain li { padding: 3px 0; }
 @keyframes fadein { from { opacity: 0; } }
 @keyframes rise { from { transform: translateY(60px) scale(.9); opacity: 0; } }
 
-#celebrate { position: absolute; inset: 0; z-index: 7; pointer-events: none; overflow: hidden; }
+#celebrate { position: absolute; inset: 0; z-index: 5; pointer-events: none; overflow: hidden; }
 #celebrate .banner { pointer-events: auto; position: absolute; left: 16px; right: 16px; top: calc(env(safe-area-inset-top) + 130px); padding: 14px 16px; border-radius: 20px; text-align: center; background: linear-gradient(135deg, #ff4fa3, #9a5be0 50%, #52e6ff); border: 3px solid var(--gold); box-shadow: 0 8px 30px #000b; animation: pop .3s cubic-bezier(.2,1.6,.4,1); }
 #celebrate .banner b { display: block; font-size: 20px; text-shadow: 0 2px 3px #0008; }
 #celebrate .stars { display: block; color: var(--gold); letter-spacing: 6px; font-size: 18px; }
@@ -205,3 +205,45 @@ ul.plain li { padding: 3px 0; }
 .hall-slot.empty { justify-content: center; border-style: dashed; }
 .hall-slot .plus { font-size: 44px; color: #ffffff66; }
 .hall-logo { position: absolute; top: 8px; right: 8px; }
+
+/* ---- Big job 2, Stage 3: juicy buttons, settings, shop, accessibility ---- */
+/* Press feedback: every button squashes a little and springs back. */
+#ui button, #ui .item[data-act], #ui .hall-slot { transition: transform .12s cubic-bezier(.3,1.8,.5,1), filter .12s; }
+#ui button:active, #ui .item[data-act]:active, #ui .hall-slot:active { transform: scale(.94); filter: brightness(1.25); transition-duration: .05s; }
+.btn.buy, .btn.go { animation: none; }
+.btn.go:not(.small), .chest { animation: breathe 2.4s ease-in-out infinite; }
+@keyframes breathe { 50% { transform: scale(1.025); } }
+#bottomnav button.on span { display: inline-block; animation: hop .35s cubic-bezier(.3,1.8,.5,1); }
+@keyframes hop { 40% { transform: translateY(-6px) scale(1.12); } }
+.calm #ui button, .calm #ui .item[data-act] { transition: none; }
+.calm .btn.go:not(.small), .calm .chest, .calm #bottomnav button.on span { animation: none !important; }
+@media (prefers-reduced-motion: reduce) { #ui button, #ui .item[data-act] { transition: none; } .btn.go:not(.small), .chest, #bottomnav button.on span { animation: none !important; } }
+.btn.ad { background: linear-gradient(135deg, #52e6ff, #9a5be0) !important; color: #fff !important; }
+.btn.ad small { opacity: .8; }
+.btn.rooms { background: #2a1a47e6 !important; border: 1px solid var(--line) !important; }
+[aria-disabled="true"] { opacity: .55; }
+
+/* Bigger text: menus, pop-ups, toasts and the goal line grow; the top bar keeps its size to fit. */
+.big-text #panel .scroll > *, .big-text #modal .card, .big-text .toast, .big-text .helper-pop .bubble { zoom: 1.18; }
+.big-text .goal { font-size: 15px; }
+
+/* Colour-blind friendly quality: each grade also shows a shape and letter. */
+.cb .q-mark[data-q]::before { margin-right: 4px; }
+.cb .q-mark[data-q="0"]::before { content: '● S'; }
+.cb .q-mark[data-q="1"]::before { content: '▲ F'; }
+.cb .q-mark[data-q="2"]::before { content: '■ P'; }
+.cb .q-mark[data-q="3"]::before { content: '◆ T'; }
+.cb .q-mark[data-q="4"]::before { content: '★ E'; }
+
+#fps { position: absolute; left: 6px; bottom: calc(env(safe-area-inset-bottom) + 72px); z-index: 9; font: 12px/1 ui-monospace, monospace; background: #000c; color: var(--lime); padding: 4px 6px; border-radius: 6px; pointer-events: none; }
+.slider input[type=range] { width: 46%; accent-color: var(--lime); touch-action: auto; }
+.savetext { width: 100%; box-sizing: border-box; height: 120px; font: 11px/1.3 ui-monospace, monospace; background: #0008; color: #e8def8; border: 1px solid var(--line); border-radius: 10px; padding: 8px; -webkit-user-select: text; user-select: text; touch-action: auto; }
+.filepick { display: block; text-align: center; position: relative; overflow: hidden; }
+.filepick input { position: absolute; inset: 0; opacity: 0; }
+.test-banner { background: repeating-linear-gradient(45deg, #ffd84d, #ffd84d 10px, #ff4fa3 10px, #ff4fa3 20px); color: #1d0f33; font-weight: 900; text-align: center; padding: 8px; border-radius: 10px; }
+.pretend-ad { text-align: center; padding: 18px; border-radius: 14px; background: repeating-linear-gradient(-45deg, #2a1a47, #2a1a47 12px, #3b2466 12px, #3b2466 24px); }
+.pretend-ad .big { font-size: 46px; font-weight: 900; margin: 6px 0 0; color: var(--gold); }
+.btn.ad, #modal .btn.ad { background: linear-gradient(135deg, #52e6ff, #9a5be0) !important; }
+.harvest-card { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; padding: 10px; border-radius: 16px; background: radial-gradient(circle at 50% 30%, #3b2466, #160b28); margin-bottom: 10px; }
+.harvest-card .grade { font-size: 22px; }
+.harvest-card.q1 .grade { color: #c6ff3d; } .harvest-card.q2 .grade { color: #52e6ff; } .harvest-card.q3 .grade { color: #ffd84d; } .harvest-card.q4 .grade { color: #ff4fa3; }

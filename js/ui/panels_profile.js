@@ -130,20 +130,7 @@
     },
   };
 
-  // ---- Settings: helpers on/off and the helper-line replay ----------------------------------------------
-  const baseSettings = PE.Panels.settings.render;
-  PE.Panels.settings.render = (p) => {
-    const s = PE.App.state.settings;
-    return `<div class="item"><div class="grow"><b>Helper jokes</b><small>Uncle Haze, Budz and Leafy now and then</small></div>
-      <button class="btn small ${s.helpers ? 'go' : 'plain'}" data-act="helpers">${s.helpers ? 'On' : 'Off'}</button></div>
-      ${baseSettings(p)}
-      <button class="btn wide plain" data-act="replayList">Help: replay helper lines</button>`;
-  };
-  Object.assign(PE.Panels.settings.actions, {
-    helpers() { const s = PE.App.state.settings; s.helpers = !s.helpers; PE.App.saveGame(); },
-    replayList() { PE.App.router.go('helperReplay', {}); },
-  });
-
+  // (Helper on/off and "replay helper lines" live in Settings: js/ui/panels_settings.js.)
   PE.Panels.helperReplay = {
     title: 'Helper lines',
     render() {

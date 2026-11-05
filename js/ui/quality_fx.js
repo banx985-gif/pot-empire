@@ -51,6 +51,11 @@
     const tex = grade === 1 ? 'fx-sparkle' : 'fx-star';
     const count = [0, 3, 4, 5, 6][grade];
     for (let i = 0; i < count; i++) c.add(scene.add.image(SPOTS[i][0], SPOTS[i][1], tex).setScale(0.75));
+    // Colour-blind friendly: a shape and letter for the grade, not only colours and sparkles.
+    if (PE.App.state.settings.colourBlind) {
+      const mark = ['', '▲ F', '■ P', '◆ T', '★ E'][grade];
+      c.add(scene.add.text(0, -150, mark, { fontFamily: 'system-ui, sans-serif', fontStyle: '900', fontSize: '26px', color: '#ffffff', stroke: '#1d0f33', strokeThickness: 6 }).setOrigin(0.5));
+    }
     if (!PE.App.state.settings.reducedMotion) {
       c.tween = scene.tweens.add({ targets: c, alpha: 0.55, yoyo: true, repeat: -1, duration: 800, ease: 'Sine.easeInOut' });
       c.once('destroy', () => c.tween.stop());

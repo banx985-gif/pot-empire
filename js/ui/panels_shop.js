@@ -64,7 +64,8 @@
     // ---- The pretend ad: a short countdown card. Closing early gives nothing. ----
     watchAd(kind, after) {
       const game = g();
-      if (!game.ads.canOffer(kind)) { toast(game.ads.left(kind) <= 0 ? 'No more of those today' : 'Nothing for that to do right now'); return; }
+      const nothing = (why) => { if (after) after({ ok: false, why }); };
+      if (!game.ads.canOffer(kind)) { toast(game.ads.left(kind) <= 0 ? 'No more of those today' : 'Nothing for that to do right now'); nothing('limit'); return; }
       const adId = `${kind}:${Date.now().toString(36)}:${Math.floor(Math.random() * 1e6)}`;
       const pay = () => {
         const r = game.ads.reward(kind, adId);
@@ -73,10 +74,10 @@
         if (after) after(r);
       };
       if (game.ads.noAds()) { pay(); return; }
-      if (!Store.adsOn()) { toast('Ads are switched off in this build'); return; }
+      if (!Store.adsOn()) { toast('Ads are switched off in this build'); nothing('off'); return; }
       let left = PE.Data.shop.pretendAdSeconds;
       const card = () => `<div class="pretend-ad"><b>PRETEND AD</b><p>A real ad would play here.</p><p class="big">${left}</p></div>`;
-      PE.Dom.modal({ title: 'Optional ad', html: card(), cls: 'adcard', buttons: [{ label: 'Close (no reward)', style: 'plain', onTap: () => { clearInterval(timer); } }] });
+      PE.Dom.modal({ title: 'Optional ad', html: card(), cls: 'adcard', buttons: [{ label: 'Close (no reward)', style: 'plain', onTap: () => { clearInterval(timer); nothing('closed'); } }] });
       const timer = setInterval(() => {
         left -= 1;
         const box = document.querySelector('#modal .pretend-ad .big');
@@ -139,6 +140,7 @@
       theme(id) {
         if (!g().purchases.setTheme(id)) { toast('Get this theme first'); return; }
         PE.App.saveGame();
+        PE.Look.redrawRoom();
         toast(`Theme: ${g().purchases.theme().name}`);
       },
       ad(kind) { Store.watchAd(kind); },

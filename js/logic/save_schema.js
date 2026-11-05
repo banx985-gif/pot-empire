@@ -23,7 +23,7 @@
 
   // Every setting with its default. Old saves get any missing ones filled in.
   function newSettings() {
-    return { reducedMotion: false, helpers: true, sound: 0.8, music: 0.5, bigText: false, colourBlind: false, showFps: false };
+    return { reducedMotion: false, helpers: true, sound: 0.8, music: 0.5, bigText: false, colourBlind: false, showFps: false, pretendShop: false };
   }
 
   function newHelpers() {
@@ -144,6 +144,7 @@
     // Version 7 (big job 2, Stage 3): shop entitlements, rewarded-ad counters, gem shop items.
     6(old) {
       const s = old;
+      s.settings = { ...newSettings(), ...(s.settings || {}) };
       s.entitlements = { noAds: false, themes: {}, passUntilMs: 0, ...(s.entitlements || {}) };
       s.ads = s.ads || { day: null, counts: {}, qualityBoost: false };
       s.shopOwned = s.shopOwned || {};

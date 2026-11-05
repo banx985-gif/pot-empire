@@ -183,11 +183,13 @@
 
     // A pass that ran out while the game was open: effects are worked out again once.
     const baseTick = g.tick;
-    let passWas = g.purchases.passActive();
+    let lastTickMs = g.now();
     g.tick = function tick() {
       baseTick();
-      const now = g.purchases.passActive();
-      if (now !== passWas) { passWas = now; g.effects.invalidate(); }
+      const now = g.now();
+      const ends = ent().passUntilMs || 0;
+      if (lastTickMs < ends && ends <= now) g.effects.invalidate();
+      lastTickMs = now;
     };
   });
 })(globalThis.PE = globalThis.PE || {});

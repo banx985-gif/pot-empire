@@ -58,7 +58,7 @@
     el.addEventListener('pointerup', (e) => { if (e.pointerType !== 'touch') finish(e.clientX, e.clientY); });
     el.addEventListener('touchend', (e) => {
       // A text box needs the browser's own touch handling to get the keyboard up.
-      if (e.target.closest && e.target.closest('input, textarea, select')) { down = null; return; }
+      if (e.target.closest && e.target.closest('input, textarea, select, label')) { down = null; return; }
       if (e.cancelable) e.preventDefault();
       const c = e.changedTouches[0];
       if (c) finish(c.clientX, c.clientY);
@@ -207,6 +207,7 @@
         let empties = 0;
         g.grow.eachStation((f, si, s) => { if (f === fid) s.pots.forEach((p, pi) => { if (!p && s.lastStrains[pi]) empties++; }); });
         if (canReplant && empties > 0) bar += `<button class="btn replant" data-act="replantAll">Replant All (${empties})</button>`;
+        if (g.facilities.rows.filter((r) => g.facilities.isOwned(r.id)).length > 1) bar += '<button class="btn rooms" data-act="rooms">🏢 Rooms</button>';
         if (g.facilities.canBuyStation(fid)) bar += `<button class="btn buy" data-act="buyStation">+ Station ${money(g.facilities.nextStationCost(fid))}</button>`;
       }
       this.set('actionbar', bar);
