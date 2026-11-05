@@ -142,84 +142,8 @@
       });
     }
 
-    // ---- Ground: baked once into one picture, at half size. Far cheaper than drawing it every frame. ----
-    drawGround() {
-      const { w, h, look, roads, pond, spareLots } = this.layout;
-      const key = 'map-ground-' + this.district;
-      // Only one district's ground is kept in memory at a time.
-      for (const k of this.textures.getTextureKeys()) if (k.startsWith('map-ground-') && k !== key) this.textures.remove(k);
-      if (!this.textures.exists(key)) {
-        const G = this.make.graphics({ x: 0, y: 0, add: false });
-        const S = 0.5;
-        const P = (v) => v * S;
-        G.fillStyle(look.grass, 1).fillRect(0, 0, P(w), P(h));
-        // Soft mottled grass, the same every time (fixed dice).
-        const dice = (label) => PE.Rng.roll(`map:${this.district}:${label}`);
-        for (let i = 0; i < 90; i++) {
-          G.fillStyle(look.grassDark, 0.55).fillEllipse(P(dice('gx' + i) * w), P(dice('gy' + i) * h), P(60 + dice('gw' + i) * 170), P(30 + dice('gh' + i) * 70));
-        }
-        if (pond) {
-          G.fillStyle(0xd8c78f, 1).fillEllipse(P(pond.x), P(pond.y), P(pond.rx * 2 + 26), P(pond.ry * 2 + 22));
-          G.fillStyle(look.water, 1).fillEllipse(P(pond.x), P(pond.y), P(pond.rx * 2), P(pond.ry * 2));
-          G.fillStyle(0xffffff, 0.4).fillEllipse(P(pond.x - 30), P(pond.y - 16), P(70), P(14));
-        }
-        const line = (pts, width, colour, alpha = 1) => {
-          G.lineStyle(P(width), colour, alpha);
-          G.fillStyle(colour, alpha);
-          for (let i = 0; i < pts.length; i++) {
-            if (i) G.lineBetween(P(pts[i - 1][0]), P(pts[i - 1][1]), P(pts[i][0]), P(pts[i][1]));
-            G.fillCircle(P(pts[i][0]), P(pts[i][1]), P(width / 2));
-          }
-        };
-        roads.forEach((r, i) => line(r, (i === 0 ? 118 : 76) + 12, look.path));
-        roads.forEach((r, i) => line(r, i === 0 ? 118 : 76, look.road));
-        // Dashes down the main road.
-        G.lineStyle(P(6), look.line, 0.9);
-        const main = roads[0];
-        for (let i = 1; i < main.length; i++) {
-          const [ax, ay] = main[i - 1], [bx, by] = main[i];
-          const len = Math.hypot(bx - ax, by - ay);
-          for (let d = 0; d < len; d += 80) {
-            const t0 = d / len, t1 = Math.min(1, (d + 40) / len);
-            G.lineBetween(P(ax + (bx - ax) * t0), P(ay + (by - ay) * t0), P(ax + (bx - ax) * t1), P(ay + (by - ay) * t1));
-          }
-        }
-        for (const lot of spareLots) {   // room left for buildings added later
-          G.fillStyle(look.grassDark, 0.9).fillEllipse(P(lot.x), P(lot.y), P(240), P(110));
-          G.lineStyle(P(4), 0xffffff, 0.25).strokeEllipse(P(lot.x), P(lot.y), P(240), P(110));
-        }
-        // Stand-in props: trees and flowers, kept off the roads and buildings.
-        const taken = [...Object.values(this.layout.spots), ...spareLots, ...this.layout.rivalSpots, ...this.layout.helperSpots];
-        const nearRoad = (x, y) => roads.some((r) => r.some((p, i) => {
-          if (!i) return false;
-          const [ax, ay] = r[i - 1], [bx, by] = p;
-          const t = clamp(((x - ax) * (bx - ax) + (y - ay) * (by - ay)) / (((bx - ax) ** 2 + (by - ay) ** 2) || 1), 0, 1);
-          return Math.hypot(x - (ax + (bx - ax) * t), y - (ay + (by - ay) * t)) < 110;
-        }));
-        for (let i = 0; i < 90; i++) {
-          const x = dice('tx' + i) * w, y = dice('ty' + i) * h;
-          if (nearRoad(x, y) || taken.some((s) => Math.abs(s.x - x) < 200 && y < s.y + 80 && y > s.y - 240)) continue;
-          if (pond && Math.hypot((x - pond.x) / 1.4, y - pond.y) < pond.rx + 20) continue;
-          if (dice('tk' + i) < 0.68) {
-            G.fillStyle(0x000000, 0.16).fillEllipse(P(x + 8), P(y), P(70), P(22));
-            G.fillStyle(0x6b4a2c, 1).fillRect(P(x - 7), P(y - 40), P(14), P(40));
-            G.fillStyle(dim(look.grassDark, 0.8), 1).fillCircle(P(x), P(y - 72), P(46));
-            G.fillStyle(look.grassDark, 1).fillCircle(P(x - 12), P(y - 84), P(30));
-          } else {
-            const colours = [0xff4fa3, 0xffd84d, 0x52e6ff, 0xffffff];
-            for (let k = 0; k < 6; k++) G.fillStyle(colours[k % 4], 1).fillCircle(P(x + (dice(`fx${i}:${k}`) - 0.5) * 70), P(y + (dice(`fy${i}:${k}`) - 0.5) * 34), P(7));
-          }
-        }
-        // Soft edges: the ground fades into a darker border, so the end of the map looks like the end.
-        for (let i = 0; i < 8; i++) {
-          const m = P(i * 12), a = 0.11;
-          G.fillStyle(look.sky, a).fillRect(0, 0, P(w), m + P(12)).fillRect(0, P(h) - m - P(12), P(w), m + P(12)).fillRect(0, 0, m + P(12), P(h)).fillRect(P(w) - m - P(12), 0, m + P(12), P(h));
-        }
-        G.generateTexture(key, Math.ceil(P(w)), Math.ceil(P(h)));
-        G.destroy();
-      }
-      this.add.image(0, 0, key).setOrigin(0, 0).setScale(2).setDepth(-100000);
-    }
+    // ---- Ground: painted once from the district's layout file (js/ui/empire_map_ground.js). ----
+    drawGround() { PE.MapGround.bake(this, this.layout); }
 
     // ---- Buildings ---------------------------------------------------------------------------------------
     standInKey(fid, tier) {

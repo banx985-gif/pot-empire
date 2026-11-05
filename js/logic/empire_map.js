@@ -209,7 +209,11 @@
         if (!focus) return L.helperSpots;
         const s = L.spots[focus];
         const inside = (v, hi) => Math.max(90, Math.min(hi - 90, v));
-        return [[-210, 74], [215, 86], [-40, 225]].map(([dx, dy]) => ({ x: inside(s.x + dx, L.w), y: inside(s.y + dy, L.h) }));
+        const prints = PE.MapPaths.footprints(L).filter((f) => f.s !== s);
+        const free = (p) => !PE.MapPaths.onWater(L, p.x, p.y, 10) && !prints.some((f) => PE.MapPaths.inFootprint(f, p.x, p.y, 40));
+        const near = [[-210, 74], [215, 86], [-40, 225], [-250, 180], [250, 190], [60, 300], [-140, 330], [190, -90], [-220, -60]]
+          .map(([dx, dy]) => ({ x: inside(s.x + dx, L.w), y: inside(s.y + dy, L.h) })).filter(free);
+        return [...near, ...L.helperSpots].slice(0, 3);
       },
       markStorySeen(id) { mapState().storySeen[id] = true; },
 

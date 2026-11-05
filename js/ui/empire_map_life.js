@@ -65,6 +65,19 @@
       G.fillStyle(Number(c), 1).fillRoundedRect(6, 20, 18, 22, 5);
       G.fillStyle(0x2c1a4d, 1).fillRect(8, 40, 6, 13).fillRect(16, 40, 6, 13);
     }));
+    tex(this, 'map-boat', 110, 60, (G) => {
+      G.fillStyle(0xffffff, 0.5).fillEllipse(55, 50, 106, 14);
+      G.fillStyle(0xff8a3d, 1).fillRoundedRect(10, 26, 90, 22, 9);
+      G.fillStyle(0xffffff, 1).fillRoundedRect(34, 6, 44, 24, 5);
+      G.fillStyle(0x52e6ff, 1).fillRect(40, 11, 32, 10);
+    });
+    tex(this, 'map-train', 170, 56, (G) => {
+      G.fillStyle(0x000000, 0.2).fillEllipse(85, 50, 164, 11);
+      G.fillStyle(0xc0392b, 1).fillRoundedRect(4, 8, 70, 34, 7);
+      G.fillStyle(0x52e6ff, 1).fillRect(52, 14, 16, 13);
+      G.fillStyle(0x8b8fa3, 1).fillRoundedRect(84, 12, 80, 30, 4);
+      G.fillStyle(0x140a24, 1).fillCircle(20, 44, 7).fillCircle(58, 44, 7).fillCircle(104, 44, 7).fillCircle(144, 44, 7);
+    });
     tex(this, 'map-puff', 52, 52, (G) => { G.fillStyle(0xe8def8, 1).fillCircle(26, 28, 18).fillCircle(16, 24, 12).fillCircle(36, 22, 12); });
     tex(this, 'map-glow', 128, 128, (G) => { for (let r = 62; r > 0; r -= 6) G.fillStyle(0xc6ff3d, 0.07).fillCircle(64, 64, r); });
     tex(this, 'map-plant', 40, 70, (G) => {
@@ -119,7 +132,7 @@
     }
   };
 
-  // ---- Vans ----------------------------------------------------------------------------------------------
+  // ---- Vans, boats and trains: they follow whatever paths the district's layout file gives ------------------
   proto.deliveryRoutes = function deliveryRoutes() {
     // Depot and shops or factory and shops: a van shuttles between two of your places in this district.
     const owned = this.def.facilities.filter((f) => this.g.facilities.isOwned(f));
@@ -127,45 +140,44 @@
     const from = owned.find((f) => mode(f) === 'Logistics') || owned.find((f) => mode(f) === 'Factory');
     const to = owned.find((f) => mode(f) === 'Retail');
     if (!from || !to) return [];
-    const road = (f) => this.layout.roads.slice(1).find((r) => { const s = this.layout.spots[f]; return Math.hypot(r[0][0] - s.x, r[0][1] - s.y) < 80; });
-    const a = road(from), b = road(to);
-    if (!a || !b) return [];
-    const main = this.layout.roads[0];
-    const ya = a[a.length - 1][1], yb = b[b.length - 1][1];
-    const between = main.filter((p) => p[1] > Math.min(ya, yb) && p[1] < Math.max(ya, yb)).sort((p, q) => (ya > yb ? q[1] - p[1] : p[1] - q[1]));
-    return [[...a, ...between, ...b.slice().reverse()]];
+    const way = PE.MapPaths.routeBetween(this.layout, this.layout.spots[from], this.layout.spots[to]);
+    return way && way.length > 1 ? [way] : [];
+  };
+  proto.addMover = function addMover(pts, key, artId, size, speed, i, opts = {}) {
+    const { seg, total } = lengths(pts);
+    const sprite = piece(this, pts[0][0], pts[0][1], key, artId, size);
+    this.life.movers.push({ sprite, pts, seg, total, d: total * (0.2 + 0.3 * i), dir: i % 2 ? -1 : 1, speed, lane: opts.lane === undefined ? 20 : opts.lane });
   };
   proto.buildVans = function buildVans() {
+    const L = this.layout;
     const owned = this.def.facilities.filter((f) => this.g.facilities.isOwned(f)).length;
     const paths = [...this.deliveryRoutes()];
-    for (let i = 0; i < Math.min(2, owned); i++) paths.push(this.layout.roads[0]);
-    paths.forEach((pts, i) => {
-      const { seg, total } = lengths(pts);
-      const sprite = piece(this, pts[0][0], pts[0][1], 'map-van', 'VEH-01', 90);
-      this.life.movers.push({ sprite, pts, seg, total, d: total * (0.2 + 0.3 * i), dir: i % 2 ? -1 : 1, speed: 62 + i * 10 });
-    });
+    (L.vans || []).slice(0, Math.min(2, owned)).forEach(([a, b]) => { const way = PE.MapPaths.route(L, a, b); if (way && way.length > 1) paths.push(way); });
+    paths.forEach((pts, i) => this.addMover(pts, 'map-van', 'VEH-01', 90, 62 + i * 10, i));
+    // Boats and trains are there whether or not you own anything: it's their town too.
+    PE.MapPaths.linesOf(L, (k) => k.boat).slice(0, 2).forEach((l, i) => this.addMover(l.pts, 'map-boat', 'VEH-05', 100, 34, i, { lane: 0 }));
+    PE.MapPaths.linesOf(L, (k) => k.train).slice(0, 1).forEach((l, i) => this.addMover(l.pts, 'map-train', null, 150, 110, i, { lane: 0 }));
   };
 
-  // ---- Walkers: into your shops if you own one, otherwise strolling beside a road ---------------------------
+  // ---- Walkers: into your shops if you own one, otherwise strolling down a lane or path ---------------------
   proto.buildWalkers = function buildWalkers() {
     const shops = this.def.facilities.filter((f) => this.g.facilities.isOwned(f) && this.g.facilities.row(f).mode === 'Retail');
     const count = shops.length ? 4 : 2;
+    const strolls = PE.MapPaths.linesOf(this.layout, (k, kind) => k.walk && kind !== 'drive' && kind !== 'boulevard' && kind !== 'bridge').filter((l) => l.pts.length > 3);
     for (let i = 0; i < count; i++) {
-      let from, to, entering = false;
+      const key = `map-walker-${i % 4}`, artId = 'WLK-0' + ((i % 6) + 1);
       if (shops.length) {
         const s = this.layout.spots[shops[i % shops.length]];
-        from = { x: s.x + (i % 2 ? 210 : -210) , y: s.y + 80 + i * 8 };
-        to = { x: s.x + 4, y: s.y + 8 };
-        entering = true;
-      } else {
-        const r = this.layout.roads[0];
-        const a = r[1 + (i % (r.length - 2))];
-        const b = r[2 + (i % (r.length - 2))];
-        from = { x: a[0] + 86, y: a[1] };
-        to = { x: b[0] + 86, y: b[1] };
+        const from = { x: s.x + (i % 2 ? 210 : -210), y: s.y + 80 + i * 8 };
+        const to = { x: s.x + 4, y: s.y + 8 };
+        const sprite = piece(this, from.x, from.y, key, artId, 80).setOrigin(0.5, 1);
+        this.life.walkers.push({ sprite, from, to, t: (i * 0.27) % 1, entering: true, speed: 0.05 + i * 0.006 });
+      } else if (strolls.length) {
+        const pts = strolls[i % strolls.length].pts;
+        const { seg, total } = lengths(pts);
+        const sprite = piece(this, pts[0][0], pts[0][1], key, artId, 80).setOrigin(0.5, 1);
+        this.life.walkers.push({ sprite, pts, seg, total, d: total * ((i * 0.37) % 1), dir: i % 2 ? -1 : 1, speed: 22 + i * 3 });
       }
-      const sprite = piece(this, from.x, from.y, `map-walker-${i % 4}`, 'WLK-0' + ((i % 6) + 1), 80).setOrigin(0.5, 1);
-      this.life.walkers.push({ sprite, from, to, t: (i * 0.27) % 1, entering, speed: 0.05 + i * 0.006, baseY: 0 });
     }
   };
 
@@ -239,12 +251,23 @@
       if (m.d < 0) { m.d = 0; m.dir = 1; }
       const p = along(m.pts, m.seg, m.d);
       const len = Math.hypot(p.dx, p.dy) || 1;
-      const lane = 24 * m.dir;
+      const lane = m.lane * m.dir;
       m.sprite.setPosition(p.x + (p.dy / len) * lane, p.y - (p.dx / len) * lane);
       m.sprite.setFlipX((p.dx * m.dir) < -4);
       m.sprite.setDepth(m.sprite.y);
     }
     for (const w of L.walkers) {
+      if (w.pts) {   // strolling along a street, on the pavement
+        w.d += w.dir * w.speed * dt;
+        if (w.d > w.total) { w.d = w.total; w.dir = -1; }
+        if (w.d < 0) { w.d = 0; w.dir = 1; }
+        const p = along(w.pts, w.seg, w.d);
+        const len = Math.hypot(p.dx, p.dy) || 1;
+        w.sprite.setPosition(p.x + (p.dy / len) * 30, p.y - (p.dx / len) * 30 - Math.abs(Math.sin(T * 7 + w.d)) * 4);
+        w.sprite.setFlipX(p.dx * w.dir < 0);
+        w.sprite.setDepth(p.y);
+        continue;
+      }
       w.t += w.speed * dt;
       if (w.t > 1) w.t = 0;
       const x = w.from.x + (w.to.x - w.from.x) * w.t;
