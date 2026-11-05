@@ -50,7 +50,7 @@
       return `<p><b>${total} of 378</b> collected · ${Money.format(game.state.currencies.collectionTokens)} Collection Tokens</p>
         <div class="hub">${SECTIONS.map((s) => `<button class="hub-btn" data-act="go:${s.id}"><span>${s.icon}</span><b>${s.label}</b><small>${c[s.key].have}/${c[s.key].total}</small></button>`).join('')}
         <button class="hub-btn" data-act="go:loadouts"><span>💾</span><b>Loadouts</b><small>Saved setups</small></button></div>
-        <p class="muted">Duplicates turn into Collection Tokens. Spend tokens on any item you've reached the level for. Cards are placeholders until the portraits and item art are drawn.</p>`;
+        <p class="muted">Duplicates turn into Collection Tokens. Spend tokens on any item you've reached the level for. Manager cards level up with duplicates. Other cards are placeholders until their art is drawn.</p>`;
     },
     actions: { go(id) { PE.App.router.go(id, {}); } },
   };
@@ -72,6 +72,14 @@
     else { toast(`${g().collections.item(id).name} added!`); PE.App.saveGame(); }
   };
 
+  // The bar on a manager card: duplicates towards the next level, like 2/3 with an up arrow.
+  function cardProgress(id) {
+    const c = g().collections.managerCard(id);
+    if (!c) return '';
+    const width = c.max ? 100 : Math.min(100, (c.fragments / c.need) * 100);
+    return `<div class="card-progress"><span class="card-lvl">L${c.level}</span><span class="dup-bar ${c.max ? 'max' : ''}"><i style="width:${width}%"></i><b>${c.max ? 'MAX' : `${c.fragments}/${c.need} ⬆`}</b></span></div>`;
+  }
+
   // ---- Managers (UI19, UI20, UI21) -----------------------------------------------------------------------
   PE.Panels.managerBinder = {
     title: ({ target }) => (target ? 'Assign a manager' : 'Manager binder'),
@@ -86,8 +94,7 @@
         html += list.filter((m) => m.role === role).map((m) => {
           const own = game.collections.owns(m.id);
           const here = assigned[m.id];
-          const o = game.state.managers.owned[m.id];
-          const extra = own ? `<small>Card L${o.level} · ${o.fragments} fragments${here ? ` · at ${esc(placeName(here))}` : ''}</small>` : '';
+          const extra = own ? `${cardProgress(m.id)}${here ? `<small>At ${esc(placeName(here))}</small>` : ''}` : '';
           let right;
           if (target && own && game.collections.validTarget(m, target)) {
             right = here === target ? `<button class="btn small go" data-act="un:${m.id}">Here</button>` : `<button class="btn small buy" data-act="assign:${m.id}:${target}">Assign</button>`;
@@ -125,7 +132,7 @@
       const here = game.state.managers.assigned[id];
       const targets = game.collections.managerTargets(id);
       return `<div class="item big">${card(m)}<div class="grow"><small class="r-${m.rarity}">${m.rarity} · ${esc(m.role)}</small><b>${esc(effectLine(m))}${esc(whenText(m))}</b><small>${esc(m.strategy)}</small></div></div>
-        <p class="muted">No portrait yet: placeholder card.</p>
+        ${game.collections.owns(id) ? `${cardProgress(id)}<p class="muted">Duplicates level this card up. Each level adds ${Math.round(game.B.collectionRules.managerLevelBonus * 100)}% to its effect. You also get Collection Tokens for every duplicate.</p>` : ''}
         <h4>Assign to</h4>
         ${targets.length ? targets.map((t) => `<div class="item" data-act="assign:${id}:${t.id}"><div class="grow"><b>${esc(t.name)}</b></div>${here === t.id ? '<span class="tag go">Here</span>' : '<span class="tag">Assign</span>'}</div>`).join('') : '<p class="muted">You don\'t own a place this manager can work yet.</p>'}
         ${here ? `<button class="btn wide plain" data-act="un:${id}">Remove from ${esc(placeName(here))}</button>` : ''}`;

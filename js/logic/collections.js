@@ -151,18 +151,38 @@
         return out;
       },
 
+      // A manager's progress towards its next level, from duplicates.
+      managerCard(id) {
+        const m = state.managers.owned[id];
+        if (!m) return null;
+        const max = m.level >= T().managerMaxLevel;
+        return { level: m.level, fragments: m.fragments, need: T().fragmentsPerLevel, max, bonus: (m.level - 1) * T().managerLevelBonus };
+      },
+      // Opens a chest: gives the cards and tells the screen to show the reveal. Chests only come from
+      // play: level rewards, milestone choices and the login calendar. Nothing in the shop calls this.
+      openChest(txId, level, count = 1, opts = {}) {
+        const cats = opts.categories || T().chestCategories;
+        const cards = [];
+        for (let i = 0; i < count; i++) {
+          const key = count > 1 ? `${txId}:${i}` : txId;
+          const it = opts.pick ? opts.pick(key, i) : randomDrop(key, level, cats);
+          if (!it) continue;
+          const r = grant(it.id, key);
+          if (!r) continue;   // this chest has already been opened
+          const card = { id: it.id, name: it.name, rarity: it.rarity, category: it.category, duplicate: !!r.duplicate, tokens: r.tokens || 0, leveled: r.leveled || 0 };
+          if (it.category === 'manager') { const c = g.collections.managerCard(it.id); card.fragments = c.fragments; card.need = c.need; }
+          cards.push(card);
+        }
+        if (cards.length) g.emit('chestOpened', { source: opts.source || 'chest', title: opts.title, cards });
+        return cards;
+      },
       chestDrop(txId, level) {
-        const cats = T().chestCategories;
-        const it = randomDrop(txId, level, cats);
-        if (!it) return [];
-        const r = grant(it.id, txId);
-        if (!r) return [];
-        return [r.duplicate ? `${it.name} (duplicate): +${r.tokens} Collection Tokens` : `New: ${it.name}`];
+        return g.collections.openChest(txId, level, 1, { source: 'level', title: `Level ${level} chest!` })
+          .map((c) => (c.duplicate ? `${c.name} (duplicate): +${c.tokens} Collection Tokens` : `New: ${c.name}`));
       },
       grantRandomManager(txId, level) {
-        const it = randomDrop(txId, level, ['managers']);
-        if (it) grant(it.id, txId);
-        return it;
+        const cards = g.collections.openChest(txId, level, 1, { categories: ['managers'], source: 'choice', title: 'Manager card!' });
+        return cards.length ? all.get(cards[0].id) : null;
       },
 
       // The targeted collection shop: Collection Tokens buy a chosen item.

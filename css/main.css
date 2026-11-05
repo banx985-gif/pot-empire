@@ -288,3 +288,46 @@ ul.plain li { padding: 3px 0; }
 .r-out { flex: none; width: 82px; display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; font-size: 13px; }
 .r-out small { color: var(--cyan); }
 .r-uses { display: block; margin: 6px 0; color: #cbbfe3; font-size: 11px; }
+
+/* ---- Job 5: manager cards and the chest reveal ---- */
+.card-progress { display: flex; align-items: center; gap: 6px; margin-top: 3px; }
+.card-lvl { font-size: 11px; font-weight: 900; color: var(--gold); flex: none; }
+.dup-bar { position: relative; display: block; flex: 1; min-width: 70px; height: 16px; border-radius: 8px; overflow: hidden; background: #0007; border: 1px solid var(--line); }
+.dup-bar i { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(90deg, #6fa51c, var(--lime)); }
+.dup-bar.max i { background: linear-gradient(90deg, var(--gold), #ff8a3d); }
+.dup-bar b { position: relative; display: block; text-align: center; font-size: 11px; line-height: 14px; color: #fff; text-shadow: 0 1px 2px #000; }
+
+#reveal { position: absolute; inset: 0; z-index: 9; pointer-events: auto; }
+.reveal-box { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; background: #0b0518eb; padding: 12px; overflow: hidden; }
+.reveal-box h3 { position: relative; margin: 0; font-size: 26px; font-weight: 900; color: var(--gold); text-shadow: 0 2px 8px #000; text-align: center; }
+.reveal-glow { position: absolute; left: 50%; top: 50%; width: 620px; height: 620px; margin: -310px 0 0 -310px; border-radius: 50%; background: conic-gradient(#ffd84d55, #ff4fa355, #52e6ff55, #c6ff3d55, #ffd84d55); filter: blur(30px); animation: reveal-spin 7s linear infinite; pointer-events: none; }
+@keyframes reveal-spin { to { transform: rotate(360deg); } }
+.reveal-cards { position: relative; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; max-width: 100%; }
+.reveal-card { width: 150px; height: 244px; perspective: 800px; animation: reveal-in .38s cubic-bezier(.2,1.5,.4,1) backwards; }
+.reveal-cards.n3 .reveal-card, .reveal-cards.n2 .reveal-card { width: min(112px, 30vw); height: 214px; }
+@keyframes reveal-in { from { transform: translateY(70px) scale(.6); opacity: 0; } }
+.reveal-card .inner { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform .5s cubic-bezier(.3,1.4,.5,1); }
+.reveal-card.flip .inner { transform: rotateY(180deg); }
+.reveal-card .back, .reveal-card .front { position: absolute; inset: 0; border-radius: 14px; backface-visibility: hidden; -webkit-backface-visibility: hidden; border: 3px solid #fff; display: flex; flex-direction: column; align-items: center; }
+.reveal-card .back { justify-content: center; font-size: 56px; background: repeating-linear-gradient(45deg, #3a2666, #3a2666 10px, #2a1a47 10px, #2a1a47 20px); }
+.reveal-card .front { transform: rotateY(180deg); background: #2a1a47; padding: 6px; gap: 2px; text-align: center; color: #fff; }
+.reveal-pic { width: 100%; height: auto; aspect-ratio: 1; border-radius: 8px; background: #0005; object-fit: contain; }
+.reveal-ph { display: flex; width: 100%; aspect-ratio: 1; align-items: center; justify-content: center; border-radius: 8px; background: #0005; border: 2px dashed #fff5; font-weight: 800; }
+.reveal-name { font-size: 13px; line-height: 1.1; }
+.reveal-card .front small { font-size: 11px; font-weight: 700; }
+.reveal-card .front em { font-style: normal; font-size: 11px; font-weight: 800; color: var(--cyan); }
+.reveal-card .front em.new { color: var(--lime); font-size: 14px; }
+.reveal-card .front em.up { color: var(--gold); }
+.reveal-card .dup-bar { width: 100%; flex: none; }
+.rare-Common .front, .rare-Common .back { border-color: #cfd8dc; }
+.rare-Uncommon .front, .rare-Uncommon .back { border-color: #9cff8a; box-shadow: 0 0 14px #9cff8a88; }
+.rare-Rare .front, .rare-Rare .back { border-color: #6fd3ff; box-shadow: 0 0 18px #6fd3ffaa; }
+.rare-Epic .front, .rare-Epic .back { border-color: #c67cff; box-shadow: 0 0 22px #c67cffcc; }
+.rare-Legendary .front, .rare-Legendary .back { border-color: #ffd84d; box-shadow: 0 0 26px #ffd84dee; }
+.rare-Mythic .front, .rare-Mythic .back { border-color: #ff4fa3; box-shadow: 0 0 30px #ff4fa3; }
+.reveal-skip { position: relative; color: #e8def8; }
+#reveal.still .reveal-glow { display: none; }
+#reveal.still .reveal-card { animation: none; }
+#reveal.still .reveal-card .inner { transition: none; }
+.calm .reveal-glow { display: none; }
+@media (prefers-reduced-motion: reduce) { .reveal-glow { display: none; } .reveal-card { animation: none; } .reveal-card .inner { transition: none; } }

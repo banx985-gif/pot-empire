@@ -61,6 +61,7 @@
     PE.App = app;
     PE.Dom.init();
     PE.HelperUI.init();
+    PE.ChestReveal.init();
     PE.Look.init();
     PE.Settings.init();
 
@@ -199,6 +200,8 @@
         PE.Dom.toast(`Level ${e.level}!${e.rewards.length ? ' ' + e.rewards[0] : ''}`, 'big');
       } else if (type === 'celebrate') {
         PE.Celebrate.add(e);
+      } else if (type === 'chestOpened') {
+        PE.ChestReveal.add(e);
       } else if (type === 'rivalBeaten') {
         PE.Story.show(e.id);
       } else if (type === 'helperSay') {

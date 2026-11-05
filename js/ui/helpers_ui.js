@@ -48,7 +48,7 @@
     },
     canShow() {
       const app = PE.App;
-      if (!app || !app.game || PE.Dom.modalNow || PE.Dom.isTouching()) return false;
+      if (!app || !app.game || PE.Dom.modalNow || PE.Dom.isTouching() || (PE.ChestReveal && PE.ChestReveal.now)) return false;
       const top = app.router.current();
       return !!top && top.name !== 'title';
     },
