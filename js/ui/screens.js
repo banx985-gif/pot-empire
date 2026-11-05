@@ -8,16 +8,20 @@
     create() {
       const L = PE.UI.layout(this);
       const midX = (L.left + L.right) / 2;
-      this.add.text(midX, L.top + 70 * L.u, 'POT EMPIRE', {
-        fontFamily: FONT, fontStyle: '900', fontSize: L.font(46), color: '#c6ff3d', stroke: '#ff4fa3', strokeThickness: 6 * L.u,
-      }).setOrigin(0.5);
-      this.add.text(midX, L.top + 118 * L.u, 'TYCOON', {
-        fontFamily: FONT, fontStyle: '900', fontSize: L.font(30), color: '#52e6ff',
-      }).setOrigin(0.5);
+      // The real title logo. If it can't load, plain words stand in.
+      PE.UI.loadIcons(this, ['LOGO-01'], () => {
+        if (!this.textures.exists('ui-LOGO-01')) {
+          this.add.text(midX, L.top + 90 * L.u, 'POT EMPIRE TYCOON', { fontFamily: FONT, fontStyle: '900', fontSize: L.font(34), color: '#c6ff3d' }).setOrigin(0.5);
+          return;
+        }
+        const pic = this.add.image(midX, L.top + 14 * L.u, 'ui-LOGO-01').setOrigin(0.5, 0).setDepth(5);
+        const w = Math.min((L.right - L.left) * 0.86, (L.bottom - L.top) * 0.36 * (pic.width / pic.height));
+        pic.setDisplaySize(w, w * (pic.height / pic.width));
+      });
 
       PE.UI.loadStrain(this, 'STR-055', () => {
         if (!this.textures.exists('sheet-STR-055')) return;
-        const img = this.add.image(midX, (L.top + L.bottom) / 2 + 10 * L.u, 'sheet-STR-055', 'stage5');
+        const img = this.add.image(midX, (L.top + L.bottom) / 2 + 60 * L.u, 'sheet-STR-055', 'stage5');
         img.setScale(Math.min((L.right - L.left) * 0.75 / img.width, (L.bottom - L.top) * 0.42 / img.height));
       });
 

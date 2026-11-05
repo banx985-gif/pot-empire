@@ -204,7 +204,7 @@
     // ---- Game events -> messages ---------------------------------------------------------------------
     g.on((type, e) => {
       if (type === 'levelUp') {
-        PE.Dom.toast(`Level ${e.level}!${e.rewards.length ? ' ' + e.rewards[0] : ''}`, 'big');
+        PE.Dom.toast(`Level ${e.level}!${e.rewards.length ? ' ' + e.rewards[0] : ''}`, 'big', 'RWD-06');
       } else if (type === 'celebrate') {
         PE.Celebrate.add(e);
       } else if (type === 'chestOpened') {
@@ -214,7 +214,7 @@
       } else if (type === 'helperSay') {
         PE.HelperUI.add(e);
       } else if (type === 'masteryReward') {
-        PE.Dom.toast(`${g.grow.strainStats(e.strainId).name} Mastery ${e.level}: ${e.text}`, 'big');
+        PE.Dom.toast(`${g.grow.strainStats(e.strainId).name} Mastery ${e.level}: ${e.text}`, 'big', 'QLT-06');
       } else if (type === 'offlineReady') {
         if (app.game) PE.Offline.showIfPending();
       } else if (type === 'changed' || type === 'harvest') {

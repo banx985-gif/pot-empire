@@ -11,13 +11,13 @@
 
   // The round buttons down the side of the Empire map (js/ui/empire_map.js).
   const MENU = [
-    { id: 'tasks', label: 'Tasks', icon: '✅' },
-    { id: 'festival', label: 'Festival', icon: '🎪' },
-    { id: 'achievements', label: 'Awards', icon: '🏆' },
-    { id: 'rivals', label: 'Rivals', icon: '🥊' },
-    { id: 'prestige', label: 'Prestige', icon: '🌟' },
+    { id: 'tasks', label: 'Tasks', icon: 'GOL-01' },
+    { id: 'festival', label: 'Festival', icon: 'GOL-03' },
+    { id: 'achievements', label: 'Awards', icon: 'GOL-02' },
+    { id: 'rivals', label: 'Rivals', icon: 'GOL-05' },
+    { id: 'prestige', label: 'Prestige', icon: 'GOL-04' },
   ];
-  PE.MapMenu = [{ id: 'calendar', label: 'Daily', icon: '📅', dot: () => g().calendar.canClaim() }, ...MENU];
+  PE.MapMenu = [{ id: 'calendar', label: 'Daily', icon: 'RWD-04', dot: () => g().calendar.canClaim() }, ...MENU];
 
   PE.Panels.tasks = {
     title: 'Daily and weekly tasks',
@@ -33,15 +33,15 @@
       };
       const B = game.B.meta;
       const inbox = game.meta.inbox();
-      return `<button class="btn wide ${game.meta.wheelUsed() ? 'plain' : 'buy'}" data-act="wheel">${game.meta.wheelUsed() ? 'Prize wheel: spun today, back tomorrow' : 'Spin the free prize wheel'}</button>
-        <h4>Today (${B.dailyReward.researchTokens} Research Tokens each)</h4>${tk.daily.map((t) => row('daily', t)).join('')}
-        <h4>This week (${B.weeklyReward.researchTokens} Research Tokens each)</h4>${tk.weekly.map((t) => row('weekly', t)).join('')}
+      return `<button class="btn wide ${game.meta.wheelUsed() ? 'cant' : 'buy'}" data-act="wheel">${PE.Dom.icon('RWD-03', 26)}${game.meta.wheelUsed() ? 'Prize wheel: spun today, back tomorrow' : 'Spin the free prize wheel'}</button>
+        <h4>${PE.Dom.icon('GOL-01', 20)} Today (${PE.Dom.icon('CUR-03', 16)} ${B.dailyReward.researchTokens} each)</h4>${tk.daily.map((t) => row('daily', t)).join('')}
+        <h4>${PE.Dom.icon('GOL-01', 20)} This week (${PE.Dom.icon('CUR-03', 16)} ${B.weeklyReward.researchTokens} each)</h4>${tk.weekly.map((t) => row('weekly', t)).join('')}
         <p class="muted">Nothing is lost if you miss a day.</p>
         ${inbox.length ? `<h4>Inbox</h4>${inbox.map((i) => `<div class="item"><div class="grow"><b>${esc(i.text)}</b><small>Keeps for ${duration((i.expiresMs - game.now()) / 1000)}</small></div><button class="btn small go" data-act="inbox:${i.id.replace(/:/g, '~')}">Claim</button></div>`).join('')}` : ''}`;
     },
     actions: {
       claim(kind, id) { paid(g().meta.claimTask(kind, id)); },
-      wheel() { const r = g().meta.spinWheel(); if (r.ok) toast(`Prize: ${r.text}`); PE.App.saveGame(); },
+      wheel() { const r = g().meta.spinWheel(); if (r.ok) PE.Dom.toast(`Prize: ${r.text}`, 'big', 'RWD-03'); PE.App.saveGame(); },
       inbox(id) { paid(g().meta.claimInbox(id.replace(/~/g, ':'))); },
     },
   };
@@ -104,13 +104,13 @@
       const game = g();
       const lvl = game.meta.prestigeUnlockLevel();
       const shares = Money.format(game.state.currencies.empireShares);
-      const head = `<p><b>${shares} Empire Shares</b> · all harvests x${game.meta.globalMultiplier().toFixed(2)}</p>
+      const head = `<p>${PE.Dom.icon('CUR-04', 22)} <b>${shares} Empire Shares</b> · all harvests x${game.meta.globalMultiplier().toFixed(2)}</p>
         <p class="muted">Optional. Restart one district's equipment for permanent Empire Shares. You can always keep playing without it.</p>`;
       if (game.progress.level() < lvl) return `${head}<p class="center">Opens at level ${lvl}.</p>`;
       const rows = game.facilities.districts.map((d) => {
         const p = game.meta.prestigePreview(d.id);
         return `<div class="item"><div class="grow"><b>${esc(d.name)}</b><small>Earned since last: ${money(Math.floor(p.earned))}</small><small>Worth ${p.shares} Shares now</small></div>
-          <button class="btn small ${p.shares >= 1 ? 'buy' : 'plain'}" data-act="go:${d.id}">Preview</button></div>`;
+          <button class="btn small ${p.shares >= 1 ? 'buy' : 'cant'}" data-act="go:${d.id}">Preview</button></div>`;
       }).join('');
       const hist = game.state.prestigeHistory.slice(-5).reverse().map((h) => `<li>${esc(game.facilities.district(h.district).name)}: +${h.shares} Shares</li>`).join('');
       return `${head}${rows}${hist ? `<h4>History</h4><ul class="plain">${hist}</ul>` : ''}`;
@@ -123,7 +123,7 @@
         const crops = p.matureCount + p.growingCount;
         PE.Dom.confirm(`Prestige ${p.district}?`, `
           <p class="bigcash">+${p.shares} Shares</p>
-          <p>All harvests x${p.bonusNow.toFixed(2)} → x${p.bonusAfter.toFixed(2)}, forever.</p>
+          <p>All harvests x${p.bonusNow.toFixed(2)} up to x${p.bonusAfter.toFixed(2)}, forever.</p>
           <p><b>Goes back to the start, this district only:</b></p>
           <ul class="plain">${p.resets.map((r) => `<li>${esc(r)}</li>`).join('')}</ul>
           ${crops ? `<p><b>Plants here:</b> ${p.matureCount} ready sold now (+${money(p.matureCash)}), ${p.growingCount} growing paid for how far they grew (+${money(p.growingCash)}).</p>` : ''}

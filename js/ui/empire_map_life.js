@@ -366,7 +366,7 @@
         const r = this.g.map.claimGift();
         if (r.ok) {
           this.floatText(s.x, s.y - 40, r.text);
-          PE.Dom.toast(`Free gift: ${r.text}`);
+          PE.Dom.toast(`Free gift: ${r.text}`, '', 'RWD-04');
           PE.App.saveGame();
         }
         s.destroy();

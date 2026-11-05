@@ -147,7 +147,7 @@
       const el = $('celebrate');
       el.className = `${calm ? 'still' : ''} ${small ? 'small' : ''}`;
       const bits = calm || small ? '' : Array.from({ length: CONFETTI }, (_, i) => `<i style="--i:${i}"></i>`).join('');
-      el.innerHTML = `<div class="confetti">${bits}</div><div class="banner" data-act="skip"><span class="stars">✦ ✧ ✦</span><b>${esc(e.text)}</b>${this.cheer(e.kind)}</div>`;
+      el.innerHTML = `<div class="confetti">${bits}</div><div class="banner" data-act="skip"><span class="stars">${PE.Dom.icon(e.kind === 'level' ? 'RWD-06' : 'RWD-05', 40)}</span><b>${esc(e.text)}</b>${this.cheer(e.kind)}</div>`;
       el.hidden = false;
       clearTimeout(this.timer);
       const C = B().celebrations;

@@ -123,7 +123,7 @@
     const spend = g.spend;
     g.spend = (...a) => { const ok = spend(...a); if (ok) Sound.play('buy'); return ok; };
     const toast = PE.Dom.toast.bind(PE.Dom);
-    PE.Dom.toast = (text, kind) => { if (/^Not |^No more|switched off/.test(text)) Sound.play('error'); toast(text, kind); };
+    PE.Dom.toast = (text, kind, iconId) => { if (/^Not |^No more|switched off/.test(text)) Sound.play('error'); toast(text, kind, iconId); };
 
     // Every tap: unlock sound (phones need a tap first) and a click on buttons.
     window.addEventListener('pointerdown', (e) => {

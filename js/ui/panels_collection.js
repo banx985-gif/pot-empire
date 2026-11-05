@@ -31,15 +31,15 @@
 
   // ---- Hub ---------------------------------------------------------------------------------------------
   const SECTIONS = [
-    { id: 'album', label: 'Strains', key: 'strains', icon: '🌿' },
-    { id: 'managerBinder', label: 'Managers', key: 'managers', icon: '🧑‍🌾' },
-    { id: 'relicList', label: 'Relics', key: 'relics', icon: '🔮' },
-    { id: 'stickerList', label: 'Brand stickers', key: 'stickers', icon: '⭐' },
-    { id: 'vehicleList', label: 'Vehicles', key: 'vehicles', icon: '🚐' },
-    { id: 'packagingList', label: 'Packaging', key: 'packaging', icon: '📦' },
-    { id: 'decorList', label: 'Decorations', key: 'decorations', icon: '🪩' },
-    { id: 'avatarList', label: 'Avatars', key: 'avatars', icon: '🎭' },
-    { id: 'catalogue', label: 'Products', key: 'products', icon: '🍪' },
+    { id: 'album', label: 'Strains', key: 'strains', icon: 'COL-02' },
+    { id: 'managerBinder', label: 'Managers', key: 'managers', icon: 'COL-01' },
+    { id: 'relicList', label: 'Relics', key: 'relics', icon: 'COL-03' },
+    { id: 'stickerList', label: 'Brand stickers', key: 'stickers', icon: 'COL-04' },
+    { id: 'vehicleList', label: 'Vehicles', key: 'vehicles', icon: 'COL-05' },
+    { id: 'packagingList', label: 'Packaging', key: 'packaging', icon: 'BIZ-01' },
+    { id: 'decorList', label: 'Decorations', key: 'decorations', icon: 'COL-06' },
+    { id: 'avatarList', label: 'Avatars', key: 'avatars', icon: 'NAV-06' },
+    { id: 'catalogue', label: 'Products', key: 'products', icon: 'BIZ-02' },
   ];
   PE.Panels.collection = {
     title: 'Collection',
@@ -48,9 +48,9 @@
       const c = game.collections.counts();
       const total = c.managers.have + c.relics.have + c.stickers.have + c.vehicles.have + c.packaging.have + c.decorations.have + c.products.have + c.strains.have;
       return `<p><b>${total} of 378</b> collected · ${Money.format(game.state.currencies.collectionTokens)} Collection Tokens</p>
-        <div class="hub">${SECTIONS.map((s) => `<button class="hub-btn" data-act="go:${s.id}"><span>${s.icon}</span><b>${s.label}</b><small>${c[s.key].have}/${c[s.key].total}</small></button>`).join('')}
-        <button class="hub-btn" data-act="go:loadouts"><span>💾</span><b>Loadouts</b><small>Saved setups</small></button></div>
-        <p class="muted">Duplicates turn into Collection Tokens. Spend tokens on any item you've reached the level for. Manager cards level up with duplicates. Other cards are placeholders until their art is drawn.</p>`;
+        <div class="hub">${SECTIONS.map((s) => `<button class="hub-btn" data-act="go:${s.id}"><span>${PE.Dom.icon(s.icon, 48)}</span><b>${s.label}</b><small>${c[s.key].have}/${c[s.key].total}</small></button>`).join('')}
+        <button class="hub-btn" data-act="go:loadouts"><span>${PE.Dom.icon('UPG-05', 48)}</span><b>Loadouts</b><small>Saved setups</small></button></div>
+        <p class="muted">Duplicates turn into Collection Tokens. Spend tokens on any item you've reached the level for. Manager cards level up with duplicates. Relic, sticker, vehicle, product, packaging and decoration pictures are still to come.</p>`;
     },
     actions: { go(id) { PE.App.router.go(id, {}); } },
   };
@@ -61,10 +61,10 @@
     const own = game.collections.owns(it.id);
     const lvlOk = game.progress.level() >= it.levelGate;
     const fallback = !own && it.duplicateConversion
-      ? (lvlOk ? `<button class="btn small ${game.canAfford('collectionTokens', it.duplicateConversion.shopPrice) ? 'buy' : 'plain'}" data-act="buy:${it.id}">${it.duplicateConversion.shopPrice} tokens</button>` : `<span class="tag">Level ${it.levelGate}</span>`)
+      ? (lvlOk ? `<button class="btn small ${game.canAfford('collectionTokens', it.duplicateConversion.shopPrice) ? 'buy' : 'cant'}" data-act="buy:${it.id}">${it.duplicateConversion.shopPrice} tokens</button>` : `<span class="tag">Level ${it.levelGate}</span>`)
       : '';
     return `<div class="item ${own ? '' : 'locked'}">${card(it)}<div class="grow"><b>${esc(it.name)}</b>
-      <small class="r-${it.rarity}">${it.rarity}</small><small>${esc(effectLine(it))}${esc(whenText(it))}</small>${extra}</div>${own ? right : fallback}</div>`;
+      <small class="r-${it.rarity}">${PE.Dom.rarityIcon(it.rarity)}${it.rarity}</small><small>${esc(effectLine(it))}${esc(whenText(it))}</small>${extra}</div>${own ? right : fallback}</div>`;
   }
   const buyAction = (id) => {
     const r = g().collections.buyWithTokens(id);
@@ -77,7 +77,7 @@
     const c = g().collections.managerCard(id);
     if (!c) return '';
     const width = c.max ? 100 : Math.min(100, (c.fragments / c.need) * 100);
-    return `<div class="card-progress"><span class="card-lvl">L${c.level}</span><span class="dup-bar ${c.max ? 'max' : ''}"><i style="width:${width}%"></i><b>${c.max ? 'MAX' : `${c.fragments}/${c.need} ⬆`}</b></span></div>`;
+    return `<div class="card-progress"><span class="card-lvl">L${c.level}</span><span class="dup-bar ${c.max ? 'max' : ''}"><i style="width:${width}%"></i><b>${c.max ? 'MAX' : `${c.fragments}/${c.need} ${PE.Dom.icon('UPG-06', 12)}`}</b></span></div>`;
   }
 
   // ---- Managers (UI19, UI20, UI21) -----------------------------------------------------------------------
@@ -131,7 +131,7 @@
       const m = game.collections.item(id);
       const here = game.state.managers.assigned[id];
       const targets = game.collections.managerTargets(id);
-      return `<div class="item big"><span class="card-ph has-portrait big-face r-bg-${m.rarity}">${PE.Dom.portrait(m.id, m.name)}</span><div class="grow"><small class="r-${m.rarity}">${m.rarity} · ${esc(m.role)}</small><b>${esc(effectLine(m))}${esc(whenText(m))}</b><small>${esc(m.strategy)}</small></div></div>
+      return `<div class="item big"><span class="card-ph has-portrait big-face r-bg-${m.rarity}">${PE.Dom.portrait(m.id, m.name)}</span><div class="grow"><small class="r-${m.rarity}">${PE.Dom.rarityIcon(m.rarity)}${m.rarity} · ${esc(m.role)}</small><b>${esc(effectLine(m))}${esc(whenText(m))}</b><small>${esc(m.strategy)}</small></div></div>
         ${game.collections.owns(id) ? `${cardProgress(id)}<p class="muted">Duplicates level this card up. Each level adds ${Math.round(game.B.collectionRules.managerLevelBonus * 100)}% to its effect. You also get Collection Tokens for every duplicate.</p>` : ''}
         <h4>Assign to</h4>
         ${targets.length ? targets.map((t) => `<div class="item" data-act="assign:${id}:${t.id}"><div class="grow"><b>${esc(t.name)}</b></div>${here === t.id ? '<span class="tag go">Here</span>' : '<span class="tag">Assign</span>'}</div>`).join('') : '<p class="muted">You don\'t own a place this manager can work yet.</p>'}
@@ -288,10 +288,10 @@
     render() {
       const game = g();
       const cur = game.state.profile.avatarStrainId;
-      return `<p class="muted">Each strain's logo becomes an avatar at Mastery 10. Cosmetic only. Logo art isn't drawn yet, so the mature plant stands in.</p>` + C().avatars.map((a) => {
+      return `<p class="muted">Each strain's graffiti name badge becomes an avatar at Mastery 10. Cosmetic only. A few badges are still being drawn: those show the strain's logo for now.</p>` + C().avatars.map((a) => {
         const lvl = game.grow.masteryLevel(a.strainId);
         const open = lvl >= game.B.mastery.avatarUnlockLevel;
-        return `<div class="item ${open ? '' : 'locked'}" ${open ? `data-act="pick:${a.strainId}"` : ''}>${strainThumb(a.strainId, 5, 44)}<div class="grow"><b>${esc(a.name)}</b><small>${open ? 'Unlocked' : `Mastery ${lvl}/10`}</small></div>${cur === a.strainId ? '<span class="tag go">Selected</span>' : ''}</div>`;
+        return `<div class="item ${open ? '' : 'locked'}" ${open ? `data-act="pick:${a.strainId}"` : ''}>${PE.Dom.avatarPic(a.strainId, 52)}<div class="grow"><b>${esc(PE.Data.strains.find((s) => s.id === a.strainId).name)}</b><small>${open ? 'Unlocked' : `${PE.Dom.icon('QLT-06', 14)}Mastery ${lvl}/10`}${PE.Dom.avatarDrawn(a.strainId) ? '' : ' · badge planned'}</small></div>${cur === a.strainId ? '<span class="tag go">Selected</span>' : ''}</div>`;
       }).join('');
     },
     actions: { pick(id) { g().collections.setAvatar(id); PE.App.saveGame(); } },

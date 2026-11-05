@@ -56,7 +56,7 @@ html, body {
 .off { font-size: 11px; color: var(--gold); border: 1px solid var(--gold); border-radius: 8px; padding: 1px 5px; }
 .gear { width: 40px; height: 40px; font-size: 20px !important; flex: none; }
 .goal { margin-top: 3px; font-size: 13px; color: #e8def8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.chest { display: block; margin: 6px auto 0; padding: 8px 16px; border-radius: 18px; background: linear-gradient(135deg, var(--gold), var(--pink)) !important; font-weight: 800; color: #2a0f33 !important; }
+.chest { display: block; margin: 6px auto 0; }
 
 #actionbar { position: absolute; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom) + 70px); display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; padding: 0 10px; pointer-events: auto; }
 #actionbar:empty { display: none; }
@@ -66,14 +66,8 @@ html, body {
 #bottomnav button span { font-size: 22px; line-height: 1.1; }
 #bottomnav button.on { background: linear-gradient(135deg, #5a3a8c, #ff4fa355); color: #fff; }
 
-.btn { display: inline-block; min-height: 46px; padding: 8px 16px; border-radius: 14px !important; font-weight: 800; text-align: center; background: #5a3a8c !important; border: 1.5px solid #ffffffcc !important; box-shadow: 0 3px 0 #0007; }
+.btn { display: inline-block; min-height: 46px; text-align: center; }
 .btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #0007; }
-.btn.go { background: linear-gradient(135deg, #7fc41d, #2fa84a) !important; }
-.btn.buy { background: linear-gradient(135deg, #ff8a2b, #ff4fa3) !important; }
-.btn.harvest { background: linear-gradient(135deg, var(--lime), #2fa84a) !important; color: #123 !important; }
-.btn.replant { background: linear-gradient(135deg, var(--cyan), #5a7dff) !important; color: #012 !important; }
-.btn.danger { background: linear-gradient(135deg, #ff5a5a, #a01a4f) !important; }
-.btn.plain { background: #ffffff22 !important; box-shadow: none; }
 .btn.small { min-height: 40px; padding: 6px 12px; font-size: 14px; flex: none; }
 .btn.wide { display: block; width: 100%; margin-top: 10px; }
 .btn[disabled], .btn.off-state { opacity: .45; }
@@ -216,9 +210,7 @@ ul.plain li { padding: 3px 0; }
 .calm #ui button, .calm #ui .item[data-act] { transition: none; }
 .calm .btn.go:not(.small), .calm .chest, .calm #bottomnav button.on span { animation: none !important; }
 @media (prefers-reduced-motion: reduce) { #ui button, #ui .item[data-act] { transition: none; } .btn.go:not(.small), .chest, #bottomnav button.on span { animation: none !important; } }
-.btn.ad { background: linear-gradient(135deg, #52e6ff, #9a5be0) !important; color: #fff !important; }
 .btn.ad small { opacity: .8; }
-.btn.rooms { background: #2a1a47e6 !important; border: 1px solid var(--line) !important; }
 [aria-disabled="true"] { opacity: .55; }
 
 /* Bigger text: menus, pop-ups, toasts and the goal line grow; the top bar keeps its size to fit. */
@@ -241,7 +233,6 @@ ul.plain li { padding: 3px 0; }
 .test-banner { background: repeating-linear-gradient(45deg, #ffd84d, #ffd84d 10px, #ff4fa3 10px, #ff4fa3 20px); color: #1d0f33; font-weight: 900; text-align: center; padding: 8px; border-radius: 10px; }
 .pretend-ad { text-align: center; padding: 18px; border-radius: 14px; background: repeating-linear-gradient(-45deg, #2a1a47, #2a1a47 12px, #3b2466 12px, #3b2466 24px); }
 .pretend-ad .big { font-size: 46px; font-weight: 900; margin: 6px 0 0; color: var(--gold); }
-.btn.ad, #modal .btn.ad { background: linear-gradient(135deg, #52e6ff, #9a5be0) !important; }
 .harvest-card { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; padding: 10px; border-radius: 16px; background: radial-gradient(circle at 50% 30%, #3b2466, #160b28); margin-bottom: 10px; }
 .harvest-card .grade { font-size: 22px; }
 .harvest-card.q1 .grade { color: #c6ff3d; } .harvest-card.q2 .grade { color: #52e6ff; } .harvest-card.q3 .grade { color: #ffd84d; } .harvest-card.q4 .grade { color: #ff4fa3; }
@@ -339,7 +330,6 @@ ul.plain li { padding: 3px 0; }
 .cal-day.big { background: linear-gradient(145deg, #5a3a8c, #a01a6f); border-color: var(--gold); }
 .cal-day.best { background: linear-gradient(145deg, #ffd84d, #ff4fa3); }
 .cal-day.claimed { opacity: 0.45; }
-.cal-day.claimed::after { content: '✓'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--lime); font-weight: 900; font-size: 24px; text-shadow: 0 1px 3px #000; }
 .cal-day.next { border-color: var(--lime); box-shadow: 0 0 10px var(--lime); }
 .cal-today { display: flex; gap: 10px; align-items: center; background: #0003; border-radius: 12px; padding: 8px 12px; }
 .cal-today .ico { font-size: 34px; flex: none; }
@@ -360,3 +350,74 @@ ul.plain li { padding: 3px 0; }
 .card-ph.big-face .portrait { width: 100%; height: 100%; }
 .r-bg-Mythic { border-color: #ff7ac6 !important; }
 .item .portrait:not(.small) { background: radial-gradient(circle at 50% 35%, #5a3a8c, #1d0f33); }
+
+/* ---- Big job 3, Stage 2: the real interface art ---- */
+.ico { display: inline-block; vertical-align: middle; flex: none; object-fit: contain; }
+.btn .ico, .chest .ico { margin-right: 5px; vertical-align: -5px; }
+.ico.flip { transform: scaleX(-1); }
+.ico.down { transform: rotate(-90deg); margin: 0 0 0 5px !important; vertical-align: 0 !important; }
+.r-ico { margin-right: 3px; vertical-align: -2px; }
+.q-ico { margin-right: 4px; vertical-align: -8px; }
+.center-ico { display: block; margin: 0 auto 4px; }
+.closer { background: none !important; order: 2; }
+.closer.back { order: 0; }
+
+/* Buttons: nine-slice art. The ends stay fixed and only the middle stretches. Text is white with a dark outline. */
+#ui .btn, #ui .chest {
+  box-sizing: border-box; border-radius: 0; background: none; box-shadow: none;
+  border: 1px solid transparent;
+  border-image: url(../assets/ui/BTN-02.webp) 58 116 58 116 fill / 23px 46px 23px 46px stretch;
+  padding: 9px 22px 11px; color: #fff; font-weight: 900;
+  text-shadow: -1.5px -1.5px 0 #1d0f33, 1.5px -1.5px 0 #1d0f33, -1.5px 1.5px 0 #1d0f33, 1.5px 1.5px 0 #1d0f33, 0 2px 0 #1d0f33, 0 -2px 0 #1d0f33, 2px 0 0 #1d0f33, -2px 0 0 #1d0f33;
+}
+#ui .btn.go, #ui .btn.harvest { border-image-source: url(../assets/ui/BTN-01.webp); }
+#ui .btn.buy, #ui .chest { border-image-source: url(../assets/ui/BTN-03.webp); }
+#ui .btn.danger { border-image-source: url(../assets/ui/BTN-04.webp); }
+#ui .btn.cant, #ui .btn[aria-disabled="true"], #ui .btn[disabled], #ui .btn.off-state { border-image-source: url(../assets/ui/BTN-05.webp); opacity: 1; }
+#ui .btn.replant, #ui .btn.ad { border-image-source: url(../assets/ui/BTN-06.webp); border-image-slice: 58 58 58 58 fill; }
+#ui .btn.small { min-height: 40px; padding: 6px 15px 8px; border-image-width: 20px 36px 20px 36px; }
+#ui .row-btns .btn { padding: 6px 10px 8px; border-image-width: 20px 30px 20px 30px; }
+
+/* Top bar and tabs */
+.cash { display: flex; align-items: center; gap: 5px; }
+.gems { display: flex; align-items: center; gap: 4px; }
+.gear { display: flex; align-items: center; justify-content: center; }
+#bottomnav button span { line-height: 1; }
+.lvl { display: flex !important; align-items: center; justify-content: center; }
+.hub-btn span { line-height: 1; margin-bottom: 2px; }
+.fac-ico { display: flex; align-items: center; justify-content: center; }
+
+/* Round map buttons: BTN-06 behind the icon, the label under it. */
+.map-side-btn { width: 56px; height: 62px; border-radius: 0; background: none !important; border: 0 !important; box-shadow: none; position: relative; }
+.map-side-btn span { width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; background: url(../assets/ui/BTN-06.webp) center / contain no-repeat; }
+.map-side-btn small { font-size: 10px; color: #fff; text-shadow: -1px -1px 0 #1d0f33, 1px -1px 0 #1d0f33, -1px 1px 0 #1d0f33, 1px 1px 0 #1d0f33; max-width: 60px; margin-top: -1px; }
+.side-alert { position: absolute; top: -3px; right: 0; }
+.map-switch .ico:last-child:not(.down) { margin: 0 0 0 5px; }
+
+/* Logos: always on a dark backing. */
+.logo-badge { display: inline-flex; align-items: center; justify-content: center; flex: none; border-radius: 22%; background: #05020b; box-shadow: 0 0 0 1.5px #ffffff30; overflow: hidden; vertical-align: middle; }
+.logo-badge img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.avatar .logo-badge { border-radius: 50%; box-shadow: none; }
+.hall-logo { line-height: 0; }
+
+/* Locked things show the padlock art. */
+.item.locked > .tag::before { content: ''; display: inline-block; width: 14px; height: 14px; margin-right: 4px; vertical-align: -2px; background: url(../assets/ui/SYS-06.webp) center / contain no-repeat; }
+
+/* Calendar and recipes */
+.cal-day .ico { width: 62%; height: auto; }
+.cal-day.claimed::after { content: ''; background: url(../assets/ui/STA-06.webp) center / 60% no-repeat; }
+.today-ico { flex: none; }
+.r-in .mark { display: inline-flex; }
+.r-arrow { display: flex; align-items: center; }
+.reveal-chest { position: relative; margin-bottom: -10px; animation: pop .4s ease-out; }
+.reveal-card .back .ico { filter: drop-shadow(0 4px 6px #0009); }
+#celebrate .stars { letter-spacing: 0; line-height: 1; }
+.dup-bar b .ico { vertical-align: -2px; }
+.toast .ico { margin-right: 6px; vertical-align: -6px; }
+.scroll h4 .ico { vertical-align: -4px; }
+@media (max-height: 700px) {
+  .map-side-btn { width: 50px; height: 54px; }
+  .map-side-btn span { width: 40px; height: 40px; }
+  .map-side-btn span .ico { width: 28px; height: 28px; }
+  .map-side-btn small { font-size: 9px; }
+}

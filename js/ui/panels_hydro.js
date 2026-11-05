@@ -5,6 +5,7 @@
   const params = () => PE.App.router.current().params;
 
   const BRANCH_NAMES = { lights: 'Hanging light', sprinkler: 'Sprinkler', pots: 'Pots', computer: 'Computer', capacity: 'Pot slots' };
+  const BRANCH_ICONS = { lights: 'UPG-01', sprinkler: 'UPG-02', pots: 'UPG-03', computer: 'UPG-04', capacity: 'UPG-05' };
   const VISUALS = {
     lights: ['Tiny lamp', 'Long strip', 'Dual strips', 'Wide panel', 'Segmented array', 'Full-width showpiece'],
     sprinkler: ['Single nozzle', 'Twin nozzle', 'Triple nozzle', 'Spray bar', 'Dual spray bar', 'Full rail'],
@@ -37,10 +38,10 @@
         const max = lvl >= B.hydro.mainModelGate.maxLevel;
         const cost = max ? 0 : game.grow.branchCost(fid, n, b);
         const afford = !max && game.canAfford('cash', cost);
-        return `<div class="item"><div class="grow"><b>${BRANCH_NAMES[b]} L${lvl}</b>
+        return `<div class="item">${PE.Dom.icon(BRANCH_ICONS[b], 40)}<div class="grow"><b>${BRANCH_NAMES[b]} L${lvl}</b>
           <small>${esc(VISUALS[b][lvl - 1])} · ${esc(effectText(B, b, lvl))}</small>
           ${max ? '' : `<small class="next">Next: ${esc(effectText(B, b, lvl + 1))}</small>`}</div>
-          ${max ? '<span class="tag go">MAX</span>' : `<button class="btn small ${afford ? 'buy' : 'plain'}" data-act="up:${b}">${money(cost)}</button>`}</div>`;
+          ${max ? '<span class="tag go">MAX</span>' : `<button class="btn small ${afford ? 'buy' : 'cant'}" data-act="up:${b}">${money(cost)}</button>`}</div>`;
       }).join('');
 
       const prev = game.grow.modelUpgradePreview(fid, n);
@@ -49,7 +50,7 @@
       const modelBlock = prev
         ? `<h4>Next model: ${esc(prev.toName)}</h4>
           <p class="muted">${esc(prev.benefit)}. Needs ${gate.branchesAtMaxLevel} of ${gate.ofBranches} parts at L${gate.maxLevel} (you have ${maxed}).</p>
-          <button class="btn wide ${prev.gateMet && game.canAfford('cash', prev.cost) ? 'buy' : 'plain'}" data-act="model">Upgrade to ${esc(prev.toName)}: ${money(prev.cost)}</button>`
+          <button class="btn wide ${prev.gateMet && game.canAfford('cash', prev.cost) ? 'buy' : 'cant'}" data-act="model">${PE.Dom.icon('UPG-06', 24)}Upgrade to ${esc(prev.toName)}: ${money(prev.cost)}</button>`
         : '<p class="muted">This is the top model.</p>';
 
       let queue = '';
@@ -115,14 +116,14 @@
       const open = PE.Data.strains.filter((s) => game.grow.isStrainUnlocked(s.id)).length;
       let html = `<p>${open} of 60 strains unlocked</p>`;
       for (const rarity of PE.DataCheck.RARITIES) {
-        html += `<h4 class="r-${rarity}">${rarity}</h4>`;
+        html += `<h4 class="r-${rarity}">${PE.Dom.rarityIcon(rarity, 20)} ${rarity}</h4>`;
         html += PE.Data.strains.filter((s) => s.rarity === rarity).map((s) => {
           const st = game.grow.strainStats(s.id);
           const on = game.grow.isStrainUnlocked(s.id);
           const lvl = game.grow.masteryLevel(s.id);
           const best = game.state.stats.bestGrade[s.id];
           const lvlOk = game.progress.level() >= st.unlockLevel;
-          return `<div class="item ${on ? '' : 'locked'}" data-act="open:${s.id}">${strainThumb(s.id, 5, 52)}
+          return `<div class="item ${on ? '' : 'locked'}" data-act="open:${s.id}">${strainThumb(s.id, 5, 52)}${PE.Dom.logo(s.id, 40)}
             <div class="grow"><b>${esc(s.name)}</b><small>${on ? `Mastery ${lvl}/50${best !== undefined ? ` · best ${game.B.quality.grades[best].name}` : ''}` : (lvlOk ? 'Ready to unlock' : `Level ${st.unlockLevel}`)}</small></div>
             ${on ? '' : (lvlOk ? `<span class="tag">${money(st.unlockCost)}</span>` : '<span class="tag">Locked</span>')}</div>`;
         }).join('');
@@ -145,10 +146,10 @@
       const rewards = Object.entries(t.rewards).map(([lvl, r]) => `<li class="${m.level >= Number(lvl) ? 'got' : ''}"><b>L${lvl}</b> ${esc(r.text)}</li>`).join('');
       const stages = PE.Data.strainFrames.stages.map((_, i) => strainThumb(id, i, 48)).join('');
       return `<div class="stages">${stages}</div>
-        <p class="r-${st.rarity}">${st.rarity} · ${esc(st.roleLabel)}</p>
+        <p class="r-${st.rarity}">${PE.Dom.logo(id, 56)} ${PE.Dom.rarityIcon(st.rarity, 18)}${st.rarity} · ${esc(st.roleLabel)}</p>
         <p>Grows in ${duration(st.baseSeconds)} before upgrades · sells for ${money(st.price)} at Standard</p>
-        ${on ? `<p><b>Mastery ${m.level}/50</b> · ${Math.round(m.xp)}/${need} XP</p><div class="bar"><i style="width:${m.level >= 50 ? 100 : Math.min(100, (m.xp / need) * 100).toFixed(1)}%"></i></div>`
-    : `<button class="btn wide ${game.progress.level() >= st.unlockLevel && game.canAfford('cash', st.unlockCost) ? 'buy' : 'plain'}" data-act="unlock">${game.progress.level() >= st.unlockLevel ? `Unlock ${money(st.unlockCost)}` : `Opens at level ${st.unlockLevel}`}</button>`}
+        ${on ? `<p>${PE.Dom.icon('QLT-06', 22)}<b>Mastery ${m.level}/50</b> · ${Math.round(m.xp)}/${need} XP</p><div class="bar"><i style="width:${m.level >= 50 ? 100 : Math.min(100, (m.xp / need) * 100).toFixed(1)}%"></i></div>`
+    : `<button class="btn wide ${game.progress.level() >= st.unlockLevel && game.canAfford('cash', st.unlockCost) ? 'buy' : 'cant'}" data-act="unlock">${game.progress.level() >= st.unlockLevel ? `Unlock ${money(st.unlockCost)}` : `Opens at level ${st.unlockLevel}`}</button>`}
         <h4>Mastery rewards</h4><ul class="plain rewards">${rewards}</ul>`;
     },
     actions: {

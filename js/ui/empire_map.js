@@ -129,6 +129,7 @@
       this.cameras.main.setBackgroundColor(this.layout.look.sky);
       this.drawGround();
       this.buildBuildings();
+      PE.UI.loadIcons(this, ['STA-03', 'STA-06', 'STA-02', 'CUR-01'], () => { this.bubbleArtReady = true; this.refresh(); });
       this.setUpCamera();
       this.setUpInput();
       if (this.setUpLife) this.setUpLife();
@@ -184,17 +185,40 @@
       const c = this.add.container(x, y).setDepth(depth + 60000);
       const bg = this.add.graphics();
       const label = this.add.text(0, -1, '', { fontFamily: FONT, fontStyle: '900', fontSize: '22px', color: '#ffffff' }).setOrigin(0.5);
-      c.add([bg, label]);
+      const pic = this.add.image(0, 0, '__WHITE').setVisible(false);
+      c.add([bg, pic, label]);
       c.setVisible(false);
-      return { c, bg, label, sig: null };
+      return { c, bg, label, pic, sig: null };
     }
     // Only redrawn when it changes, so most frames cost nothing.
     drawBubble(b, st) {
-      const texts = { ready: '!', idle: '!', done: '✓', buy: '$', busy: PE.Dom.duration(Math.max(0, st.endsMs - this.g.now()) / 1000) };
-      const text = texts[st.kind] || '';
-      const sig = st.kind + text;
-      if (sig === b.sig) return;
+      const busyText = st.kind === 'busy' ? PE.Dom.duration(Math.max(0, st.endsMs - this.g.now()) / 1000) : '';
+      const sig = st.kind + busyText;
+      if (sig === b.sig && b.hadArt === this.bubbleArtReady) return;
       b.sig = sig;
+      b.hadArt = this.bubbleArtReady;
+      // The real status art (STA-03 alert, STA-06 done, STA-02 timer, CUR-01 cash), once it has loaded.
+      const artId = { ready: 'STA-03', idle: 'STA-03', done: 'STA-06', buy: 'CUR-01', busy: 'STA-02' }[st.kind];
+      const key = 'ui-' + artId;
+      if (artId && this.textures.exists(key)) {
+        const size = st.kind === 'busy' ? 26 : st.kind === 'ready' ? 50 : 44;
+        b.pic.setTexture(key).setDisplaySize(size, size).setVisible(true);
+        b.bg.clear();
+        if (st.kind === 'busy') {
+          b.label.setText(busyText).setFontSize(14).setStyle({ stroke: '#1d0f33', strokeThickness: 3 });
+          const w = b.label.width + 40;
+          b.bg.fillStyle(0x1d0f33, 0.92).fillRoundedRect(-w / 2, -16, w, 32, 15);
+          b.bg.lineStyle(2, 0xffffff, 0.9).strokeRoundedRect(-w / 2, -16, w, 32, 15);
+          b.pic.setPosition(-w / 2 + 15, 0);
+          b.label.setPosition(14, -1);
+        } else {
+          b.pic.setPosition(0, 0);
+          b.label.setText('');
+        }
+        return;
+      }
+      const texts = { ready: '!', idle: '!', done: 'ok', buy: '$', busy: busyText };
+      const text = texts[st.kind] || '';
       const colour = { ready: 0xff2d55, idle: 0xff8a3d, done: 0x2fbf5b, buy: 0x2fbf5b, busy: 0x2c1a4d }[st.kind];
       b.label.setText(text).setFontSize(st.kind === 'busy' ? 14 : 22);
       const hw = st.kind === 'busy' ? Math.max(22, b.label.width / 2 + 9) : 18;
@@ -418,10 +442,10 @@
       const g = PE.App.g;
       const here = g.map.districts().find((d) => d.id === g.map.current());
       const waiting = g.map.districts().some((d) => d.id !== here.id && g.map.isUnlocked(d.id) && g.map.needsYou(d.id));
-      const side = (PE.MapMenu || []).map((m) => `<button class="map-side-btn" data-act="menu:${m.id}" aria-label="${m.label}"><span>${m.icon}</span><small>${m.label}</small>${m.dot && m.dot() ? '<em>!</em>' : ''}</button>`).join('');
+      const side = (PE.MapMenu || []).map((m) => `<button class="map-side-btn" data-act="menu:${m.id}" aria-label="${m.label}"><span>${PE.Dom.icon(m.icon, 34)}</span><small>${m.label}</small>${m.dot && m.dot() ? PE.Dom.icon('STA-03', 22, 'side-alert') : ''}</button>`).join('');
       return `<div class="map-side">${side}</div>
-        <button class="btn map-switch" data-act="districts">🗺️ ${PE.Dom.esc(here.name)} ▾${waiting ? '<em>!</em>' : ''}</button>
-        <button class="btn plain map-list" data-act="mapList">📋 List</button>`;
+        <button class="btn map-switch" data-act="districts">${PE.Dom.icon('NAV-01', 26)}${PE.Dom.esc(here.name)}${PE.Dom.icon('SYS-03', 14, 'down')}${waiting ? PE.Dom.icon('STA-03', 20) : ''}</button>
+        <button class="btn plain map-list" data-act="mapList">${PE.Dom.icon('SYS-05', 22)}List</button>`;
     },
   };
   PE.Hud.actions.districts = () => PE.App.openPanel('districts', {});

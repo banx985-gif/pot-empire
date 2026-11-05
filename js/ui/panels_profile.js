@@ -1,6 +1,5 @@
 // Player profile, Hall of Fame and the strain picker they share (bible section 10A). Also adds the
 // helper settings and "replay helper lines" (bible section 9: optional Help replay) to Settings.
-// Strain logos aren't drawn yet: a PLACEHOLDER neon-initials badge on black stands in.
 (function (PE) {
   const { esc, money, strainThumb } = PE.Dom;
   const { Money } = PE;
@@ -8,19 +7,11 @@
   const toast = (t) => PE.Dom.toast(t);
   const params = () => PE.App.router.current().params;
 
-  const NEON = ['#52e6ff', '#c6ff3d', '#ff4fa3', '#ffd84d', '#b47cff', '#ff8a3d'];
-  function logo(strainId, size = 30) {
-    const s = PE.Data.strains.find((x) => x.id === strainId);
-    const initials = s.name.split(' ').map((w) => w[0]).join('').slice(0, 3);
-    const c = NEON[(Number(strainId.slice(4)) - 1) % NEON.length];
-    return `<span class="logo-ph" style="--c:${c};width:${size}px;height:${size}px;font-size:${Math.round(size * 0.38)}px" title="Logo art not drawn yet">${esc(initials)}</span>`;
-  }
-  PE.Dom.logo = logo;
-
   function avatar(size = 84) {
     const id = g().state.profile.avatarStrainId;
-    return `<span class="avatar" style="width:${size}px;height:${size}px">${id ? strainThumb(id, 5, size - 12) : '<span class="av-none">🌱</span>'}</span>`;
+    return `<span class="avatar" style="width:${size}px;height:${size}px">${id ? PE.Dom.avatarPic(id, size - 8) : PE.Dom.icon('NAV-06', size - 22)}</span>`;
   }
+  const logo = (id, size) => PE.Dom.logo(id, size);
 
   // ---- Player profile -----------------------------------------------------------------------------
   PE.Panels.profile = {
@@ -40,7 +31,7 @@
           <div class="grow"><b class="biz">${esc(P.displayName())}</b>
           <small>${p.username ? '@' + esc(p.username) : 'No username yet'}</small>
           ${p.title ? `<small class="title-tag">${esc(p.title)}</small>` : ''}</div></div>
-        <p><b>Empire Rank ${st.player.level}</b> · ${Money.format(st.player.xp)} / ${Money.format(need)} XP</p>
+        <p>${PE.Dom.icon('RWD-05', 22)} <b>Empire Rank ${st.player.level}</b> · ${Money.format(st.player.xp)} / ${Money.format(need)} XP</p>
         <div class="bar"><i style="width:${Math.min(100, (Money.toNumber(st.player.xp) / need) * 100).toFixed(1)}%"></i></div>
         <div class="row-btns"><button class="btn small go" data-act="talents">Talents (${st.player.talentPoints})</button><button class="btn small plain" data-act="avatars">Change avatar</button></div>
 
@@ -50,9 +41,9 @@
         <button class="btn wide buy" data-act="saveNames">Save names</button>
 
         <h4>Favourite strain</h4>
-        <div class="item" data-act="pickFav">${fav ? strainThumb(fav.id, 5, 48) : ''}<div class="grow"><b>${fav ? esc(fav.name) : 'None picked'}</b><small>${fav ? `${esc(fav.rarity)} · Mastery ${game.grow.masteryLevel(fav.id)}` : 'Tap to pick one'}</small></div><span class="tag">Change</span></div>
+        <div class="item" data-act="pickFav">${fav ? strainThumb(fav.id, 5, 48) + logo(fav.id, 36) : ''}<div class="grow"><b>${fav ? esc(fav.name) : 'None picked'}</b><small>${fav ? `${esc(fav.rarity)} · Mastery ${game.grow.masteryLevel(fav.id)}` : 'Tap to pick one'}</small></div><span class="tag">Change</span></div>
 
-        <h4>Hall of Fame</h4>
+        <h4>${PE.Dom.icon('GOL-06', 22)} Hall of Fame</h4>
         ${P.hallUnlocked()
     ? `<div class="item" data-act="hall"><div class="grow hall-mini">${hall.length ? hall.map((s) => strainThumb(s.strainId, 5, 40)).join('') : '<small>No strains featured yet</small>'}</div><span class="tag go">Open</span></div>`
     : `<p class="muted">Opens at Empire Rank ${P.hallLevel()}.</p>`}
@@ -61,7 +52,7 @@
         ${titles.length ? `<div class="chips">${titles.map((t, i) => `<button class="chip ${p.title === t ? 'on' : ''}" data-act="title:${i}">${esc(t)}</button>`).join('')}${p.title ? '<button class="chip" data-act="title:-1">Hide title</button>' : ''}</div>` : '<p class="muted">Earn titles from mastery, rivals, festivals and high ranks.</p>'}
 
         <h4>Prestige badges</h4>
-        ${badges.length ? `<div class="chips">${badges.map((b) => `<span class="chip on">🌟 ${esc(b.name)} x${b.count}</span>`).join('')}</div>` : '<p class="muted">Each regional prestige adds a badge for that district.</p>'}
+        ${badges.length ? `<div class="chips">${badges.map((b) => `<span class="chip on">${PE.Dom.icon('GOL-04', 18)}${esc(b.name)} x${b.count}</span>`).join('')}</div>` : '<p class="muted">Each regional prestige adds a badge for that district.</p>'}
 
         <h4>Your helpers</h4>
         ${PE.Data.helpers.map((h) => {
@@ -103,7 +94,7 @@
       if (!game.profile.hallUnlocked()) return `<p class="center">The Hall of Fame opens at Empire Rank ${game.profile.hallLevel()}.</p>`;
       const cells = game.profile.hallSlots().map((s) => (s.strainId
         ? `<div class="hall-slot" data-act="slot:${s.slot}">${strainThumb(s.strainId, 5, 104)}<span class="hall-logo">${logo(s.strainId, 34)}</span>
-            <b>${esc(s.name)}</b><small class="r-${s.rarity}">${s.rarity}</small><small>Best: ${s.bestGrade ? esc(s.bestGrade) : 'not harvested yet'}</small><small>Mastery ${s.mastery}</small></div>`
+            <b>${esc(s.name)}</b><small class="r-${s.rarity}">${PE.Dom.rarityIcon(s.rarity)}${s.rarity}</small><small>Best: ${s.bestGrade ? esc(s.bestGrade) : 'not harvested yet'}</small><small>Mastery ${s.mastery}</small></div>`
         : `<div class="hall-slot empty" data-act="slot:${s.slot}"><span class="plus">+</span><small>Slot ${s.slot + 1}</small><small>Tap to feature a strain</small></div>`)).join('');
       return `<p class="muted">Show off six of your strains. Tap a slot to choose.</p><div class="hall-grid">${cells}</div>`;
     },
@@ -121,8 +112,8 @@
       const rows = PE.Data.strains.filter((s) => game.grow.isStrainUnlocked(s.id)).map((s) => {
         const best = game.state.stats.bestGrade[s.id];
         const elsewhere = mode === 'hall' && hall.includes(s.id) && s.id !== current;
-        return `<div class="item" data-act="pick:${s.id}">${strainThumb(s.id, 5, 52)}<div class="grow"><b>${esc(s.name)}</b>
-          <small class="r-${s.rarity}">${s.rarity} · Mastery ${game.grow.masteryLevel(s.id)}</small>
+        return `<div class="item" data-act="pick:${s.id}">${strainThumb(s.id, 5, 52)}${logo(s.id, 36)}<div class="grow"><b>${esc(s.name)}</b>
+          <small class="r-${s.rarity}">${PE.Dom.rarityIcon(s.rarity)}${s.rarity} · Mastery ${game.grow.masteryLevel(s.id)}</small>
           <small>Best: ${best === undefined ? 'not harvested yet' : game.B.quality.grades[best].name}${elsewhere ? ' · moves from its other slot' : ''}</small></div>
           ${s.id === current ? '<span class="tag go">Chosen</span>' : ''}</div>`;
       }).join('');

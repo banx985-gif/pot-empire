@@ -36,9 +36,38 @@
     const text = scene.add.text(x, y, label, {
       fontFamily: 'system-ui, sans-serif', fontStyle: 'bold', fontSize: L.font(opts.size ?? 20), color: '#ffffff',
     }).setOrigin(0.5);
+    text.setStroke('#1d0f33', 5 * L.u).setDepth(2);
     const zone = scene.add.zone(x, y, w, h).setInteractive({ useHandCursor: true });
     zone.on('pointerup', onTap);
+    // The real button art: the round ends stay the right shape and only the middle stretches.
+    loadIcons(scene, [opts.art || 'BTN-01'], () => {
+      const key = 'ui-' + (opts.art || 'BTN-01');
+      const tex = scene.textures.get(key);
+      const iw = tex.source[0].width, ih = tex.source[0].height;
+      const cap = Math.round(iw * 0.3);
+      if (!tex.has('L')) { tex.add('L', 0, 0, 0, cap, ih); tex.add('M', 0, cap, 0, iw - cap * 2, ih); tex.add('R', 0, iw - cap, 0, cap, ih); }
+      const k = h / ih, capW = cap * k;
+      g.clear();
+      scene.add.image(x - w / 2, y, key, 'L').setOrigin(0, 0.5).setDisplaySize(capW, h).setDepth(1);
+      scene.add.image(x, y, key, 'M').setDisplaySize(Math.max(1, w - capW * 2 + 1), h).setDepth(1);
+      scene.add.image(x + w / 2, y, key, 'R').setOrigin(1, 0.5).setDisplaySize(capW, h).setDepth(1);
+    });
     return { g, text, zone, x, y, w, h };
+  }
+
+  // Interface art for a canvas screen. Calls back once all are ready, or at once if they already are.
+  // A picture that fails just stays missing: the caller's plain stand-in remains on screen.
+  function loadIcons(scene, ids, onReady) {
+    let left = ids.length;
+    const one = () => { left--; if (!left && scene.sys.settings.status < Phaser.Scenes.SHUTDOWN) onReady(); };
+    for (const id of ids) {
+      const key = 'ui-' + id;
+      if (scene.textures.exists(key)) { one(); continue; }
+      const img = new Image();
+      img.onload = () => { if (!scene.textures.exists(key)) scene.textures.addImage(key, img); one(); };
+      img.onerror = one;
+      img.src = `assets/ui/${id}.webp`;
+    }
   }
 
   // Sheets being downloaded right now: id -> list of things waiting for it.
@@ -79,5 +108,5 @@
     });
   }
 
-  PE.UI = { layout, addButton, loadStrain, sheetUrl, SHEET_SCALE };
+  PE.UI = { layout, addButton, loadIcons, loadStrain, sheetUrl, SHEET_SCALE };
 })(globalThis.PE = globalThis.PE || {});

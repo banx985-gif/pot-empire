@@ -47,6 +47,7 @@
       this.unsub = this.g.on((type, e) => this.onGameEvent(type, e));
       this.events.once('shutdown', () => { this.unsub(); });
 
+      PE.UI.loadIcons(this, ['ACT-01', 'ACT-04'], () => {});
       this.refresh(true);
       this.ready = true;
     }
@@ -302,20 +303,26 @@
         st.pots.forEach((p, pi) => {
           this.updatePot(view, si, st, pi, p, now, pos);
           const x = pos.x + PE.Layout.anchorX(pi);
+          const pv = view.pots[pi];
+          if (pv.seedIcon) pv.seedIcon.setVisible(!p);
           if (!p) {
-            // A clear "+" on an empty pot.
-            B.lineStyle(6, 0xc6ff3d, 0.95);
-            B.lineBetween(x - 14, pos.y - potH - 18, x + 14, pos.y - potH - 18);
-            B.lineBetween(x, pos.y - potH - 32, x, pos.y - potH - 4);
+            if (this.textures.exists('ui-ACT-01')) {
+              // The real plant icon on an empty pot.
+              if (!pv.seedIcon) pv.seedIcon = this.add.image(x, pos.y - potH - 40, 'ui-ACT-01').setDisplaySize(72, 72).setDepth(pos.y + 8);
+            } else {
+              B.lineStyle(6, 0xc6ff3d, 0.95);
+              B.lineBetween(x - 14, pos.y - potH - 18, x + 14, pos.y - potH - 18);
+              B.lineBetween(x, pos.y - potH - 32, x, pos.y - potH - 4);
+            }
           } else if (now < p.readyMs) {
             const t = this.g.grow.potProgress(p, now);
             B.fillStyle(0x000000, 0.6).fillRect(x - 40, pos.y + 8, 80, 9);
             B.fillStyle(0xc6ff3d, 1).fillRect(x - 39, pos.y + 9, 78 * t, 7);
           }
         });
-        if (!this.testOverride && this.g.grow.serviceDue(this.fid, si)) {
-          B.fillStyle(0x52e6ff, 1).fillCircle(pos.x - this.room.box.halfW + 46, pos.y + 44, 13);
-        }
+        const due = !this.testOverride && this.g.grow.serviceDue(this.fid, si);
+        if (due && !view.water && this.textures.exists('ui-ACT-04')) view.water = this.add.image(pos.x - this.room.box.halfW + 46, pos.y + 44, 'ui-ACT-04').setDisplaySize(44, 44).setDepth(pos.y + 9);
+        if (view.water) view.water.setVisible(due);
       }
     }
 
@@ -323,7 +330,7 @@
       const sig = `${st.model}|${st.levels.lights}|${st.levels.sprinkler}|${st.levels.pots}|${st.levels.computer}|${st.levels.capacity}|${st.pots.length}|${st.auto.harvest}|${st.auto.replant}`;
       let v = this.stationViews.get(si);
       if (v && v.sig === sig) return v;
-      if (v) { v.back.destroy(); v.front.destroy(); v.texts.forEach((t) => t.destroy()); v.pots.forEach((pv) => { if (pv.img) pv.img.destroy(); if (pv.logo) pv.logo.destroy(); if (pv.logoBg) pv.logoBg.destroy(); if (pv.fx) pv.fx.destroy(); if (pv.tween) pv.tween.stop(); }); }
+      if (v) { v.back.destroy(); v.front.destroy(); if (v.water) v.water.destroy(); v.texts.forEach((t) => t.destroy()); v.pots.forEach((pv) => { if (pv.seedIcon) pv.seedIcon.destroy(); if (pv.img) pv.img.destroy(); if (pv.logo) pv.logo.destroy(); if (pv.logoBg) pv.logoBg.destroy(); if (pv.fx) pv.fx.destroy(); if (pv.tween) pv.tween.stop(); }); }
       v = { sig, back: this.add.graphics(), front: this.add.graphics(), texts: [], pots: [] };
       v.back.setDepth(pos.y - 5);
       v.front.setDepth(pos.y + 5);
@@ -454,11 +461,18 @@
       // Strain logo overlay on the pot front. PLACEHOLDER: dark badge + initials until logo art exists.
       if (!pv.logo || pv.logoFor !== p.s) {
         if (pv.logo) { pv.logo.destroy(); pv.logoBg.destroy(); }
-        const name = this.g.grow.strainStats(p.s).name;
-        const initials = name.split(' ').map((w) => w[0]).join('').slice(0, 3);
-        pv.logoBg = this.add.rectangle(x, pos.y - potH / 2 + 2, 44, 26, 0x05050a, 0.9).setDepth(pos.y + 6);
-        pv.logo = this.add.text(x, pos.y - potH / 2 + 2, initials, { fontFamily: FONT, fontStyle: 'bold', fontSize: '17px', color: '#52e6ff' }).setOrigin(0.5).setDepth(pos.y + 7);
+        const size = Math.min(potH + 6, 56);
+        pv.logoBg = this.add.rectangle(x, pos.y - potH / 2 + 2, size + 4, size - 4, 0x05050a, 0.92).setDepth(pos.y + 6);
+        pv.logo = this.add.image(x, pos.y - potH / 2 + 2, '__WHITE').setVisible(false).setDepth(pos.y + 7);
         pv.logoFor = p.s;
+        const logoPic = pv.logo, logoKey = 'logo-' + p.s;
+        const show = () => { if (logoPic.scene && this.textures.exists(logoKey)) logoPic.setTexture(logoKey).setDisplaySize(size, size).setVisible(true); };
+        if (this.textures.exists(logoKey)) show();
+        else {
+          const pic = new Image();
+          pic.onload = () => { if (!this.textures.exists(logoKey)) this.textures.addImage(logoKey, pic); if (this.sys.settings.status < Phaser.Scenes.SHUTDOWN) show(); };
+          pic.src = `assets/logos/${p.s}.webp`;
+        }
       }
 
       const texture = 'sheet-' + p.s;

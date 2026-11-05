@@ -19,7 +19,7 @@
         if (!open && !levelOk && st.unlockLevel > lvl + 3) return '';
         return `<div class="item ${open ? '' : 'locked'}" ${open ? `data-act="plant:${s.id}"` : ''}>
           ${strainThumb(s.id, 5, 60)}
-          <div class="grow"><b>${esc(s.name)}</b><small class="r-${s.rarity}">${s.rarity} · ${esc(st.roleLabel)} · Mastery ${game.grow.masteryLevel(s.id)}</small>
+          ${PE.Dom.logo(s.id, 34)}<div class="grow"><b>${esc(s.name)}</b><small class="r-${s.rarity}">${PE.Dom.rarityIcon(s.rarity)}${s.rarity} · ${esc(st.roleLabel)} · Mastery ${game.grow.masteryLevel(s.id)}</small>
           <small>${duration(seconds)} · about ${money(value)} a harvest</small></div>
           ${open ? '<span class="tag go">Plant</span>'
     : levelOk ? `<button class="btn buy small" data-act="unlock:${s.id}">Unlock ${money(st.unlockCost)}</button>`
@@ -55,11 +55,11 @@
       const stage = game.grow.stageOf(p, now);
       const names = PE.Data.strainFrames.stages;
       return `<div class="item big">${strainThumb(p.s, stage, 96)}
-        <div class="grow"><b>${esc(s.name)}</b><small class="r-${s.rarity}">${s.rarity} · ${esc(s.roleLabel)}</small>
+        <div class="grow"><b>${esc(s.name)}</b><small class="r-${s.rarity}">${PE.Dom.rarityIcon(s.rarity)}${s.rarity} · ${esc(s.roleLabel)}</small>
         <small>Stage: ${names[stage]}</small><small>${left > 0 ? `Ready in ${duration(left)}` : 'Ready to harvest'}</small>
         <small>Worth about ${money(game.grow.expectedSale(fid, Number(si), p.s))}</small></div></div>
         <div class="bar"><i style="width:${(game.grow.potProgress(p, now) * 100).toFixed(1)}%"></i></div>
-        ${left > 0 ? '<button class="btn plain wide" data-act="uproot">Remove this plant (no refund)</button>' : '<button class="btn go wide" data-act="harvest">Harvest</button>'}`;
+        ${left > 0 ? '<button class="btn plain wide" data-act="uproot">Remove this plant (no refund)</button>' : '<button class="btn go wide" data-act="harvest">' + PE.Dom.icon('ACT-02', 24) + 'Harvest</button>'}`;
     },
     actions: {
       uproot() {
@@ -95,12 +95,12 @@
     const st = game.grow.stationOf(fid, si);
     const row = (label, which, feature, lvl) => {
       const open = game.grow.hasStationFeature(st, feature);
-      return `<div class="item"><div class="grow"><b>${label}</b>${open ? '' : `<small>Opens at player level ${lvl}</small>`}</div>
-        ${open ? `<button class="btn small ${st.auto[which] ? 'go' : 'plain'}" data-act="auto:${which}:${st.auto[which] ? 0 : 1}">${st.auto[which] ? 'On' : 'Off'}</button>` : '<span class="tag">Locked</span>'}</div>`;
+      return `<div class="item">${PE.Dom.icon(which === 'harvest' ? 'ACT-05' : 'ACT-06', 32)}<div class="grow"><b>${label}</b>${open ? '' : `<small>Opens at player level ${lvl}</small>`}</div>
+        ${open ? `<button class="btn small ${st.auto[which] ? 'go' : 'cant'}" data-act="auto:${which}:${st.auto[which] ? 0 : 1}">${st.auto[which] ? 'On' : 'Off'}</button>` : '<span class="tag">Locked</span>'}</div>`;
     };
     return row('Auto-harvest', 'harvest', 'autoHarvest', game.progress.featureLevel('autoHarvest'))
       + row('Auto-replant', 'replant', 'autoReplant', game.progress.featureLevel('autoReplant'))
-      + (game.grow.serviceDue(fid, si) ? '<button class="btn wide buy" data-act="service">Top up the water (plants grow 10% slower until you do)</button>' : '');
+      + (game.grow.serviceDue(fid, si) ? '<button class="btn wide buy" data-act="service">' + PE.Dom.icon('ACT-04', 22) + 'Top up the water (plants grow 10% slower until you do)</button>' : '');
   };
   PE.Panels.station.actions.auto = (which, on) => {
     const r = PE.App.router.current().params;
@@ -123,7 +123,7 @@
       const rows = game.B.talents.rows.map((t) => {
         const rank = st.talents[t.id] || 0;
         return `<div class="item"><div class="grow"><b>${esc(t.name)}</b><small>${esc(t.text)} · rank ${rank}/${t.maxRanks}</small></div>
-          <button class="btn small ${st.talentPoints > 0 && rank < t.maxRanks ? 'go' : 'plain'}" data-act="talent:${t.id}">+1</button></div>`;
+          <button class="btn small ${st.talentPoints > 0 && rank < t.maxRanks ? 'go' : 'cant'}" data-act="talent:${t.id}">+1</button></div>`;
       }).join('');
       return `<p><b>Empire Rank ${st.level}</b> · ${PE.Money.format(st.xp)} / ${PE.Money.format(need)} XP</p>
         <div class="bar"><i style="width:${Math.min(100, (PE.Money.toNumber(st.xp) / need) * 100).toFixed(1)}%"></i></div>
@@ -139,7 +139,7 @@
     render() {
       const s = PE.App.state.settings;
       return `<div class="item"><div class="grow"><b>Reduced motion</b><small>Fewer moving effects</small></div>
-        <button class="btn small ${s.reducedMotion ? 'go' : 'plain'}" data-act="motion">${s.reducedMotion ? 'On' : 'Off'}</button></div>
+        <button class="btn small ${s.reducedMotion ? 'go' : 'cant'}" data-act="motion">${s.reducedMotion ? 'On' : 'Off'}</button></div>
         <p class="muted">Build ${PE.BUILD.startsWith('__') ? 'dev' : esc(PE.BUILD)} · Balance table v${g().B.tableVersion} (provisional)</p>
         <p class="muted">A fictional game for adults. Nothing here is real advice or a real product.</p>`;
     },
@@ -163,7 +163,7 @@
       PE.Dom.modal({
         title: 'Welcome back!',
         cls: 'welcome',
-        html: `<p>You were away for <b>${duration(r.awaySeconds)}</b>.${r.capped ? ` Automation is capped at ${duration(game.offline.capSeconds())}.` : ''}</p>
+        html: `${PE.Dom.icon('STA-01', 72, 'center-ico')}<p>You were away for <b>${duration(r.awaySeconds)}</b>.${r.capped ? ` Automation is capped at ${duration(game.offline.capSeconds())}.` : ''}</p>
           <p class="bigcash">${money(r.cash)}</p>
           <ul class="plain"><li>${PE.Money.format(r.harvests)} harvests sold${grades ? `: ${grades}` : ''}</li><li>+${PE.Money.format(r.xp)} XP</li>${extras}</ul>`,
         buttons: [{
@@ -171,7 +171,8 @@
           style: 'go',
           onTap: () => { game.offline.claim(); PE.App.saveGame(); },
         }].concat(PE.Store && PE.Store.adsOn() && game.ads.canOffer('doubleOfflineClaim') ? [{
-          label: `${game.ads.noAds() ? '🎁' : '▶️'} Double it (${game.ads.left('doubleOfflineClaim')} left today)`,
+          icon: game.ads.noAds() ? 'RWD-04' : 'STA-05',
+          label: `Double it (${game.ads.left('doubleOfflineClaim')} left today)`,
           style: 'ad',
           onTap: () => PE.Store.watchAd('doubleOfflineClaim', (res) => { if (!res.ok) { game.offline.claim(); PE.App.saveGame(); } }),
         }] : []),

@@ -5,7 +5,6 @@
   const { esc, money, strainThumb } = PE.Dom;
   const { Money } = PE;
   const g = () => PE.App.g;
-  const MODE_ICON = { Grow: '🌱', Retail: '🛍️', Factory: '🏭', Research: '🔬', Logistics: '🚚', Prestige: '🏛️' };
 
   // ---- UI03 Facility selector: a quick sheet from the grow room ---------------------------------------------
   PE.Panels.facilitySelector = {
@@ -15,7 +14,7 @@
       const game = g();
       const here = PE.App.state.ui.lastRoom;
       const owned = game.facilities.rows.filter((r) => game.facilities.isOwned(r.id));
-      return owned.map((r) => `<div class="item" data-act="go:${r.id}"><span class="fac-ico">${MODE_ICON[r.mode]}</span><div class="grow"><b>${esc(r.name)}</b><small>${esc(r.mode)}</small></div>${r.id === here ? '<span class="tag go">Here</span>' : '<span class="tag">Go</span>'}</div>`).join('')
+      return owned.map((r) => `<div class="item" data-act="go:${r.id}"><span class="fac-ico">${PE.Dom.modeIcon(r.mode)}</span><div class="grow"><b>${esc(r.name)}</b><small>${esc(r.mode)}</small></div>${r.id === here ? '<span class="tag go">Here</span>' : '<span class="tag">Go</span>'}</div>`).join('')
         + '<button class="btn wide plain" data-act="map">Open the Empire map</button>';
     },
     actions: {
@@ -35,11 +34,11 @@
       const grade = game.B.quality.grades[r.grade];
       const best = game.state.stats.bestGrade[r.strainId];
       return `<div class="harvest-card q${r.grade}">${strainThumb(r.strainId, 5, 120)}
-          <b class="grade q-mark" data-q="${r.grade}">${esc(grade.name)}</b>
+          <b class="grade q-mark" data-q="${r.grade}">${PE.Dom.qualityIcon(r.grade, 34)}${esc(grade.name)}</b>
           <span class="bigcash">+${money(r.cash)}${r.doubled ? ' x2!' : ''}</span>
           <small>${esc(s.name)} · +${Money.format(r.xp)} XP · Mastery ${game.grow.masteryLevel(r.strainId)}</small>
           ${best === r.grade && r.grade > 0 ? '<small class="title-tag">Best quality yet for this strain!</small>' : ''}</div>
-        <button class="btn wide go" data-act="__close">Nice</button>`;
+        <button class="btn wide go" data-act="__close">${PE.Dom.icon('ACT-02', 22)}Nice</button>`;
     },
     actions: {},
   };
@@ -72,7 +71,7 @@
           <button class="btn wide go" data-act="tiers">See the ${T.tiers} reward tiers</button>`
         : `<p class="center"><b>No festival this week.</b></p><p class="center muted">The next one starts in ${PE.Dom.duration((f.endsMs - game.now()) / 1000)}.</p>`}
         ${game.purchases && game.purchases.passActive() ? '<p class="center title-tag">Event pass: +25% Festival Tickets</p>' : ''}
-        <p class="center">🎟️ ${Money.format(game.state.currencies.festivalTickets)} Festival Tickets <button class="btn small plain" data-act="shop">Spend</button></p>
+        <p class="center">${PE.Dom.icon('CUR-06', 22)} ${Money.format(game.state.currencies.festivalTickets)} Festival Tickets <button class="btn small plain" data-act="shop">Spend</button></p>
         <h4>Coming up</h4>${next.map((n) => `<div class="item"><div class="grow"><b>${esc(n.theme)}</b><small>Starts ${new Date(n.startsMs).toLocaleDateString()}</small></div></div>`).join('')}
         <p class="muted">Every harvest scores points while a festival is on. Rewards you reach but don't claim wait in the Tasks inbox for seven days.</p>`;
     },

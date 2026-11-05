@@ -10,7 +10,6 @@
     toast(text[r.why] || fallback || 'Not available yet');
   };
   const worth = (v) => money(Math.floor(v));
-  const MODE_ICON = { Grow: '🌱', Retail: '🛍️', Factory: '🏭', Research: '🔬', Logistics: '🚚', Prestige: '🏛️' };
 
   // ---- District switcher: a sheet over the map ---------------------------------------------------------
   PE.Panels.districts = {
@@ -23,7 +22,7 @@
         const here = game.map.current() === d.id;
         const owned = d.facilities.filter((f) => game.facilities.isOwned(f)).length;
         const right = here ? '<span class="tag go">Here</span>' : open ? '<span class="tag go">Go</span>' : `<span class="tag">Level ${game.map.unlockLevel(d)}</span>`;
-        return `<div class="item ${open ? '' : 'locked'}" ${open && !here ? `data-act="go:${d.id}"` : ''}><span class="fac-ico">🗺️</span><div class="grow"><b>${esc(d.name)}${open && game.map.needsYou(d.id) ? ' <em class="alert-dot">!</em>' : ''}</b><small>${open ? `${owned} of ${d.facilities.length} places owned` : 'Keep growing to open this district'}</small></div>${right}</div>`;
+        return `<div class="item ${open ? '' : 'locked'}" ${open && !here ? `data-act="go:${d.id}"` : ''}><span class="fac-ico">${PE.Dom.icon('NAV-01', 30)}</span><div class="grow"><b>${esc(d.name)}${open && game.map.needsYou(d.id) ? ' <em class="alert-dot">!</em>' : ''}</b><small>${open ? `${owned} of ${d.facilities.length} places owned` : 'Keep growing to open this district'}</small></div>${right}</div>`;
       }).join('');
     },
     actions: {
@@ -46,9 +45,9 @@
       const cost = F.econ(fid).cost;
       if (F.isOwned(fid)) return '<p class="center">It\'s yours!</p><button class="btn wide go" data-act="enter">Go inside</button>';
       const count = row.stations ? `${row.stations} ${row.mode === 'Grow' ? 'stations' : 'slots'} at full size` : row.mode;
-      const body = `<div class="item"><span class="fac-ico">${MODE_ICON[row.mode]}</span><div class="grow"><b>${esc(row.mode)}</b><small>${count}</small></div></div>`;
+      const body = `<div class="item"><span class="fac-ico">${PE.Dom.modeIcon(row.mode)}</span><div class="grow"><b>${esc(row.mode)}</b><small>${count}</small></div></div>`;
       if (!F.isAvailable(fid)) return `${body}<p class="center"><b>Opens at level ${row.playerLevel}.</b> You're level ${game.progress.level()}.</p>`;
-      return `${body}<button class="btn wide ${game.canAfford('cash', cost) ? 'buy' : 'plain'}" data-act="buy">Buy for ${money(cost)}</button>`;
+      return `${body}<button class="btn wide ${game.canAfford('cash', cost) ? 'buy' : 'cant'}" data-act="buy">Buy for ${money(cost)}</button>`;
     },
     actions: {
       buy() {
@@ -76,10 +75,10 @@
           const cost = F.econ(fid).cost;
           let right = '';
           if (own) right = '<span class="tag go">Go</span>';
-          else if (open) right = `<button class="btn small ${game.canAfford('cash', cost) ? 'buy' : 'plain'}" data-act="buy:${fid}">Buy ${money(cost)}</button>`;
+          else if (open) right = `<button class="btn small ${game.canAfford('cash', cost) ? 'buy' : 'cant'}" data-act="buy:${fid}">Buy ${money(cost)}</button>`;
           else right = `<span class="tag">Level ${row.playerLevel}</span>`;
           const count = row.stations ? (own ? `${F.ownedStationCount(fid)}/${row.stations} ${row.mode === 'Grow' ? 'stations' : 'slots'}` : `${row.stations} ${row.mode === 'Grow' ? 'stations' : 'slots'}`) : row.mode;
-          return `<div class="item ${own ? '' : 'locked'}" ${own ? `data-act="go:${fid}"` : ''}><span class="fac-ico">${MODE_ICON[row.mode]}</span>
+          return `<div class="item ${own ? '' : 'locked'}" ${own ? `data-act="go:${fid}"` : ''}><span class="fac-ico">${PE.Dom.modeIcon(row.mode)}</span>
             <div class="grow"><b>${esc(row.name)}</b><small>${esc(row.mode)} · ${count}</small>
             ${own ? `<div class="bar thin"><i style="width:${(F.localProgress(fid) * 100).toFixed(0)}%"></i></div>` : ''}</div>${right}</div>`;
         }).join('');
@@ -103,14 +102,14 @@
     let out = `<p class="muted">Local progress ${(F.localProgress(fid) * 100).toFixed(0)}%</p><div class="bar thin"><i style="width:${(F.localProgress(fid) * 100).toFixed(0)}%"></i></div>`;
     if (row.stations && mark !== null) {
       const ok = F.canBuyStation(fid);
-      out += `<button class="btn wide ${ok && game.canAfford('cash', F.nextStationCost(fid)) ? 'buy' : 'plain'}" data-act="slot">${ok ? `Add a slot: ${money(F.nextStationCost(fid))}` : `Next slot at ${(mark * 100).toFixed(0)}% local progress`}</button>`;
+      out += `<button class="btn wide ${ok && game.canAfford('cash', F.nextStationCost(fid)) ? 'buy' : 'cant'}" data-act="slot">${ok ? `Add a slot: ${money(F.nextStationCost(fid))}` : `Next slot at ${(mark * 100).toFixed(0)}% local progress`}</button>`;
     }
     const reno = F.renovationInfo(fid);
     if (reno) {
-      out += `<button class="btn wide ${reno.ready && game.canAfford('cash', reno.cost) ? 'buy' : 'plain'}" data-act="renovate">${reno.ready ? `Renovation ${reno.index + 1}: ${money(reno.cost)} (+${Math.round(reno.bonus * 100)}% value here)` : `Renovation ${reno.index + 1} at ${Math.round(reno.at * 100)}% local progress`}</button>`;
+      out += `<button class="btn wide ${reno.ready && game.canAfford('cash', reno.cost) ? 'buy' : 'cant'}" data-act="renovate">${reno.ready ? `Renovation ${reno.index + 1}: ${money(reno.cost)} (+${Math.round(reno.bonus * 100)}% value here)` : `Renovation ${reno.index + 1} at ${Math.round(reno.at * 100)}% local progress`}</button>`;
     } else {
       const ex = F.expansionInfo(fid);
-      out += ex ? `<button class="btn wide ${game.canAfford('cash', ex.cost) ? 'buy' : 'plain'}" data-act="expand">Expansion ${ex.level + 1}: ${money(ex.cost)} (+${Math.round(ex.bonus * 100)}% value here)</button><p class="muted">All renovations done. Expansions never run out.</p>` : '<p class="muted">All renovations done.</p>';
+      out += ex ? `<button class="btn wide ${game.canAfford('cash', ex.cost) ? 'buy' : 'cant'}" data-act="expand">Expansion ${ex.level + 1}: ${money(ex.cost)} (+${Math.round(ex.bonus * 100)}% value here)</button><p class="muted">All renovations done. Expansions never run out.</p>` : '<p class="muted">All renovations done.</p>';
     }
     return out;
   }
@@ -132,7 +131,7 @@
       const lvl = s.levels[k];
       const max = lvl >= game.B.businessEconomy.maxUpgradeLevel;
       const c = max ? 0 : game.business.upgradeCost(fid, k, lvl);
-      return `<button class="btn small ${!max && game.canAfford('cash', c) ? 'buy' : 'plain'}" data-act="lvl:${i}:${k}">${label} L${lvl}${max ? ' MAX' : ` ${money(c)}`}</button>`;
+      return `<button class="btn small ${!max && game.canAfford('cash', c) ? 'buy' : 'cant'}" data-act="lvl:${i}:${k}">${label} L${lvl}${max ? ' MAX' : ` ${money(c)}`}</button>`;
     }).join('');
   };
 
@@ -156,7 +155,7 @@
     const amount = x.kind === 'strain'
       ? `${Money.format(x.have)}/${Money.format(x.need)}`
       : `${worth(Money.toNumber(x.have))} / ${worth(x.need)}`;
-    return `<div class="in ${x.ok ? 'met' : 'short'}"><span class="mark">${x.ok ? '✓' : '✗'}</span><span class="what">${esc(x.label)}</span><span class="amt">${amount}</span></div>`;
+    return `<div class="in ${x.ok ? 'met' : 'short'}"><span class="mark">${PE.Dom.icon(x.ok ? 'STA-06' : 'SYS-04', 14)}</span><span class="what">${esc(x.label)}</span><span class="amt">${amount}</span></div>`;
   }
   function usesText(game, id) {
     const uses = game.business.productUses(id);
@@ -168,10 +167,10 @@
     return `<div class="recipe ${r.ok ? 'ready' : ''}">
       <div class="r-top"><b>${esc(p.name)}</b><small>${esc(p.family)}</small></div>
       <div class="r-body"><div class="r-in">${r.inputs.map(inputRow).join('')}</div>
-        <div class="r-arrow">➜</div>
-        <div class="r-out"><span class="card-ph small">${esc(p.id)}</span><b>${worth(r.output)}</b><small>⏱ ${duration(r.seconds)}</small></div></div>
+        <div class="r-arrow">${PE.Dom.icon('SYS-03', 22, 'flip')}</div>
+        <div class="r-out"><span class="card-ph small">${esc(p.id)}</span><b>${worth(r.output)}</b><small>${PE.Dom.icon('STA-02', 14)}${duration(r.seconds)}</small></div></div>
       <small class="r-uses">Used for: ${esc(usesText(game, p.id))}</small>
-      <button class="btn wide ${r.ok ? 'go' : 'plain'}" data-act="set:${p.id}">${r.ok ? 'Make it' : 'Missing something'}</button></div>`;
+      <button class="btn wide ${r.ok ? 'go' : 'cant'}" data-act="set:${p.id}">${r.ok ? 'Make it' : 'Missing something'}</button></div>`;
   }
 
   function factoryBody(fid) {
@@ -184,7 +183,7 @@
         const waiting = b.lineWaiting(fid, l);
         const t = Math.min(1, (now - l.job.startMs) / (l.job.endMs - l.job.startMs));
         const cost = b.speedUpCost(fid, i);
-        const rush = cost !== null ? `<button class="btn small ${game.canAfford('rainbowGems', cost) ? 'buy' : 'plain'}" data-act="rush:${i}">⚡ ${cost} 💎</button>` : '';
+        const rush = cost !== null ? `<button class="btn small ${game.canAfford('rainbowGems', cost) ? 'buy' : 'cant'}" data-act="rush:${i}">${PE.Dom.icon('STA-04', 18)}${cost} ${PE.Dom.icon('CUR-02', 18)}</button>` : '';
         return `<div class="shelf"><div class="item"><div class="grow"><b>Line ${i + 1}: ${esc(game.stock.skuName(l.sku))}</b>
           <small>${waiting ? `Waiting: the ${esc(game.stock.skuName(l.sku))} store is full (${worth(b.storeCap())}). Sell some and it comes in. Nothing is lost.` : ready ? `Done: ${worth(l.job.output)} of product` : `${duration((l.job.endMs - now) / 1000)} left, makes ${worth(l.job.output)}`}</small>
           <div class="bar thin"><i style="width:${(t * 100).toFixed(0)}%"></i></div></div>
@@ -215,7 +214,7 @@
           <div class="bar thin"><i style="width:${(t * 100).toFixed(0)}%"></i></div></div>
           ${ready ? `<button class="btn small go" data-act="claim:${i}">Claim</button>` : `<button class="btn small plain" data-act="cancel:${i}">Cancel</button>`}</div>`;
       }
-      const auto = game.research.hasFlag('deliveryAuto') ? `<button class="btn small ${r.auto ? 'go' : 'plain'}" data-act="auto:${i}:${r.auto ? 0 : 1}">Auto ${r.auto ? 'on' : 'off'}</button>` : '';
+      const auto = game.research.hasFlag('deliveryAuto') ? `<button class="btn small ${r.auto ? 'go' : 'cant'}" data-act="auto:${i}:${r.auto ? 0 : 1}">Auto ${r.auto ? 'on' : 'off'}</button>` : '';
       return `<div class="item"><div class="grow"><b>Route ${i + 1}</b><small>${r.vehicle ? esc(game.collections.item(r.vehicle).name) : 'No vehicle'}. Idle.</small></div>${auto}
         <button class="btn small buy" data-act="dispatch:${i}">Dispatch</button></div>`;
     }).join('');
@@ -227,7 +226,7 @@
     const game = g();
     const c = game.research.refineCost(id);
     const n = game.research.refineOf(id);
-    return `<button class="btn small ${game.canAfford('researchTokens', c.tokens) && game.canAfford('cash', c.cash) ? 'buy' : 'plain'}" data-act="refine:${id}">Refine ${n + 1}<br>${c.tokens} tokens · ${money(c.cash)}</button>`;
+    return `<button class="btn small ${game.canAfford('researchTokens', c.tokens) && game.canAfford('cash', c.cash) ? 'buy' : 'cant'}" data-act="refine:${id}">Refine ${n + 1}<br>${c.tokens} tokens · ${money(c.cash)}</button>`;
   }
   function researchBody() {
     const game = g();
@@ -237,7 +236,7 @@
       const c = R.cost(b.id);
       const dots = Array.from({ length: game.B.research.ranks }, (_, i) => `<span class="dot ${i < rank ? 'on' : ''}"></span>`).join('');
       return `<div class="item"><div class="grow"><b>${esc(b.id)}</b> ${dots}<small>${esc(b.text)}</small></div>
-        ${c ? `<button class="btn small ${game.canAfford('researchTokens', c.tokens) && game.canAfford('cash', c.cash) ? 'buy' : 'plain'}" data-act="research:${b.id}">${c.tokens} tokens<br>${money(c.cash)}</button>` : refineBtn(b.id)}</div>`;
+        ${c ? `<button class="btn small ${game.canAfford('researchTokens', c.tokens) && game.canAfford('cash', c.cash) ? 'buy' : 'cant'}" data-act="research:${b.id}">${c.tokens} tokens<br>${money(c.cash)}</button>` : refineBtn(b.id)}</div>`;
     }).join('');
     return `<p><b>Research Tokens: ${Money.format(game.state.currencies.researchTokens)}</b></p><p class="muted">Permanent. Tokens come from chests${game.meta ? ', daily tasks and achievements' : ''}.</p>${rows}${bizAssign('F06')}`;
   }
@@ -348,7 +347,7 @@
           const open = lvl >= p.levelGate;
           const c = game.business.productCost(p.id);
           return `<div class="item ${on ? '' : 'locked'}"><span class="card-ph small">${esc(p.id)}</span><div class="grow"><b>${esc(p.name)}</b><small>Crop x${p.magnitude} · batch ${duration(p.batchSeconds)}${on ? ` · stock ${worth(game.stock.getStock(p.id))}` : ''}</small><small>${esc(needsText(game, p.id))}</small></div>
-            ${on ? '<span class="tag go">Owned</span>' : open ? `<button class="btn small ${game.canAfford('cash', c) ? 'buy' : 'plain'}" data-act="unlock:${p.id}">${money(c)}</button>` : `<span class="tag">Level ${p.levelGate}</span>`}</div>`;
+            ${on ? '<span class="tag go">Owned</span>' : open ? `<button class="btn small ${game.canAfford('cash', c) ? 'buy' : 'cant'}" data-act="unlock:${p.id}">${money(c)}</button>` : `<span class="tag">Level ${p.levelGate}</span>`}</div>`;
         }).join('');
       }
       return html;

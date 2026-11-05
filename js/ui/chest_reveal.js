@@ -17,11 +17,11 @@
       note = `<em>+${c.tokens} tokens</em>`;
       if (c.category === 'manager') {
         note += c.leveled
-          ? `<em class="up">⬆ Level ${c.leveled}!</em>`
+          ? `<em class="up">${PE.Dom.icon('RWD-06', 16)}Level ${c.leveled}!</em>`
           : `<span class="dup-bar" title="Duplicates to next level"><i style="width:${Math.min(100, (c.fragments / c.need) * 100)}%"></i><b>${c.fragments}/${c.need}</b></span>`;
       }
     }
-    return `${pic}<b class="reveal-name">${esc(c.name)}</b><small class="r-${c.rarity}">${esc(c.rarity)}</small>${note}`;
+    return `${pic}<b class="reveal-name">${esc(c.name)}</b><small class="r-${c.rarity}">${PE.Dom.rarityIcon(c.rarity)}${esc(c.rarity)}</small>${note}`;
   }
 
   const Reveal = {
@@ -43,8 +43,8 @@
       el.className = calm ? 'still' : '';
       el.innerHTML = `<div class="reveal-box" data-act="tap">
           <div class="reveal-glow"></div>
-          <h3>${esc(e.title || 'Chest opened!')}</h3>
-          <div class="reveal-cards n${e.cards.length}">${e.cards.map((c, i) => `<div class="reveal-card rare-${c.rarity} ${calm ? 'flip' : ''}" data-i="${i}"><div class="inner"><div class="back">🌿</div><div class="front">${face(c)}</div></div></div>`).join('')}</div>
+          ${PE.Dom.icon('RWD-02', 96, 'reveal-chest')}<h3>${esc(e.title || 'Chest opened!')}</h3>
+          <div class="reveal-cards n${e.cards.length}">${e.cards.map((c, i) => `<div class="reveal-card rare-${c.rarity} ${calm ? 'flip' : ''}" data-i="${i}"><div class="inner"><div class="back">${PE.Dom.icon('RWD-01', 72)}</div><div class="front">${face(c)}</div></div></div>`).join('')}</div>
           <small class="reveal-skip">Tap to ${calm ? 'close' : 'skip'}</small>
         </div>`;
       el.hidden = false;
