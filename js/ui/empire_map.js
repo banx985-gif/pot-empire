@@ -135,9 +135,15 @@
       if (this.setUpLife) this.setUpLife();
       this.refresh();
       this.ready = true;
+      PE.Sound.setOnMap(true);
+      this.events.on('sleep', () => PE.Sound.setOnMap(false));
+      this.events.on('wake', () => PE.Sound.setOnMap(true));
       this.unsub = this.g.on((type, e) => this.onGameEvent(type, e));
       this.events.once('shutdown', () => {
         this.ready = false;
+        PE.Sound.setOnMap(false);
+        this.events.off('sleep');
+        this.events.off('wake');
         this.unsub();
         if (this.lifeShutdown) this.lifeShutdown();
       });

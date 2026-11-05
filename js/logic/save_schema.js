@@ -5,7 +5,7 @@
 //
 // Saves hold plain facts only (ids, numbers, UTC times), never anything from Phaser.
 (function (PE) {
-  const CURRENT_VERSION = 8;
+  const CURRENT_VERSION = 9;
 
   function newCollections() {
     return { owned: {}, productsUnlocked: {}, relicsByDistrict: {}, stickersByBusiness: {}, decorByFacility: {}, packagingBySku: {}, loadouts: [] };
@@ -23,7 +23,16 @@
 
   // Every setting with its default. Old saves get any missing ones filled in.
   function newSettings() {
-    return { reducedMotion: false, helpers: true, sound: 0.8, music: 0.5, bigText: false, colourBlind: false, showFps: false, pretendShop: false };
+    return { reducedMotion: false, helpers: true, sound: 0.8, music: 0.5, bigText: false, colourBlind: false, showFps: false, pretendShop: false, haptics: true };
+  }
+
+  // The first-time guide and the one-time hints. done means the guide won't start by itself.
+  function newTutorial() {
+    return { step: 0, done: false, skipped: false, replay: false, hints: {} };
+  }
+  // The 18+ check at first start. Asked once, on this save and any save upgraded to this version.
+  function newConsent() {
+    return { ageOk: false, atUtc: null };
   }
 
   // The Empire map: which district is open and where you were looking. Status bubbles aren't saved:
@@ -84,6 +93,8 @@
       meta: newMeta(),
       stock: { crop: 0, products: {}, contractCredit: 0, units: {} },
       map: newMapState(),
+      tutorial: newTutorial(),
+      consent: newConsent(),
       calendar: newCalendar(),
       depot: { day: null, seed: 0, rerolls: 0, offers: [] },
       research: {},
@@ -172,6 +183,15 @@
       s.stock = { units: {}, ...s.stock };
       return s;
     },
+    // Version 9 (big job 3): vibration switch, the guide and hints, the 18+ check, map event memory.
+    // Someone with an old save has already played, so the guide doesn't start for them.
+    8(old) {
+      const s = old;
+      s.settings = { ...newSettings(), ...(s.settings || {}) };
+      s.tutorial = { ...newTutorial(), done: true, ...(s.tutorial || {}), oldSave: true };
+      s.consent = { ...newConsent(), ...(s.consent || {}) };
+      return s;
+    },
   };
 
   // The minimum a save must have to be usable. Returns a list of what's wrong (empty = fine).
@@ -186,5 +206,5 @@
     return problems;
   }
 
-  PE.SaveSchema = { CURRENT_VERSION, MIGRATIONS, createNewState, newStation, newSettings, newMapState, newCalendar, checkState };
+  PE.SaveSchema = { CURRENT_VERSION, MIGRATIONS, createNewState, newStation, newSettings, newMapState, newCalendar, newTutorial, newConsent, checkState };
 })(globalThis.PE = globalThis.PE || {});

@@ -27,7 +27,7 @@
       const s = S();
       const build = PE.BUILD.startsWith('__') ? 'dev' : PE.BUILD;
       return `<h4>Sound</h4>${slider('sound', 'Sound effects')}${slider('music', 'Music')}
-        <p class="muted">Sounds and music are simple stand-ins until real ones are made.</p>
+        ${toggle('haptics', 'Vibration', 'A gentle buzz on harvest, collect and level up')}
         <h4>Look and feel</h4>
         ${toggle('reducedMotion', 'Reduced motion', 'Fewer moving effects; celebrations stay still')}
         ${toggle('bigText', 'Bigger text', 'Larger writing in menus and pop-ups')}
@@ -46,6 +46,7 @@
         ${PE.HelperArt.says(PE.Data.helperSprites.screens.howToPlay, PE.Data.helperSprites.words.howToPlay, 'Leafy')}
         ${HELP.map(([t, x]) => `<div class="item"><div class="grow"><b>${esc(t)}</b><small>${esc(x)}</small></div></div>`).join('')}
         <p class="muted">Build ${esc(build)} · Balance table v${g().B.tableVersion} (provisional) · Save version ${PE.SaveSchema.CURRENT_VERSION}</p>
+        <p class="muted">Music and ambience by TomMusic. Sound effects from ESM's Vibrant Game.</p>
         <p class="muted">A fictional game for adults. Nothing here is real advice or a real product.${s ? '' : ''}</p>`;
     },
     actions: {

@@ -39,6 +39,7 @@
       if (!top || top.name === 'title') return;
       const e = this.now = this.waiting.shift();
       const calm = still();
+      PE.Sound.play('chest');
       const el = $('reveal');
       el.className = calm ? 'still' : '';
       el.innerHTML = `<div class="reveal-box" data-act="tap">
@@ -57,7 +58,11 @@
     },
     flipOne(i) {
       const card = document.querySelector(`#reveal .reveal-card[data-i="${i}"]`);
-      if (card) card.classList.add('flip');
+      if (card) {
+        card.classList.add('flip');
+        PE.Sound.play('reveal');
+        if (/rare-(Epic|Legendary|Mythic)/.test(card.className)) PE.Sound.play('rare');
+      }
     },
     tap() {
       if (!this.now) return;
