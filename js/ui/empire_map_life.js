@@ -22,7 +22,7 @@
   // A moving piece: it starts as a stand-in and swaps to real art if that's been imported.
   function piece(scene, x, y, key, artId, size) {
     const s = scene.add.image(x, y, key);
-    if (artId) PE.MapArt.load(scene, artId, (k) => { s.setTexture(k).setDisplaySize(size, size); });
+    if (artId) PE.MapArt.load(scene, artId, (k) => { if (s.scene) s.setTexture(k).setDisplaySize(size, size); });
     return s;
   }
   function lengths(pts) {
@@ -124,7 +124,7 @@
       const image = this.add.image(spot.x, spot.y + 20, this.rivalKey(spot.rival, false)).setOrigin(0.46, 1).setDepth(spot.y);
       const num = Number(spot.rival.split('-')[1]);
       const artId = 'RBL-' + String(num).padStart(2, '0');
-      PE.MapArt.load(this, artId, (k) => { image.setTexture(k).setDisplaySize(300, 300); });
+      PE.MapArt.load(this, artId, (k) => { if (image.scene) image.setTexture(k).setDisplaySize(300, 300); });
       const label = this.add.text(spot.x, spot.y + 28, rival.name, {
         fontFamily: FONT, fontStyle: 'bold', fontSize: '22px', color: '#ffd9d9', stroke: '#1d0f33', strokeThickness: 5,
       }).setOrigin(0.5, 0).setDepth(spot.y + 1);

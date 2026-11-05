@@ -45,7 +45,7 @@
       this.setUpInput();
 
       this.unsub = this.g.on((type, e) => this.onGameEvent(type, e));
-      this.events.once('shutdown', () => { this.unsub(); });
+      this.events.once('shutdown', () => { this.unsub(); this.stationViews.forEach((v) => { v.gone = true; }); });
 
       PE.UI.loadIcons(this, ['ACT-01', 'ACT-04'], () => {});
       this.lastCull = '';
@@ -556,7 +556,7 @@
 
       const texture = 'sheet-' + p.s;
       const apply = () => {
-        if (pv.key !== key || this.sys.settings.status >= Phaser.Scenes.SHUTDOWN) return;
+        if (v.gone || pv.key !== key || this.sys.settings.status >= Phaser.Scenes.SHUTDOWN) return;
         const f = PE.Data.strainFrames.sheets[p.s].frames[stage];
         if (!this.textures.exists(texture)) {
           // Art failed to load: plain placeholder shape.

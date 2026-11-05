@@ -190,6 +190,7 @@
     }
     // Fits a building's real picture to its space, standing on its spot, and puts the bubble over its roof.
     fitArt(v, key, maxW, maxH) {
+      if (!v.image.scene) return;   // that screen has gone: the picture arrived too late
       const src = this.textures.get(key).getSourceImage();
       const k = Math.min(maxW / src.width, maxH / src.height);
       v.image.setTexture(key).setOrigin(0.5, 0.93).setDisplaySize(src.width * k, src.height * k).setVisible(true);
@@ -288,7 +289,7 @@
             v.shown = stage;
             const id = `BLD-${v.fid}-${stage}`;
             v.artId = id;
-            MapArt.load(this, id, (key) => { if (v.artId === id) this.fitArt(v, key, 310, 350); }, () => { v.image.setVisible(true); });
+            MapArt.load(this, id, (key) => { if (v.artId === id) this.fitArt(v, key, 310, 350); }, () => { if (v.image.scene) v.image.setVisible(true); });
           }
           v.bubble.c.setVisible(st.kind !== 'none');
           if (st.kind !== 'none') { this.drawBubble(v.bubble, st); v.bubble.c.setScale(k); }
@@ -325,7 +326,7 @@
       const waiting = MapArt.load(this, id, (key) => {
         if (v.artId !== id) return;
         this.fitArt(v, key, 345, 400);
-      }, () => { v.image.setVisible(true); });
+      }, () => { if (v.image.scene) v.image.setVisible(true); });
       v.image.setVisible(!waiting || (this.textures.exists('art-' + id)));
     }
 
