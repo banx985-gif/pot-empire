@@ -20,7 +20,7 @@
       const target = PE.App.state.currencies.cash;
       const n = PE.Money.toNumber(target);
       // Very large numbers, a fall in cash, or the first draw: just show it.
-      if (Counter.shown === null || calm() || n <= Counter.to || !Number.isFinite(n)) {
+      if (Counter.shown === null || calm() || n <= Counter.to || !Number.isSafeInteger(Math.floor(n))) {
         if (Counter.raf) { cancelAnimationFrame(Counter.raf); Counter.raf = 0; }
         Counter.shown = n; Counter.to = n;
         el.textContent = PE.Dom.money(target);
@@ -31,12 +31,17 @@
       Counter.startedAt = performance.now();
       if (!Counter.raf) Counter.raf = requestAnimationFrame(Counter.step);
     },
+    // What to show for the number the counter has reached: never anything but a safe whole number.
+    text(v) {
+      const whole = Math.floor(v);
+      return PE.Dom.money(Number.isSafeInteger(whole) ? String(whole) : PE.App.state.currencies.cash);
+    },
     step(now) {
       const el = $('cash-num');
       const t = Math.min(1, (now - Counter.startedAt) / 420);
       const eased = 1 - (1 - t) * (1 - t);
       Counter.shown = Counter.from + (Counter.to - Counter.from) * eased;
-      if (el) el.textContent = t >= 1 ? PE.Dom.money(PE.App.state.currencies.cash) : PE.Dom.money(String(Math.floor(Counter.shown)));
+      if (el) el.textContent = t >= 1 ? PE.Dom.money(PE.App.state.currencies.cash) : Counter.text(Counter.shown);
       Counter.raf = t < 1 ? requestAnimationFrame(Counter.step) : 0;
     },
   };

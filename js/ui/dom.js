@@ -202,7 +202,7 @@
       this.last[id] = html;
       $(id).innerHTML = html;
       // The bar was rebuilt, so the number needs putting straight back.
-      if (id === 'hud') { const c = PE.Juice.Counter; c.shown = c.shown === null ? null : c.shown; const el = $('cash-num'); if (el && c.shown !== null) el.textContent = PE.Dom.money(String(Math.floor(c.shown))); }
+      if (id === 'hud') { const c = PE.Juice.Counter; const el = $('cash-num'); if (el && c.shown !== null) el.textContent = c.text(c.shown); }
     },
 
     refresh() {
