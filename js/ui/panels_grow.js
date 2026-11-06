@@ -157,6 +157,11 @@
     showIfPending() {
       const game = g();
       const r = game.offline.pending();
+      const thirsty = game.offline.thirsty();
+      if (thirsty && !PE.Offline.toldThirst) {
+        PE.Offline.toldThirst = true;
+        PE.Dom.toast('Your plants got thirsty while you were away. Water them and they\'ll perk right up.', 'big', 'ACT-04');
+      }
       if (!r || PE.Dom.modalNow) return;
       const grades = r.grades.map((n, i) => (n ? `${n} ${game.B.quality.grades[i].name}` : '')).filter(Boolean).join(', ');
       const extras = r.extras.map((e) => `<li>${esc(e)}</li>`).join('');

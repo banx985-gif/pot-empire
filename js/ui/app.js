@@ -66,6 +66,9 @@
     PE.Settings.init();
     PE.AgeGate.init();
     PE.Tutorial.init();
+    PE.Intro.init();
+    PE.EdgeArrows.init();
+    PE.GrowTools.init();
     PE.Juice.init();
 
     const fromFile = location.protocol === 'file:';
@@ -172,6 +175,10 @@
         app.state.ui.lastRoom = fid;
         const top = router.current();
         if (top.name === 'garage') router.replace('garage', params); else router.go('garage', params);
+      } else if (row.mode === 'Retail' || row.mode === 'Factory') {
+        // Both shops and the factory are rooms you walk into. (An outdoor grow would get its own room here too.)
+        const top = router.current();
+        if (top.name === 'bizroom') router.replace('bizroom', params); else router.go('bizroom', params);
       } else if (PE.Panels.business) {
         app.openPanel('business', params);
       }
@@ -180,7 +187,7 @@
       const top = router.current();
       if (!top) return null;
       if (top.name === 'garage') return 'grow';
-      return ({ empire: 'empire', collection: 'collection', contracts: 'contracts', shop: 'shop' })[top.name] || null;
+      return ({ bizroom: 'empire', empire: 'empire', collection: 'collection', contracts: 'contracts', shop: 'shop' })[top.name] || null;
     };
     app.navTo = (id) => {
       if (id === 'grow') { app.goToRoom(app.state.ui.lastRoom || 'F01'); return; }
@@ -199,6 +206,7 @@
     game.events.once('ready', () => {
       Object.entries(PE.Screens).forEach(([key, screen]) => game.scene.add(key, screen, false));
       router.go('title');
+      if (PE.Loading) PE.Loading.done();
       PE.Offline.showIfPending();
       saves.save(app.state);
     });

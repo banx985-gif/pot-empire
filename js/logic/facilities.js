@@ -52,6 +52,20 @@
       get,
       localProgress,
       ownedStationCount,
+      // Each building's inside comes in 3 sizes. Renovating knocks through into the next one, and more spots open.
+      roomSpots(fid, size) {
+        const total = byId.get(fid).stations;
+        const start = Math.min(total, econ(fid).startStations);
+        return size >= 3 ? total : Math.floor(start + ((total - start) * size) / 3);
+      },
+      roomSize(fid) {
+        const f = get(fid);
+        let size = f ? PE.Data.map.lookForRenovation[Math.min(3, f.renovation)] : 1;
+        // Never less than what you own, or a slot you can buy right now: the room has space for it.
+        const need = ownedStationCount(fid) + (g.facilities.canBuyStation(fid) ? 1 : 0);
+        while (size < 3 && g.facilities.roomSpots(fid, size) < Math.min(need, byId.get(fid).stations)) size++;
+        return size;
+      },
       nextStationMark,
       nextStationCost,
       districtOf: (fid) => { const d = districts.find((x) => x.facilities.includes(fid)); return d ? d.id : undefined; },

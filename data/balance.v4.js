@@ -187,6 +187,22 @@ globalThis.PE.Data.balance = {
     slowdown: 1.1,
   },
 
+  // Watering and wilting (Aaron decided, job 10). Plants never die. All hours here are easy to tune.
+  water: {
+    source: 'Aaron decided the rules, 5 Nov 2026. The numbers are STAND-INS.',
+    // The meter runs down over maintenance.baseIntervalSeconds x the sprinkler's multiplier. Then it's dry.
+    dropEverySeconds: 3600,       // once dry, a plant loses one quality grade per this long
+    boostShare: 0.25,             // watering a thirsty station takes this share off what's left of its plants' growing
+    boostBelowMeter: 0.5,         // only when the meter's under this, so tapping over and over does nothing
+    wiltStartHours: 24,           // a ripe plant with no water or harvest for this long starts to wilt
+    wiltFullHours: 72,            // and it's as low as it goes after this long
+    // A plant that has lost more grades than it had is worth this much of a Standard: 1 step past, then all the way down.
+    veryLowValue: [0.6, 0.25],
+    autoFromSprinkler: 3,         // sprinkler level that waters by itself. Those stations never wilt.
+    // While you're away, an automatic sprinkler keeps watering for this many hours, by sprinkler level.
+    awayHoursBySprinkler: [0, 0, 2, 6, 12, 24],
+  },
+
   qualityOdds: {
     source: 'STAND-IN for the odds. Limits keep Exotic rare at any bonus (bible: capped).',
     // Weight of each grade at quality score 0, in grade order.

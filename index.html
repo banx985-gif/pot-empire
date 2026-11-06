@@ -14,11 +14,27 @@
   <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
+  <div id="loading"><img class="load-logo" src="assets/ui/LOGO-01.webp" alt="Pot Empire Tycoon" draggable="false"><div class="load-road"><img id="load-van" src="assets/map/VEH-01.webp" alt="" draggable="false"><i id="load-bar"></i></div><p id="load-text">Rolling up to the garage...</p></div>
+  <script>
+    // The loading screen: the van rolls along the road as each part of the game arrives.
+    (function () {
+      var total = 82, got = 0;
+      document.addEventListener('load', function (e) {
+        if (!e.target || e.target.tagName !== 'SCRIPT') return;
+        got++;
+        var t = Math.min(1, got / total), bar = document.getElementById('load-bar'), van = document.getElementById('load-van');
+        if (bar) bar.style.width = (t * 100) + '%';
+        if (van) van.style.left = 'calc(' + (t * 100) + '% - 28px)';
+      }, true);
+    })();
+  </script>
   <div id="safe-probe" aria-hidden="true"></div>
   <div id="game"></div>
   <div id="ui">
     <div id="hud" hidden></div>
     <div id="actionbar" hidden></div>
+    <div id="tools" hidden></div>
+    <div id="edges"></div>
     <nav id="bottomnav" hidden></nav>
     <div id="panel" hidden></div>
     <div id="modal" hidden></div>
@@ -28,6 +44,7 @@
     <div id="reveal" hidden></div>
     <div id="juice" aria-hidden="true"></div>
     <div id="tutor" hidden></div>
+    <div id="intro" hidden></div>
     <div id="agegate" hidden></div>
     <div id="fps" hidden></div>
   </div>
@@ -43,6 +60,7 @@
   <script src="data/rivals.js"></script>
   <script src="data/vips.js"></script>
   <script src="data/helpers.js"></script>
+  <script src="data/plant_art.js"></script>
   <script src="data/helper_sprites.js"></script>
   <script src="data/jokes.js"></script>
   <script src="data/shop.js"></script>
@@ -96,7 +114,10 @@
   <script src="js/ui/dom.js"></script>
   <script src="js/ui/quality_fx.js"></script>
   <script src="js/ui/screens.js"></script>
+  <script src="js/ui/feel.js"></script>
   <script src="js/ui/grow_room.js"></script>
+  <script src="js/ui/biz_room.js"></script>
+  <script src="js/ui/grow_tools.js"></script>
   <script src="js/ui/empire_map_ground.js"></script>
   <script src="js/ui/empire_map.js"></script>
   <script src="js/ui/panels_grow.js"></script>

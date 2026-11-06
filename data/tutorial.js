@@ -5,7 +5,11 @@
 //   who, face   HAZE, BUDZ or LEAFY, and the sprite id (art/characters/helpers/HELPER_ART.md says what each shows)
 //   text        what they say
 //   point       what the bouncing arrow points at (js/ui/tutorial_ui.js has the list). Leave out for none.
-//   until       what ends the step (js/logic/tutorial.js has the list). 'next' means a Next button.
+//   until       what ends the step (js/logic/tutorial.js has the list). 'next' means a Continue button.
+//   talk        the helper fills the bottom of the screen, with a round bubble and Continue. Without it: a short spiky tip.
+//   drag        which tool the guide hand shows being dragged: seed, water or shears. Tapping still works.
+//   camera      'close' keeps the room's camera right in on the first pot. Otherwise it pulls back.
+//   drain       the station's water meter is low when this step starts, so watering has something to do
 //   skipIf      skip this step when it can't be done (say, on a replay with no empty pots)
 //   needs       this step only makes sense while this is true; if it stops being true, go back a step
 //   gift        hand over just enough cash for the first upgrade, once ever
@@ -15,20 +19,19 @@
 (globalThis.PE = globalThis.PE || {}).Data = globalThis.PE.Data || {};
 globalThis.PE.Data.tutorial = {
   steps: [
-    { id: 'welcome', who: 'HAZE', face: 'HAZE-27', text: "Welcome to the family business, kid. Well. Family garage. I'm your Uncle Haze, and these are the only two employees who work for snacks.", until: 'next' },
-    { id: 'crew', who: 'BUDZ', face: 'BUDZ-19', text: "I'm Budz! I'm in charge of enthusiasm. Leafy's in charge of telling me to calm down.", until: 'next' },
-    { id: 'plantPot', who: 'HAZE', face: 'HAZE-03', text: 'Empty pots are just sad hats. Tap this one.', point: 'firstEmptyPot', until: 'pickerOpen', skipIf: 'noEmptyPot' },
-    { id: 'pickStrain', who: 'LEAFY', face: 'LEAFY-03', text: 'Pick Sunny Sprout. It grows fast and asks no questions.', point: 'firstStrain', until: 'plantedOne', needs: 'pickerOpen', skipIf: 'pickerShut' },
-    { id: 'wait', who: 'BUDZ', face: 'BUDZ-03', text: "Now we wait! Or don't! First one's on me: tap the button and it's ready. Normally you'd just come back later. Nothing here ever dies.", until: 'somethingRipe', speedUp: true, skipIf: 'nothingGrowing' },
-    { id: 'harvest', who: 'HAZE', face: 'HAZE-04', text: 'Look at that. Tap it to harvest. Harvests sell themselves, which is more than I can say for your cousin.', point: 'ripePot', until: 'harvested', skipIf: 'nothingRipe' },
-    { id: 'sold', who: 'LEAFY', face: 'LEAFY-03', text: 'Cash goes up here. Please do not spend it all on sneakers. Budz.', point: 'cash', until: 'next' },
-    { id: 'bench', who: 'HAZE', face: 'HAZE-22', text: "Here, a little startup envelope. Don't tell your aunt. Tap the bench to soup this station up.", point: 'firstBench', until: 'stationOpen', gift: true, skipIf: 'cantUpgrade' },
-    { id: 'upgrade', who: 'BUDZ', face: 'BUDZ-21', text: 'A bigger light! Plants grow faster, and it looks way cooler. Mostly the second one.', point: 'upgradeLight', until: 'upgraded', needs: 'stationOpen', skipIf: 'stationShut' },
-    { id: 'closeSheet', who: 'LEAFY', face: 'LEAFY-03', text: 'Good. Now close that before Budz buys another one.', point: 'closePanel', until: 'noPanel', skipIf: 'stationShut' },
-    { id: 'second', who: 'HAZE', face: 'HAZE-03', text: "You've got a second station too. Two is a business, kid. Plant something there. More stations open up as this place grows.", point: 'secondEmptyPot', until: 'pickerOpen', skipIf: 'noSecondPot' },
-    { id: 'pickSecond', who: 'LEAFY', face: 'LEAFY-03', text: 'Any strain you own will do.', point: 'firstStrain', until: 'plantedTwo', needs: 'pickerOpen', skipIf: 'pickerShut' },
-    { id: 'toMap', who: 'BUDZ', face: 'BUDZ-37', text: "Now the fun bit! Come see the whole neighbourhood. We're gonna own it. Probably.", point: 'navEmpire', until: 'onMap', skipIf: 'onMap' },
-    { id: 'map', who: 'HAZE', face: 'HAZE-42', text: "This is Old Town. Tap any building to go in. A red mark means something's waiting for you. That's the job. Go on, I'm gonna have a nap.", until: 'next' },
+    { id: 'welcome', who: 'HAZE', face: 'HAZE-27', talk: true, camera: 'close', text: "Kid! You made it. This garage is all that's left of the family business. Let's wake it up.", until: 'next' },
+    { id: 'seed', who: 'HAZE', face: 'HAZE-03', camera: 'close', drag: 'seed', text: 'Drag the seed onto the pot!', point: 'seedTarget', until: 'plantedOne', skipIf: 'noEmptyPot' },
+    { id: 'lights', who: 'BUDZ', face: 'BUDZ-19', talk: true, camera: 'close', text: "Lights on! See that? The whole place wakes up when something's growing.", until: 'next' },
+    { id: 'water', who: 'LEAFY', face: 'LEAFY-03', camera: 'close', drag: 'water', drain: true, text: 'Thirsty! Drag the water onto it.', point: 'firstPlant', until: 'wateredOne', skipIf: 'nothingGrowing' },
+    { id: 'wait', who: 'BUDZ', face: 'BUDZ-03', camera: 'close', text: 'Growing! First one is on me. Tap to grow it now.', until: 'somethingRipe', speedUp: true, skipIf: 'nothingGrowing' },
+    { id: 'harvest', who: 'HAZE', face: 'HAZE-04', camera: 'close', drag: 'shears', text: 'See it glow? Drag the shears across it!', point: 'ripePot', until: 'harvested', skipIf: 'nothingRipe' },
+    { id: 'sold', who: 'LEAFY', face: 'LEAFY-03', talk: true, text: 'Buds sell by themselves. Cash goes up top. Please do not spend it all on sneakers. Budz.', point: 'cash', until: 'next' },
+    { id: 'seedAgain', who: 'HAZE', face: 'HAZE-03', drag: 'seed', text: 'Plant another one.', point: 'seedTarget', until: 'plantedOne', skipIf: 'noEmptyPot' },
+    { id: 'bench', who: 'HAZE', face: 'HAZE-22', text: 'A little startup envelope. Tap the bench.', point: 'firstBench', until: 'stationOpen', gift: true, skipIf: 'cantUpgrade' },
+    { id: 'upgrade', who: 'BUDZ', face: 'BUDZ-21', text: 'A bigger light! Faster plants!', point: 'upgradeLight', until: 'upgraded', needs: 'stationOpen', skipIf: 'stationShut' },
+    { id: 'closeSheet', who: 'LEAFY', face: 'LEAFY-03', text: 'Good. Close that before Budz buys another.', point: 'closePanel', until: 'noPanel', skipIf: 'stationShut' },
+    { id: 'toMap', who: 'BUDZ', face: 'BUDZ-37', text: "Now the fun bit. Let's see the neighbourhood!", point: 'navEmpire', until: 'onMap', skipIf: 'onMap' },
+    { id: 'map', who: 'HAZE', face: 'HAZE-42', talk: true, text: "This is Old Town. Tap a building to go in. A red mark means something's waiting. That's the job. I'm gonna have a nap.", until: 'next' },
   ],
 
   hints: [
@@ -42,6 +45,14 @@ globalThis.PE.Data.tutorial = {
     { id: 'prestige', rule: 'prestigeOpen', who: 'HAZE', face: 'HAZE-38', text: "Prestige is open. You restart one district's gear for shares that boost every harvest forever. It's optional. No rush, kid." },
     { id: 'calendar', rule: 'calendarReady', who: 'LEAFY', face: 'LEAFY-03', text: 'Daily calendar: a free thing for each day you visit. Miss a day and it just waits. We are not monsters.' },
     { id: 'district', rule: 'secondDistrict', who: 'BUDZ', face: 'BUDZ-37', text: 'A new district! Tap the district button at the bottom of the map to go and look.' },
+  ],
+
+  // The intro comic: it plays once, before the very first go. Settings can replay it. art: INTRO-01..04 once drawn.
+  intro: [
+    { art: 'INTRO-01', stand: 'town', text: 'Once, this town was the friendliest place on Earth. Every garden had a garden gnome. And some of them were smiling for a reason.' },
+    { art: 'INTRO-02', stand: 'velvet', text: "Then came The Velvet Investor. Shop by shop, street by street, he's buying up the whole town." },
+    { art: 'INTRO-03', stand: 'haze', text: 'Only Uncle Haze held out. "They can have my shop, kid. They can\'t have my garage."' },
+    { art: 'INTRO-04', stand: 'garage', text: 'So he left you the keys. One garage. One bulb. One seed. Time to take this town back.' },
   ],
 
   ageGate: {

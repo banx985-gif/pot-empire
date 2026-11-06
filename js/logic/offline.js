@@ -30,6 +30,7 @@
       return Math.min(1, base + bonus);
     }
 
+    let lastThirsty = 0;
     function settle() {
       const now = g.now();
       const from = state.time.lastActiveMs;
@@ -46,10 +47,13 @@
         awaySeconds, creditedSeconds, capped: awaySeconds > cap,
         cash: 0, xp: 0, harvests: 0, grades: [0, 0, 0, 0, 0], mastery: {},
         extras: [],
+        thirsty: 0,
       };
       const { plantInto, nextReplantStrain } = g.grow.internals;
 
       g.grow.eachStation((fid, si, st) => {
+        // An automatic sprinkler kept watering for a while after you left, by its level.
+        if (g.grow.autoWaters(fid, si)) st.lastServiceMs = Math.max(st.lastServiceMs, Math.min(now, from + B.water.awayHoursBySprinkler[st.levels.sprinkler - 1] * 3600000));
         const cycling = st.auto.harvest && st.auto.replant
           && g.grow.hasStationFeature(st, 'autoHarvest') && g.grow.hasStationFeature(st, 'autoReplant');
         const eff = efficiency(st, fid, si);
@@ -62,6 +66,8 @@
             p = plantInto(fid, si, pi, next, from);
           }
           if (p.readyMs > now) return;           // still growing: its timestamp carries it on
+          // Ripe and left too long: it stays in its pot, wilted, for you to come back to. It never dies.
+          if (g.grow.plantHealth(fid, si, p, now).wilted) { report.thirsty += 1; return; }
           const s = g.grow.strainStats(p.s);
           report.cash += g.grow.saleValue(fid, si, p.s, p.q);
           report.xp += s.harvestXp;
@@ -109,6 +115,7 @@
 
       report.cash = Money.toBig(report.cash).toString();   // text, so it can be any size
       report.xp = Math.round(report.xp * B.offline.xpShare);   // being away earns less XP than playing
+      lastThirsty = report.thirsty;
       if (report.cash === '0' && report.harvests === 0 && !report.extras.length) return report;
 
       // Unclaimed money from an earlier return is rolled together, never lost and never doubled.
@@ -133,6 +140,7 @@
       settle,
       capSeconds,
       pending: () => state.pendingOffline,
+      thirsty: () => lastThirsty,   // how many plants wilted while you were away
 
       // Pays what was earned. Safe to call any number of times.
       claim() {
@@ -161,6 +169,7 @@
       } else {
         state.time.lastActiveMs = now;
         if (g.business) g.business.tick(now, gap);
+        g.grow.tickWater();
       }
       g.grow.tickAuto();
       if (g.meta) g.meta.tick(now);

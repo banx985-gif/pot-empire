@@ -45,6 +45,8 @@
       noEmptyPot: () => emptyPot(0) < 0,
       noSecondPot: () => !hasStation(1) || emptyPot(1) < 0,
       harvested: () => T().harvestedAt !== undefined,
+      wateredOne: () => T().wateredAt !== undefined,
+      planted: () => growing(),
       upgraded: () => station(0).levels.lights > (T().lightsAtStart || 1),
       // On a first play the envelope pays for it. On a replay, only if there's money for it.
       cantUpgrade: () => lightMaxed() || (T().gifted && !g.canAfford('cash', firstCost())),
@@ -88,6 +90,11 @@
         });
       }
       if (s.until === 'upgraded') t.lightsAtStart = station(0).levels.lights;
+      // The first plant's meter is low, so the first watering has something to do.
+      if (s.drain && t.wateredAt === undefined) {
+        const left = g.grow.waterSecondsLeft('F01', 0);
+        if (left > 0) station(0).lastServiceMs -= (left - 30) * 1000;
+      }
     }
     function finish(skipped) {
       const t = T();
@@ -101,6 +108,7 @@
 
     g.on((type) => {
       if (type === 'harvest' && !T().done && T().harvestedAt === undefined) T().harvestedAt = g.now();
+      if (type === 'watered' && !T().done && T().wateredAt === undefined) T().wateredAt = g.now();
     });
 
     g.tutorial = {
@@ -149,7 +157,7 @@
       },
       replay() {
         const t = T();
-        Object.assign(t, { step: 0, done: false, skipped: false, replay: true, lastEntered: undefined, harvestedAt: undefined });
+        Object.assign(t, { step: 0, done: false, skipped: false, replay: true, lastEntered: undefined, harvestedAt: undefined, wateredAt: undefined });
         enter();
         g.emit('changed');
       },

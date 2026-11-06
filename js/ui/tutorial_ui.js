@@ -35,6 +35,9 @@
   const POINT = {
     firstEmptyPot: () => potBox(0, PE.App.g.tutorial.emptyPot(0)),
     secondEmptyPot: () => potBox(1, PE.App.g.tutorial.emptyPot(1)),
+    // The pot, or if they tapped it and the strain list came up, the strain.
+    seedTarget: () => (document.querySelector('#panel [data-act^="plant:"]') ? relative(domBox('#panel [data-act^="plant:"]')) : potBox(0, PE.App.g.tutorial.emptyPot(0))),
+    firstPlant: () => { const s = garage(); if (!s) return null; const pi = PE.App.g.grow.stationOf('F01', 0).pots.findIndex(Boolean); return pi < 0 ? null : potBox(0, pi); },
     ripePot,
     firstBench: () => { const s = garage(); if (!s) return null; const p = s.benchPagePoint(0); return around(p.x, p.y, 170, 74); },
     firstStrain: () => relative(domBox('#panel [data-act^="plant:"]')),
@@ -67,14 +70,18 @@
       return !top || top.name === 'title' || !!PE.Dom.modalNow || !!PE.ChestReveal.now || !PE.AgeGate.answered();
     },
     active() { return !!(PE.App && PE.App.g.tutorial.active()); },
+    still() { return PE.App.state.settings.reducedMotion || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); },
     tick() {
       const g = PE.App.g;
       if (!g.tutorial.active()) { if (!$('tutor').hidden) Tutorial.hide(); return; }
       if (Tutorial.paused()) { Tutorial.hide(); return; }
+      // The very first time: the story first.
+      if (PE.Intro.open) { Tutorial.hide(); return; }
+      if (PE.Intro.due()) { PE.Intro.show(); Tutorial.hide(); return; }
       g.tutorial.update();
       Tutorial.draw();
     },
-    hide() { const el = $('tutor'); el.hidden = true; el.innerHTML = ''; Tutorial.shownStep = null; Tutorial.box = null; },
+    hide() { const el = $('tutor'); el.hidden = true; el.innerHTML = ''; el.className = ''; document.body.classList.remove('tut-open'); Tutorial.stopHand(); Tutorial.shownStep = null; Tutorial.box = null; },
     draw(force) {
       const g = PE.App.g;
       const s = g.tutorial.step();
@@ -87,19 +94,27 @@
         Tutorial.shownStep = sig;
         Tutorial.box = null;
         const who = names()[s.who];
-        el.innerHTML = `<div class="dim d-top"></div><div class="dim d-bottom"></div><div class="dim d-left"></div><div class="dim d-right"></div>
-          <div class="tut-hole"></div><div class="tut-arrow">${icon('UPG-06', 54)}</div>
-          <div class="tut-card">
-            <img class="tut-face" src="${PE.HelperArt.url(s.face)}" alt="${esc(who)}" draggable="false">
-            <div class="tut-bubble"><b>${esc(who)}</b><p>${esc(s.text)}</p>
-              <div class="tut-row"><button class="tut-skip" data-act="skip">Skip guide</button>
-              ${speed ? `<button class="btn small go" data-act="speed">${icon('STA-04', 18)}Grow it now</button>` : ''}
-              ${s.until === 'next' ? '<button class="btn small go" data-act="next">Next</button>' : ''}</div>
-            </div>
-          </div>`;
+        const dims = '<div class="dim d-top"></div><div class="dim d-bottom"></div><div class="dim d-left"></div><div class="dim d-right"></div><div class="tut-hole"></div>';
+        const big = s.who === 'HAZE' ? PE.HazeAnim.html(Math.round($('ui').clientHeight * 0.4)) : `<img src="${PE.HelperArt.url(s.face)}" alt="${esc(who)}" draggable="false">`;
+        if (s.talk) {
+          // The big talker: bottom half of the screen, round bubble, Continue.
+          el.innerHTML = `${dims}<div class="tut-talk"><div class="talk-who">${big}</div>
+            <div class="talk-bubble"><b>${esc(who)}</b><p>${esc(s.text)}</p></div>
+            <div class="talk-row"><button class="btn go" data-act="next">Continue</button><button class="tut-skip" data-act="skip">Skip guide</button></div></div>`;
+        } else {
+          // A spiky tip: one line, no button, gone when the thing is done.
+          el.innerHTML = `${dims}<div class="tut-arrow">${icon('UPG-06', 54)}</div><div class="tut-hand" hidden>${PE.GrowTools.HAND}</div>
+            <div class="tut-tip"><b class="sr">${esc(who)}: </b>${esc(s.text)}</div>
+            <div class="tip-row">${speed ? `<button class="btn small go" data-act="speed">${icon('STA-04', 18)}Grow it now</button>` : ''}<button class="tut-skip" data-act="skip">Skip guide</button></div>`;
+        }
+        el.className = s.drag ? 'open' : '';
+        document.body.classList.add('tut-open');
+        const nav = $('bottomnav');
+        if (nav) nav.classList.toggle('ok', s.until === 'onMap');
         el.hidden = false;
-        if (!PE.App.state.settings.reducedMotion) el.classList.add('moving');
+        if (!Tutorial.still()) el.classList.add('moving');
         PE.Sound.play('helper');
+        Tutorial.stopHand();
       }
       Tutorial.place(s);
     },
@@ -112,6 +127,7 @@
       Tutorial.box = sig;
       const pad = 6;
       const hole = b ? { x: Math.max(0, b.x - pad), y: Math.max(0, b.y - pad), w: b.w + pad * 2, h: b.h + pad * 2 } : { x: 0, y: H, w: 0, h: 0 };
+      Tutorial.guideHand(s, b);
       const set = (q, css) => Object.assign(el.querySelector(q).style, css);
       set('.d-top', { left: 0, top: 0, width: `${W}px`, height: `${hole.y}px` });
       set('.d-bottom', { left: 0, top: `${hole.y + hole.h}px`, width: `${W}px`, height: `${Math.max(0, H - hole.y - hole.h)}px` });
@@ -119,19 +135,43 @@
       set('.d-right', { left: `${hole.x + hole.w}px`, top: `${hole.y}px`, width: `${Math.max(0, W - hole.x - hole.w)}px`, height: `${hole.h}px` });
       set('.tut-hole', { left: `${hole.x}px`, top: `${hole.y}px`, width: `${hole.w}px`, height: `${hole.h}px`, display: b ? 'block' : 'none' });
       const arrow = el.querySelector('.tut-arrow');
-      if (b) {
+      if (arrow && s.drag) arrow.style.display = 'none';
+      else if (arrow && b) {
         // Above the target if there's room, otherwise below it pointing up.
         const above = hole.y > 70;
         arrow.style.display = 'block';
         arrow.style.left = `${Math.min(W - 58, Math.max(4, hole.x + hole.w / 2 - 27))}px`;
         arrow.style.top = above ? `${hole.y - 60}px` : `${hole.y + hole.h + 4}px`;
         arrow.classList.toggle('pointing-down', above);
-      } else arrow.style.display = 'none';
-      // The speech card goes wherever the target isn't.
-      const card = el.querySelector('.tut-card');
+      } else if (arrow) arrow.style.display = 'none';
+      // The tip goes wherever the target isn't.
       const low = !b || hole.y + hole.h / 2 < H * 0.55;
-      card.classList.toggle('at-bottom', low);
-      card.classList.toggle('at-top', !low);
+      for (const q of ['.tut-tip', '.tip-row']) {
+        const card = el.querySelector(q);
+        if (card) { card.classList.toggle('at-bottom', low); card.classList.toggle('at-top', !low); }
+      }
+    },
+    // The guide hand: shows the arc from the tool to the target, the first time. It stops when the step does.
+    stopHand() { if (Tutorial.handAnim) { Tutorial.handAnim.cancel(); Tutorial.handAnim = null; } },
+    guideHand(s, b) {
+      const hand = $('tutor').querySelector('.tut-hand');
+      if (!hand) return;
+      if (!s.drag || !b || document.querySelector('#panel [data-act^="plant:"]')) { hand.hidden = true; Tutorial.stopHand(); return; }
+      const from = PE.GrowTools.point(s.drag);
+      if (!from) return;
+      const u = uiRect();
+      const a = { x: from.x - u.left - 18, y: from.y - u.top - 10 }, z = { x: b.x + b.w / 2 - 18, y: b.y + b.h / 2 - 10 };
+      hand.hidden = false;
+      Tutorial.stopHand();
+      if (Tutorial.still()) { hand.style.transform = `translate(${z.x}px, ${z.y}px)`; return; }
+      const mid = { x: (a.x + z.x) / 2, y: Math.min(a.y, z.y) - 70 };
+      Tutorial.handAnim = hand.animate([
+        { transform: `translate(${a.x}px, ${a.y}px)`, opacity: 0, offset: 0 },
+        { transform: `translate(${a.x}px, ${a.y}px)`, opacity: 1, offset: 0.1 },
+        { transform: `translate(${mid.x}px, ${mid.y}px)`, opacity: 1, offset: 0.45, easing: 'ease-in' },
+        { transform: `translate(${z.x}px, ${z.y}px)`, opacity: 1, offset: 0.8 },
+        { transform: `translate(${z.x}px, ${z.y}px)`, opacity: 0, offset: 1 },
+      ], { duration: 1700, iterations: Infinity, easing: 'ease-in-out' });
     },
     // ---- One-time hints ---------------------------------------------------------------------------------------
     hintTick() {

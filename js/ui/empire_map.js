@@ -73,12 +73,13 @@
       this.ready = true;
       PE.Sound.setOnMap(true);
       if (!this.calm()) this.cameras.main.fadeIn(170, 29, 15, 51);
-      this.events.on('sleep', () => PE.Sound.setOnMap(false));
+      this.events.on('sleep', () => { PE.Sound.setOnMap(false); PE.EdgeArrows.clear(); });
       this.events.on('wake', () => PE.Sound.setOnMap(true));
       this.unsub = this.g.on((type, e) => this.onGameEvent(type, e));
       this.events.once('shutdown', () => {
         this.ready = false;
         PE.Sound.setOnMap(false);
+        PE.EdgeArrows.clear();
         this.events.off('sleep');
         this.events.off('wake');
         this.unsub();
@@ -137,6 +138,7 @@
     buildBuildings() {
       for (const fid of this.def.facilities) {
         const s = this.layout.spots[fid];
+        if (!s.w) s.w = 300;    // a layout with no painted plots yet
         const image = this.add.image(s.x, s.y + 20, this.lotKey(false)).setOrigin((BOX_W / 2 - 12) / BOX_W, 1).setDepth(s.y);
         const name = this.add.text(s.x, s.y + 6, this.g.facilities.row(fid).name, {
           fontFamily: FONT, fontStyle: 'bold', fontSize: '20px', color: '#ffffff', stroke: '#1d0f33', strokeThickness: 5,
@@ -239,6 +241,9 @@
         if (showBubble) { this.drawBubble(v.bubble, st); v.bubble.c.setScale(k); }
       }
       if (this.refreshLife) this.refreshLife();
+      // Something off the side of the screen needs you: a red arrow points to it.
+      const seen = this.cameras.main.worldView;
+      PE.EdgeArrows.update(this, [...this.views.values()].filter((v) => (v.status.kind === 'ready' || v.status.kind === 'done') && (v.s.x < seen.x || v.s.x > seen.right || v.s.y - 90 < seen.y || v.s.y - 90 > seen.bottom)).map((v) => ({ id: v.fid, x: v.s.x, y: v.s.y - 90, tap: () => { this.cameras.main.centerOn(v.s.x, v.s.y - 110); this.cameras.main.preRender(); this.clampCamera(0); } })));
       // An event started or ended while the map's open: redraw it with the new look.
       const f = g.meta.festivalNow();
       if ((f.active ? f.theme : '') !== this.eventSig) this.scene.restart();
@@ -403,8 +408,30 @@
       this.rememberView();
       const feature = this.g.map.featureRow(fid);
       if (feature) PE.App.openPanel(feature.route, {});
-      else if (this.g.facilities.isOwned(fid)) PE.App.goToRoom(fid);
+      else if (this.g.facilities.isOwned(fid)) this.peekThenGo(fid);
       else PE.App.openPanel('lotInfo', { fid });
+    }
+    // Tap a grow building, shop or factory: its roof lifts for a moment, then you're inside. Uses PEEK-Fnn-n once drawn;
+    // until then the top of the building's own picture fades off. Reduced motion goes straight in.
+    peekThenGo(fid) {
+      const v = this.views.get(fid);
+      const mode = this.g.facilities.row(fid).mode;
+      if (this.peeking) return;
+      if (!['Grow', 'Retail', 'Factory'].includes(mode) || !v || this.calm() || !v.image.visible || !v.artTop) { PE.App.goToRoom(fid); return; }
+      this.peeking = true;
+      const go = () => { this.peeking = false; if (this.sys.settings.status < Phaser.Scenes.SHUTDOWN) PE.App.goToRoom(fid); };
+      const peekId = v.artId.replace('BLD-', 'PEEK-');
+      const lift = (key) => {
+        if (!v.image.scene) return;
+        const src = this.textures.get(v.image.texture.key).getSourceImage();
+        const cutAt = Math.round(src.height * 0.5);
+        const roof = this.add.image(v.image.x, v.image.y, v.image.texture.key).setOrigin(0.5, 1).setDisplaySize(v.image.displayWidth, v.image.displayHeight).setDepth(v.image.depth + 1);
+        roof.setCrop(0, 0, src.width, cutAt);
+        // Under the lifting roof: the peek picture, or the lower half of the building.
+        if (key) v.image.setTexture(key); else v.image.setCrop(0, cutAt, src.width, src.height - cutAt);
+        this.tweens.add({ targets: roof, y: roof.y - 90, alpha: 0, duration: 340, ease: 'Sine.easeOut', onComplete: () => this.time.delayedCall(110, go) });
+      };
+      if (!MapArt.load(this, peekId, (key) => lift(key), () => lift(null))) lift(null);
     }
     onGameEvent(type) {
       if (type === 'changed' && this.ready) this.needRefresh = true;

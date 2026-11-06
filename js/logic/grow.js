@@ -93,6 +93,37 @@
       return g.now() - st.lastServiceMs > interval * 1000;
     }
 
+    // ---- Water ------------------------------------------------------------------------------------
+    function waterInterval(st, fid, si) {
+      return B.maintenance.baseIntervalSeconds * B.hydro.sprinklerMaintenanceInterval[st.levels.sprinkler - 1]
+        * (1 + g.effects.get('maintenanceInterval', contextFor(fid, si)));
+    }
+    const autoWaters = (st) => st.levels.sprinkler >= B.water.autoFromSprinkler;
+    const neverWilts = (st) => autoWaters(st) || (st.auto.harvest && hasStationFeature(st, 'autoHarvest'));
+    // How the meter stands: 1 is just watered, 0 is dry.
+    function waterMeter(st, fid, si, now = g.now()) {
+      return Math.max(0, 1 - (now - st.lastServiceMs) / (waterInterval(st, fid, si) * 1000));
+    }
+    // How one plant is doing. Nothing's stored: watering puts it right, because it counts from the last watering.
+    function plantHealth(st, fid, si, p, now = g.now()) {
+      const W = B.water;
+      const since = now - Math.max(st.lastServiceMs, p.plantedMs);
+      const overDry = since - waterInterval(st, fid, si) * 1000;
+      let lost = overDry > 0 ? Math.floor(overDry / (W.dropEverySeconds * 1000)) : 0;
+      let wilted = false;
+      if (now >= p.readyMs && !neverWilts(st)) {
+        const ripeFor = (now - Math.max(p.readyMs, st.lastServiceMs)) / 3600000;
+        if (ripeFor >= W.wiltStartHours) {
+          wilted = true;
+          const share = Math.min(1, (ripeFor - W.wiltStartHours) / (W.wiltFullHours - W.wiltStartHours));
+          lost = Math.max(lost, 1 + Math.floor(share * (p.q + W.veryLowValue.length)));
+        }
+      }
+      const past = lost - p.q;
+      const worth = past > 0 ? W.veryLowValue[Math.min(past, W.veryLowValue.length) - 1] : 1;
+      return { lost, grade: Math.max(0, p.q - lost), valueMult: worth, wilted, veryLow: past > 0 };
+    }
+
     function cycleSeconds(fid, si, strainId) {
       const st = stationOf(fid, si);
       const s = strainStats(strainId);
@@ -183,11 +214,11 @@
     }
 
     // Harvest one plant: returns the result but does not touch the pot. Cash, XP etc. go straight in.
-    function payHarvest(fid, si, plant, why) {
+    function payHarvest(fid, si, plant, why, valueMult = 1) {
       const st = stationOf(fid, si);
       const s = strainStats(plant.s);
       const ctx = contextFor(fid, si, plant.s, { grade: plant.q });
-      let cash = saleValue(fid, si, plant.s, plant.q);
+      let cash = saleValue(fid, si, plant.s, plant.q) * valueMult;
       const extra = g.effects.get('extraHarvestChance', ctx);
       const doubled = extra > 0 && g.nextRoll('extra') < extra;
       if (doubled) cash *= 2;
@@ -281,6 +312,12 @@
       };
     }
 
+    // A save from before watering existed: nothing is thirsty on its first day with it.
+    if (!state.stats.waterFromMs) {
+      state.stats.waterFromMs = g.now();
+      eachStation((fid, si, st) => { st.lastServiceMs = g.now(); });
+    }
+
     // ---- Public --------------------------------------------------------------------------------
     g.grow = {
       BRANCHES,
@@ -339,10 +376,13 @@
         const st = stationOf(fid, si);
         const p = st && st.pots[pi];
         if (!p || g.now() < p.readyMs) return null;
+        // A plant left dry or wilted pays at the quality it's come down to.
+        const health = plantHealth(st, fid, si, p);
         st.pots[pi] = null;
         st.lastServiceMs = g.now();    // a visit from the player also tends the station
-        const result = payHarvest(fid, si, p);
+        const result = payHarvest(fid, si, { ...p, q: health.grade }, undefined, health.valueMult);
         result.facility = fid; result.station = si; result.pot = pi;
+        result.wilted = health.wilted; result.veryLow = health.veryLow; result.lost = health.lost;
         g.emit('harvest', result);
         if (st.auto.replant && hasStationFeature(st, 'autoReplant')) {
           const next = nextReplantStrain(st, pi);
@@ -391,12 +431,41 @@
         return n;
       },
 
+      // Watering. A thirsty station's plants get a growth boost, and any lost quality comes back.
       service(fid, si) {
         const st = stationOf(fid, si);
         if (!st) return false;
-        st.lastServiceMs = g.now();
+        const now = g.now();
+        const thirsty = waterMeter(st, fid, si, now) < B.water.boostBelowMeter;
+        if (thirsty) {
+          st.pots.forEach((p) => {
+            if (!p || now >= p.readyMs) return;
+            const off = (p.readyMs - now) * B.water.boostShare;
+            p.readyMs -= off;
+            p.plantedMs -= off;
+          });
+        }
+        st.lastServiceMs = now;
+        g.emit('watered', { facility: fid, station: si, boosted: thirsty });
         g.emit('changed');
         return true;
+      },
+      waterMeter: (fid, si, now) => waterMeter(stationOf(fid, si), fid, si, now),
+      waterSecondsLeft: (fid, si) => Math.max(0, waterInterval(stationOf(fid, si), fid, si) - (g.now() - stationOf(fid, si).lastServiceMs) / 1000),
+      plantHealth: (fid, si, p, now) => plantHealth(stationOf(fid, si), fid, si, p, now),
+      neverWilts: (fid, si) => neverWilts(stationOf(fid, si)),
+      autoWaters: (fid, si) => autoWaters(stationOf(fid, si)),
+      // A little face for how a station's doing: 2 happy, 1 okay, 0 sad. Null with nothing growing.
+      mood(fid, si, now = g.now()) {
+        const st = stationOf(fid, si);
+        if (!st.pots.some(Boolean)) return null;
+        if (st.pots.some((p) => p && plantHealth(st, fid, si, p, now).lost > 0)) return 0;
+        const m = waterMeter(st, fid, si, now);
+        return m <= 0 ? 0 : m < B.water.boostBelowMeter ? 1 : 2;
+      },
+      // Called by the game's tick. Automatic sprinklers top themselves up while you're here.
+      tickWater() {
+        eachStation((fid, si, st) => { if (autoWaters(st)) st.lastServiceMs = g.now(); });
       },
 
       setAuto(fid, si, which, on) {

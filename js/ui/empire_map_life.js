@@ -58,6 +58,7 @@
     this.buildBuildingLife();
     this.buildFlyers();
     this.buildHelpers();
+    this.buildHazeOutsideShack();
   };
 
   proto.makeLifeTextures = function makeLifeTextures() {
@@ -196,6 +197,7 @@
     if (!PE.App.state.settings.helpers) return;
     const spots = this.g.map.helperSpots(this.district);
     PE.Data.helpers.forEach((h, i) => {
+      if (h.id === 'HAZE' && (this.layout.features || {}).X01) return;   // he's outside his Shack here
       const id = PE.Data.helperSprites.mapPose[h.id];
       const key = 'helper-' + id;
       const at = spots[i];
@@ -211,6 +213,32 @@
       img.src = PE.HelperArt.url(id);
       this.life.loaded.push(key);
     });
+  };
+
+  // Uncle Haze stands outside his Shack: his idle loop, and now and then he turns to look around.
+  proto.buildHazeOutsideShack = function buildHazeOutsideShack() {
+    const shack = (this.layout.features || {}).X01;
+    if (!shack || !PE.App.state.settings.helpers) return;
+    const A = PE.Data.hazeAnim;
+    const at = { x: shack.x - shack.w * 0.42, y: shack.y + 14 };
+    const entry = { id: 'HAZE', at, image: null, f: 0, turn: null, next: 5 };
+    this.life.helpers.set('HAZE', entry);
+    const load = (key, url, spec, ready) => {
+      if (this.textures.exists(key)) { ready(); return; }
+      const img = new Image();
+      img.onload = () => {
+        if (this.sys.settings.status >= Phaser.Scenes.SHUTDOWN) return;
+        if (!this.textures.exists(key)) { const t = this.textures.addImage(key, img); for (let i = 0; i < spec.frames; i++) t.add('f' + i, 0, i * spec.w, 0, spec.w, spec.h); }
+        ready();
+      };
+      img.src = url;
+    };
+    load('haze-idle', 'assets/haze/haze_idle.webp', A.idle, () => {
+      entry.image = this.add.image(at.x, at.y, 'haze-idle', 'f0').setOrigin(0.5, 0.97).setDepth(at.y);
+      entry.image.setDisplaySize((A.idle.w / A.idle.h) * 98, 98);
+    });
+    load('haze-turn', 'assets/haze/haze_turn.webp', A.turn, () => {});
+    this.life.haze = entry;
   };
 
   // ---- Every frame: simple sums only --------------------------------------------------------------------------
@@ -248,6 +276,18 @@
       w.sprite.setPosition(p.x + (p.dy / len) * w.side, p.y - (p.dx / len) * w.side - Math.abs(Math.sin(T * 7 + w.d)) * 3);
       w.sprite.setFlipX(p.dx * w.dir > 0);
       w.sprite.setDepth(p.y);
+    }
+    if (L.haze && L.haze.image) {
+      const h = L.haze;
+      h.f += dt;
+      if (h.turn !== null) {
+        // A short look round, then back to the idle.
+        const i = Math.floor(h.f * 7);
+        if (i >= 8) { h.turn = null; h.f = 0; h.next = T + 7 + (T % 5); h.image.setTexture('haze-idle', 'f0'); } else if (this.textures.exists('haze-turn')) h.image.setTexture('haze-turn', 'f' + i);
+      } else {
+        h.image.setFrame('f' + (Math.floor(h.f * 7) % 11));
+        if (T > h.next && this.textures.exists('haze-turn')) { h.turn = 0; h.f = 0; }
+      }
     }
     for (const p of L.puffs) {
       const k = (T * 0.22 + p.phase) % 1;

@@ -44,6 +44,7 @@
         ${toggle('pretendShop', 'Pretend payments and ads', 'For testing only: no real money, no real ads')}
         <h4>${PE.Dom.icon('SYS-02', 20)} How to play</h4>
         <button class="btn wide go" data-act="replayGuide">${PE.Dom.icon('SYS-02', 22)}Replay tutorial</button>
+        <button class="btn wide plain" data-act="replayIntro">Replay intro</button>
         ${PE.HelperArt.says(PE.Data.helperSprites.screens.howToPlay, PE.Data.helperSprites.words.howToPlay, 'Leafy')}
         ${HELP.map(([t, x]) => `<div class="item"><div class="grow"><b>${esc(t)}</b><small>${esc(x)}</small></div></div>`).join('')}
         <p class="muted">Build ${esc(build)} · Balance table v${g().B.tableVersion} (provisional) · Save version ${PE.SaveSchema.CURRENT_VERSION}</p>
@@ -54,6 +55,7 @@
       flip(key) { S()[key] = !S()[key]; changed(); if (key === 'colourBlind') PE.Look.redrawRoom(); },
       vol(key, v) { S()[key] = Math.max(0, Math.min(1, Number(v) / 100)); changed(); if (key === 'sound') PE.Sound.play('tap'); },
       replayList() { PE.App.router.go('helperReplay', {}); },
+      replayIntro() { PE.Intro.show(true); },
       replayGuide() {
         g().tutorial.replay();
         PE.App.saveGame();

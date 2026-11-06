@@ -241,7 +241,9 @@
         if (g.facilities.canBuyStation(fid)) bar += `<button class="btn buy" data-act="buyStation">+ Station ${money(g.facilities.nextStationCost(fid))}</button>`;
       }
       if (route && route.name === 'empire' && !Dom.panelRoute && PE.MapBar) bar = PE.MapBar.html();
+      if (route && route.name === 'bizroom' && !Dom.panelRoute) bar = `<button class="btn go" data-act="manage">${icon('BIZ-06', 24)}Manage</button>`;
       this.set('actionbar', bar);
+      if (PE.GrowTools) PE.GrowTools.sync();
 
       const tab = app.currentTab();
       this.set('bottomnav', NAV.map((n) => `<button data-act="nav:${n.id}" class="${tab === n.id ? 'on' : ''}"><span>${icon(n.icon, 32)}</span>${n.label}</button>`).join(''));
@@ -257,6 +259,7 @@
         if (r.length) PE.Dom.toast(`Harvested ${r.length}: +${money(r.reduce((a, b) => a + b.cash, 0))}`, '', 'ACT-03');
       },
       replantAll() { PE.App.g.grow.replantAll(PE.App.router.current().params.fid); },
+      manage() { PE.App.openPanel('business', { fid: PE.App.router.current().params.fid }); },
       buyStation() {
         const r = PE.App.g.facilities.buyStation(PE.App.router.current().params.fid);
         if (!r.ok) PE.Dom.toast(r.why === 'cash' ? 'Not enough cash yet' : 'Not available yet');

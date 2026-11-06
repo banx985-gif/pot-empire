@@ -62,14 +62,14 @@
       const el = $('helper');
       el.className = calm ? 'still' : '';
       el.innerHTML = `<div class="helper-pop" data-act="skip">
-          <div class="who"><div class="splash"><i></i><i></i><i></i></div>${HelperArt.img(face, e.name, 'who-img').replace('loading="lazy" ', '')}</div>
+          <div class="who"><div class="splash"><i></i><i></i><i></i></div>${e.helper === 'HAZE' ? PE.HazeAnim.html(230) : HelperArt.img(face, e.name, 'who-img').replace('loading="lazy" ', '')}</div>
           <div class="bubble"><b>${esc(e.name)}</b><p>${esc(e.text)}</p><small>Tap anywhere to skip</small></div>
         </div>`;
       el.hidden = false;
       clearTimeout(this.timer);
       const H = B().helpers;
       this.timer = setTimeout(() => this.close(), H.showSeconds * 1000);
-      if (!calm) this.liven(e, H);
+      if (!calm && e.helper !== 'HAZE') this.liven(e, H);
     },
     // The second expression and the blink frames. Pictures are fetched first, and only swapped in once
     // they're ready, so the helper never flashes blank.

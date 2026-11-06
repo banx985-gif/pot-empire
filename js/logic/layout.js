@@ -27,8 +27,8 @@
     potSink: 22,           // a pot's bottom sits this far below the middle of its hole
     labelBelow: 60,        // the name sign under the bench
     fxHeadroom: 16,        // sparkles / rainbow reaching above a plant
-    gapX: 120,             // clear floor between neighbouring whole setups
-    gapZ: 120,
+    gapX: 220,             // clear floor between neighbouring whole setups: wide, as Aaron asked
+    gapZ: 180,
     margin: 90,
     wallHeight: 180,
     lookDown: 44,          // camera angle, degrees. The floor is squashed by sin(angle).
@@ -163,10 +163,23 @@
     return { w, h, cols, rows, stations, box };
   }
 
+  // The part of the room you can see at one of its 3 sizes: enough for the open spots, plus a bit more floor each
+  // size. Spots stay where they are, so a setup never moves when the room grows.
+  function roomView(R, open, size) {
+    const cols = Math.min(R.cols, Math.max(1, open));
+    const rows = Math.max(1, Math.ceil(open / R.cols));
+    const cellW = R.box.halfW * 2 + WORLD.gapX, cellH = R.box.up + R.box.down + WORLD.gapZ;
+    const extra = (size - 1) * 90;
+    return {
+      w: Math.min(R.w, cols * cellW - WORLD.gapX + WORLD.margin * 2 + extra),
+      h: Math.min(R.h + 2 * 90, WORLD.wallHeight + rows * cellH - WORLD.gapZ + WORLD.margin + extra),
+    };
+  }
+
   // The space a setup can ever occupy, at its biggest. Used by the spacing test.
   function setupBounds(pos, box) {
     return { left: pos.x - box.halfW, right: pos.x + box.halfW, top: pos.y - box.up, bottom: pos.y + box.down };
   }
 
-  PE.Layout = { WORLD, maxPlantSize, setupBox, anchorX, slotY, model, modelBounds, piece, potSpot, overhead, columnsFor, room, setupBounds };
+  PE.Layout = { WORLD, maxPlantSize, setupBox, anchorX, slotY, model, modelBounds, piece, potSpot, overhead, columnsFor, room, roomView, setupBounds };
 })(globalThis.PE = globalThis.PE || {});
