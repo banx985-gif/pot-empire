@@ -18,6 +18,17 @@
     return null;
   }
 
+  // Is this world point on a solid part of a picture (not its see-through part)?
+  function solidAt(scene, im, x, y) {
+    if (!im.frame || !im.scaleX) return false;
+    const fw = im.frame.cutWidth, fh = im.frame.cutHeight;
+    let u = (x - im.x) / im.scaleX + im.originX * fw;
+    const v = (y - im.y) / im.scaleY + im.originY * fh;
+    if (im.flipX) u = fw - u;
+    if (u < 0 || v < 0 || u >= fw || v >= fh) return false;
+    return (scene.textures.getPixelAlpha(Math.floor(u), Math.floor(v), im.texture.key, im.frame.name) || 0) > 90;
+  }
+
   // ---- In a scene ---------------------------------------------------------------------------------------------------
   class Actor {
     // opts: x, y (feet), height (how tall they stand, in world units), depth (leave out to sort by y)
@@ -36,9 +47,9 @@
       this.setNow = null;    // the frames on screen now
       this.frame = 0;
       this.token = 0;
-      this.cuts = 0;
       this.paused = false;
       this.hasFrames = Pick().hasFrames(id);
+      this.walkRoll = Math.random();
       Actor.own(scene, this);
       if (!this.hasFrames) this.showStill();
     }
@@ -108,7 +119,7 @@
     }
     // Walking this way. Keeps the same frames going if they're already walking in that direction.
     heading(dx, dy) {
-      const w = Pick().walkFor(this.id, dx, dy);
+      const w = Pick().walkFor(this.id, dx, dy, this.walkRoll);
       if (!w) { if (!this.hasFrames) this.image.setFlipX(dx > 0); return; }
       if (this.cur && this.cur.walk && this.cur.set === w.set) { this.image.setFlipX(w.flip); return; }
       const n = Art().chars[this.id][w.set].n;
@@ -119,8 +130,6 @@
       this.sheet(play.set, (key) => {
         if (this.gone || token !== this.token) return;
         const f = Art().chars[this.id][play.set];
-        // Two hairstyles never meet: a little puff of smoke hides the change.
-        if (Pick().needsCut(this.id, this.setNow, play.set)) this.cutAway();
         this.cur = { ...play, key, at: 0 };
         this.setNow = play.set;
         this.frame = play.order[0];
@@ -130,25 +139,25 @@
         if (calm() && play.done) { const done = play.done; play.done = null; this.scene.time.delayedCall(0, () => { if (!this.gone) done(); }); }
       }, () => this.endFallback(play.done));
     }
-    cutAway() {
-      this.cuts += 1;
-      if (calm()) return;
-      this.cutTill = 0.14;
-      this.image.setAlpha(0.05);
-      const scene = this.scene;
-      PE.MapArt.load(scene, 'FX-01', (k) => {
-        if (this.gone) return;
-        const s = scene.add.image(this.x, this.y - this.height * 0.45, k).setDepth(this.image.depth + 1);
-        const size = this.height * 0.75;
-        const src = scene.textures.get(k).getSourceImage();
-        s.setDisplaySize((src.width / src.height) * size, size).setAlpha(0.9);
-        scene.tweens.add({ targets: s, alpha: 0, scale: s.scaleX * 1.4, duration: 300, onComplete: () => s.destroy() });
-      });
+    // Is this point of the world clearly on the character's body, not on the empty part of their picture or a wisp of
+    // smoke? A tap anywhere else belongs to whatever's underneath.
+    covers(wx, wy) {
+      const im = this.image;
+      if (!im.visible || !im.frame || !im.scaleX) return false;
+      const r = this.height * 0.035;
+      const solid = [[0, 0], [r, 0], [-r, 0], [0, r], [0, -r]].filter(([a, b]) => solidAt(this.scene, im, wx + a, wy + b)).length;
+      return solid >= 4;
+    }
+    // Drawn at this depth, for standing behind something. null goes back to normal.
+    setBehind(depth) {
+      if (this.behind === depth || (depth === null && this.behind === undefined)) return;
+      this.behind = depth === null ? undefined : depth;
+      this.image.setDepth(depth === null ? (this.fixedDepth === undefined ? this.y : this.fixedDepth) : depth);
     }
     moveTo(x, y) {
       this.x = x; this.y = y;
       this.image.setPosition(x, y + this.lift);
-      if (this.fixedDepth === undefined) this.image.setDepth(y);
+      if (this.fixedDepth === undefined && this.behind === undefined) this.image.setDepth(y);
     }
     // In the camera's view (with a little to spare)?
     onScreen() {
@@ -158,7 +167,6 @@
     }
     // Every frame. "may" says whether this one may change pictures now (at most two per screen).
     step(dt, may) {
-      if (this.cutTill > 0) { this.cutTill -= dt; if (this.cutTill <= 0) this.image.setAlpha(1); }
       if (calm() || !may) return;
       if (!this.cur) {
         if (this.bob && this.image.visible && this.stillK) {
@@ -169,6 +177,12 @@
         return;
       }
       const c = this.cur;
+      // A held frame with a gentle bob, so nobody stands stock still.
+      if (c.bob) {
+        this.t += dt;
+        this.lift = -Math.abs(Math.sin(this.t * 1.7)) * this.height * 0.01;
+        this.image.setPosition(this.x, this.y + this.lift);
+      } else if (this.lift) { this.lift = 0; this.image.setPosition(this.x, this.y); }
       if (c.fps <= 0) return;
       c.at += dt;
       const i = Math.floor(c.at * c.fps);
@@ -235,14 +249,15 @@
   }
   const AnimDom = {
     // A square box with the feet at the bottom middle. Call play() on it once it's on the page.
-    html(id, height, cls = '') {
-      return `<span class="anim-box ${cls}" data-char="${id}" role="img" aria-label="${id}" style="width:${height}px;height:${height}px"><i class="anim-sheet"></i></span>`;
+    // look 'messy': Uncle Haze's busy, just-woke-up hair. Only for those pop-ups.
+    html(id, height, cls = '', look = 'styled') {
+      return `<span class="anim-box ${cls}" data-char="${id}" data-hair="${look}" role="img" aria-label="${id}" style="width:${height}px;height:${height}px"><i class="anim-sheet"></i></span>`;
     },
     // Plays a move on a box. The new sheet only swaps in once it has loaded, so nothing ever flashes blank.
     play(el, name, opts = {}) {
       if (!el) return;
       const id = el.dataset.char;
-      const spec = Pick().resolve(id, name);
+      const spec = Pick().resolve(id, name, Math.random(), el.dataset.hair || 'styled');
       const f = spec && Art().chars[id][spec.set];
       if (!spec || !f.big) { if (opts.done) opts.done(); return; }
       const url = `assets/anim/${id}/${spec.set}.l.webp`;
@@ -281,6 +296,6 @@
     moving: () => [...live].filter((a) => a.el.isConnected && a.fps > 0).length,
   };
 
-  PE.Anim = { Actor, stepAll, stillUrl };
+  PE.Anim = { Actor, stepAll, stillUrl, solidAt };
   PE.AnimDom = AnimDom;
 })(globalThis.PE = globalThis.PE || {});

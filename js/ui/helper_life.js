@@ -20,6 +20,10 @@
     napEvery: [70, 150],      // random naps, not too often
     napFor: [12, 26],
     playerIdle: 45,           // nobody has touched the screen: time for Leafy's nap
+    liveEvery: [45, 110],     // a random move (Haze inspects or rolls, Budz daydreams): not too often
+    plantEvery: [70, 170],    // Budz wanders over to chat to a plant
+    rivalEvery: [120, 260],   // Budz goes and yells at a rival's building, if one's near
+    plantChat: 3,
   };
 
   let lastInput = 0;
@@ -35,6 +39,10 @@
       this.nextChat = 6;
       this.nextReact = 0;
       this.nextNap = rand(...T.napEvery);
+      this.nextLive = rand(...T.liveEvery);
+      this.nextPlant = rand(...T.plantEvery);
+      this.nextRival = rand(...T.rivalEvery);
+      this.live = [];     // which random moves have played (the tests read this)
       this.tiredDone = false;
       this.chatNow = null;
       this.chats = 0;     // how many so far (the tests read this)
@@ -69,6 +77,8 @@
       for (const e of this.list) this.stepOne(e, dt);
       this.maybeMeet();
       this.maybeNap();
+      this.maybeLive();
+      this.maybeBudz();
     }
     stepOne(e, dt) {
       // Off-screen: paused where they are.
@@ -79,7 +89,11 @@
       } else if (e.state === 'walk') this.stepWalk(e, dt);
       else if (e.state === 'nap') {
         e.napLeft -= dt;
+        this.zzz(e, dt);
         if (e.napLeft <= 0) this.wake(e);
+      } else if (e.state === 'busy') {
+        e.busyLeft -= dt;
+        if (e.busyLeft <= 0) { const go = e.busyDone; e.busyDone = null; e.state = 'react'; go(); }
       }
     }
     afterIdle(e) {
@@ -95,11 +109,14 @@
       if (!way || way.length < 2) { this.backToIdle(e); return; }
       e.path = { pts: way, i: 0, left: 0 };
       e.state = 'walk';
+      e.actor.walkRoll = Math.random();
       e.actor.heading(way[1][0] - way[0][0], way[1][1] - way[0][1]);
     }
     stepWalk(e, dt) {
       const P = e.path;
       let go = this.world.speed * dt;
+      // The last stretch up to a plant is behind it; the first stretch back is too.
+      if (P.depths && P.depths[P.i] !== undefined) e.actor.setBehind(P.depths[P.i]);
       while (go > 0 && P.i < P.pts.length - 1) {
         const [ax, ay] = P.pts[P.i], [bx, by] = P.pts[P.i + 1];
         const len = Math.hypot(bx - ax, by - ay) || 1;
@@ -115,11 +132,15 @@
         const [x, y] = P.pts[P.pts.length - 1];
         e.actor.moveTo(x, y);
         e.path = null;
+        if (e.arrive) { const go = e.arrive; e.arrive = null; go(); return; }
         this.backToIdle(e);
       }
     }
     backToIdle(e) {
       if (e.state === 'chat') return;
+      e.arrive = null;
+      e.busyDone = null;
+      e.actor.setBehind(null);
       e.state = 'idle';
       e.wait = rand(...T.idle);
       e.actor.play('idle');
@@ -198,12 +219,113 @@
     nap(e) {
       e.state = 'nap';
       e.napLeft = rand(...T.napFor);
+      e.zzzIn = 4;
       e.actor.play('sleepy');
     }
     wake(e) {
       if (e.state !== 'nap') return;
       e.state = 'react';
-      this.backToIdle(e);
+      e.actor.play('stretch', { done: () => this.backToIdle(e) });
+    }
+    // A few Zzz drifting up while they're asleep.
+    zzz(e, dt) {
+      e.zzzIn -= dt;
+      if (e.zzzIn > 0 || !e.actor.cur || e.actor.cur.name !== 'asleep') return;
+      e.zzzIn = 1.8;
+      const k = this.world.textScale();
+      const t = this.scene.add.text(e.actor.x + e.actor.height * 0.2, e.actor.y - e.actor.height * 0.35, 'Z', { fontFamily: FONT, fontStyle: 'bold', fontSize: '26px', color: '#ffffff', stroke: '#1d0f33', strokeThickness: 5 }).setOrigin(0.5).setDepth(95000).setScale(k * 0.5);
+      this.scene.tweens.add({ targets: t, y: t.y - e.actor.height * 0.3, x: t.x + e.actor.height * 0.08, alpha: 0, duration: 1500, onComplete: () => t.destroy() });
+    }
+
+    // ---- Random moves when someone's standing about ------------------------------------------------------------------
+    maybeLive() {
+      if (this.t < this.nextLive) return;
+      this.nextLive = this.t + rand(...T.liveEvery);
+      const free = this.list.filter((e) => e.state === 'idle' && !e.actor.paused && (PE.Data.scenes.liveMoves[e.id] || []).length);
+      if (free.length) this.liveMove(pick(free));
+    }
+    // Plays one of this helper's random moves, or a given one.
+    liveMove(e, name) {
+      const list = PE.Data.scenes.liveMoves[e.id] || [];
+      let m = list.find((x) => x.move === name);
+      if (!m) {
+        let roll = Math.random() * list.reduce((a, x) => a + x.weight, 0);
+        m = list.find((x) => (roll -= x.weight) <= 0) || list[0];
+      }
+      if (!m) return;
+      this.live.push(`${e.id}:${m.move}`);
+      e.state = 'react';
+      e.path = null;
+      e.actor.play(m.move, { done: () => { if (m.pop) this.popBubble(e); this.backToIdle(e); } });
+    }
+    // The thought bubble is part of Budz's frames: when he goes back to idle it bursts, with a quick little shrink.
+    popBubble(e) {
+      if (calm()) return;
+      const h = e.actor.height;
+      const c = this.scene.add.circle(e.actor.x + h * 0.42, e.actor.y - h * 1.05, h * 0.3, 0xffffff, 0.85).setDepth(e.actor.image.depth + 1);
+      this.scene.tweens.add({ targets: c, scale: 0, alpha: 0, duration: 170, ease: 'Back.easeIn', onComplete: () => c.destroy() });
+    }
+
+    // ---- Budz and the plants, Budz and the rivals --------------------------------------------------------------------
+    maybeBudz() {
+      const e = this.list.find((x) => x.id === 'BUDZ');
+      if (!e || e.state !== 'idle' || e.actor.paused) return;
+      if (this.world.plantFor && this.t > this.nextPlant) {
+        this.nextPlant = this.t + rand(...T.plantEvery);
+        this.budzToPlant(e, false);
+      } else if (this.world.rivalFor && this.t > this.nextRival) {
+        this.nextRival = this.t + rand(...T.rivalEvery);
+        this.budzToRival(e);
+      }
+    }
+    // Walks up BEHIND a plant, drawn behind it, and faces the screen over the top of it: his talk frames face front, so
+    // it's never from in front. A growing plant gets a kind word, a thirsty one gets told off.
+    budzToPlant(e, wilted) {
+      const P = this.world.plantFor && this.world.plantFor(e, wilted);
+      if (!P) return false;
+      const go = this.walkAlong(e, P.way, P.depths);
+      if (!go) return false;
+      e.arrive = () => {
+        e.state = 'react';
+        this.plantVisits = (this.plantVisits || 0) + 1;
+        const off = () => { const back = this.walkAlong(e, P.way.slice().reverse(), P.backDepths); if (!back) this.backToIdle(e); };
+        if (wilted) {
+          this.say(e, pick(PE.Data.scenes.budzTellOff), 2.4);
+          e.actor.play('angry', { done: off });
+        } else {
+          this.say(e, pick(PE.Data.scenes.budzPlant), T.plantChat);
+          e.actor.play('chat');
+          e.state = 'busy';
+          e.busyLeft = T.plantChat;
+          e.busyDone = off;
+        }
+      };
+      return true;
+    }
+    // Walks to a rival's building and gives it what for.
+    budzToRival(e) {
+      const R = this.world.rivalFor && this.world.rivalFor(e);
+      if (!R) return false;
+      const shout = () => {
+        e.state = 'react';
+        this.rivalShouts = (this.rivalShouts || 0) + 1;
+        // His pointing arm is on the left of the picture: mirror him if the building's on his right.
+        e.actor.image.setFlipX(R.x > e.actor.x);
+        this.say(e, pick(PE.Data.scenes.budzRival), 2.4);
+        e.actor.play('angry', { done: () => this.backToIdle(e) });
+      };
+      if (!R.way || R.way.length < 2) { shout(); return true; }
+      if (!this.walkAlong(e, R.way)) return false;
+      e.arrive = shout;
+      return true;
+    }
+    walkAlong(e, way, depths) {
+      if (!way || way.length < 2) return false;
+      e.path = { pts: way, i: 0, left: 0, depths };
+      e.state = 'walk';
+      e.actor.walkRoll = Math.random();
+      e.actor.heading(way[1][0] - way[0][0], way[1][1] - way[0][1]);
+      return true;
     }
 
     // ---- Things happening nearby ----------------------------------------------------------------------------------------
@@ -215,8 +337,16 @@
       let any = false;
       const barks = PE.Data.scenes.barks[kind];
       for (const e of this.list) {
-        if (e.actor.paused || e.state === 'chat' || !moves[e.id]) continue;
+        if (e.actor.paused || e.state === 'chat' || e.state === 'busy' || !moves[e.id]) continue;
         if (e.state === 'nap' && kind !== 'harvest') continue;
+        // Budz only ever yells at the thing itself: behind the plant, or at the rival's building. Nothing to aim at: no yelling.
+        if (e.id === 'BUDZ' && moves[e.id] === 'angry') {
+          if (e.state === 'walk' && e.arrive) continue;
+          if (this.frozen()) { this.reactions.push(`${e.id}:${moves[e.id]}`); any = true; continue; }
+          const ok = kind === 'wilted' ? this.budzToPlant(e, true) : this.budzToRival(e);
+          if (ok) { any = true; this.reactions.push(`${e.id}:${moves[e.id]}`); }
+          continue;
+        }
         e.state = 'react';
         e.path = null;
         if (!this.frozen()) e.actor.play(moves[e.id], { done: () => this.backToIdle(e) });
@@ -246,16 +376,19 @@
     }
 
     // ---- Taps ------------------------------------------------------------------------------------------------------------
-    // Returns the helper under this point, having greeted, or null.
-    tap(x, y) {
+    // Returns the helper under this point, having greeted, or null. hidden: is this helper behind something at that point?
+    tap(x, y, hidden) {
       for (const e of this.list) {
         if (!e.image.visible) continue;
-        const h = e.actor.height;
-        if (Math.abs(x - e.actor.x) < Math.max(h * 0.32, 26) && y < e.actor.y + h * 0.1 && y > e.actor.y - h) {
+        // Only if the finger is clearly on their body. Otherwise the tap belongs to whatever's underneath (a building).
+        if (e.actor.covers(x, y) && !(hidden && hidden(e))) {
           this.nextChat = Math.max(this.nextChat, this.t + 8);
           if (e.state === 'nap') e.state = 'react';
           if (this.chatNow && (this.chatNow.a === e || this.chatNow.b === e)) this.endChat();
           e.path = null;
+          e.arrive = null;
+          e.busyDone = null;
+          e.actor.setBehind(null);
           e.state = 'react';
           e.actor.play('greet', { done: () => this.backToIdle(e) });
           return e;
@@ -265,7 +398,10 @@
     }
     pagePoint(id) {
       const e = this.list.find((x) => x.id === id);
-      return e && this.scene.worldToPage(e.actor.x, e.actor.y - e.actor.height * 0.55);
+      if (!e) return e;
+      // Somewhere clearly on their body, in whatever pose they're in.
+      const up = [0.55, 0.65, 0.45, 0.75, 0.35].find((k) => e.actor.covers(e.actor.x, e.actor.y - e.actor.height * k)) || 0.55;
+      return this.scene.worldToPage(e.actor.x, e.actor.y - e.actor.height * up);
     }
     setVisible(on) {
       for (const e of this.list) {

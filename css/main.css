@@ -582,3 +582,14 @@ ul.plain li { padding: 3px 0; }
 .talk-bubble-line b { color: #a01a6f; }
 .talk-bubble-line p { margin: 3px 0 0; font-size: 15px; line-height: 1.35; }
 .talk-inline { margin-bottom: 8px; }
+
+/* Going from one district to another (js/ui/travel.js) */
+#travel { position: absolute; inset: 0; z-index: 13; pointer-events: auto; overflow: hidden; touch-action: none; }
+#travel img { position: absolute; user-select: none; -webkit-user-drag: none; pointer-events: none; }
+.travel-puff, .travel-bit { height: auto; will-change: transform, opacity; }
+.travel-cloud, .travel-old { left: 0; top: 0; width: 100%; height: 100%; object-fit: cover; }
+.travel-band { left: 0; top: 0; width: 100%; object-fit: fill; will-change: transform; }
+.travel-veil { position: absolute; inset: 0; background: #1d0f33; }
+.travel-title { position: absolute; left: 50%; top: 50%; width: 92%; transform: translate(-50%, -50%); pointer-events: none; z-index: 2; text-align: center; }
+#travel .travel-title img { position: static; display: block; width: 100%; height: auto; filter: drop-shadow(0 6px 8px #0007); }
+.travel-title-text { font: 900 58px/1.05 system-ui, sans-serif; color: #ffe066; -webkit-text-stroke: 3px #3a1a5c; paint-order: stroke fill; text-shadow: 0 5px 0 #3a1a5c, 0 9px 14px #0008; letter-spacing: 1px; }

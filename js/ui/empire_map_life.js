@@ -153,8 +153,10 @@
       if (!way && strolls.length) way = strolls[i % strolls.length].pts;
       if (!way || way.length < 2) continue;
       const { seg, total } = lengths(way);
-      const sprite = piece(this, way[0][0], way[0][1], artId, 44).setOrigin(0.5, 0.95);
-      this.life.walkers.push({ sprite, pts: way, seg, total, d: total * ((i * 0.37) % 1), dir: entering || i % 2 === 0 ? 1 : -1, speed: 17 + i * 2, entering, side: i % 2 ? 6 : -6 });
+      // A walker with drawn frames walks for real. The others keep their still picture with a bob until theirs arrive.
+      const actor = PE.AnimPick.hasFrames(artId) ? new PE.Anim.Actor(this, artId, { x: way[0][0], y: way[0][1], height: 46 }) : null;
+      const sprite = actor ? actor.image : piece(this, way[0][0], way[0][1], artId, 44).setOrigin(0.5, 0.95);
+      this.life.walkers.push({ actor, sprite, pts: way, seg, total, d: total * ((i * 0.37) % 1), dir: entering || i % 2 === 0 ? 1 : -1, speed: 17 + i * 2, entering, side: i % 2 ? 6 : -6 });
     }
   };
 
@@ -222,6 +224,25 @@
         return [[e.actor.x, e.actor.y], ...way];
       },
     };
+    // For Budz: a rival's building close by that he can go and yell at, and the way there.
+    world.rivalFor = (e) => {
+      let best = null, gap = 520;
+      for (const v of this.life.rivals.values()) {
+        if (v.beaten) continue;
+        const d = Math.hypot(v.spot.x - e.actor.x, v.spot.y - e.actor.y);
+        if (d < gap) { gap = d; best = v.spot; }
+      }
+      if (!best) return null;
+      const stop = best.node;
+      const way = e.node === stop ? [] : PE.MapPaths.route(L, e.node, stop, onFoot);
+      if (way === null) return null;
+      if (way.length) e.node = stop;
+      // The last few steps are off the road, to just in front of the building's corner on the near side.
+      const n = L.nodes[stop];
+      const side = n[0] < best.x ? -1 : 1;
+      const front = [best.x + side * best.w * 0.46, best.y + 14];
+      return { x: best.x, way: [[e.actor.x, e.actor.y], ...way, front] };
+    };
     const life = this.life.helperLife = new PE.HelperLife.Life(this, world);
     for (const e of life.list) {
       this.life.helpers.set(e.id, e);
@@ -257,7 +278,7 @@
     const L = this.life;
     if (!L) return;
     if (L.helperLife) {
-      if (type === 'harvest' || type === 'rivalBeaten') L.helperLife.react('harvest');
+      if (type === 'rivalBeaten') { L.helperLife.react('harvest'); this.bigWin(); } else if (type === 'harvest') L.helperLife.react('harvest');
       else if (type === 'lockedTap') L.helperLife.react('locked');
     }
     if (type === 'currency' && e.why === 'retail' && L.managers && L.managers.length) {
@@ -268,6 +289,13 @@
       L.lastGive = now;
       PE.Anim.handOver(this, m.actor);
     }
+  };
+
+  // A big win: Uncle Haze laughs till he falls over.
+  proto.bigWin = function bigWin() {
+    const H = this.life.helperLife;
+    const e = H && H.list.find((x) => x.id === 'HAZE');
+    if (e && !e.actor.paused && e.state !== 'chat' && !H.frozen()) H.liveMove(e, 'rofl');
   };
 
   // ---- Every frame: simple sums only --------------------------------------------------------------------------
@@ -304,6 +332,11 @@
       }
       const p = along(w.pts, w.seg, w.d);
       const len = Math.hypot(p.dx, p.dy) || 1;
+      if (w.actor) {
+        w.actor.moveTo(p.x + (p.dy / len) * w.side, p.y - (p.dx / len) * w.side);
+        w.actor.heading(p.dx * w.dir, p.dy * w.dir);
+        continue;
+      }
       w.sprite.setPosition(p.x + (p.dy / len) * w.side, p.y - (p.dx / len) * w.side - Math.abs(Math.sin(T * 7 + w.d)) * 3);
       w.sprite.setFlipX(p.dx * w.dir > 0);
       w.sprite.setDepth(p.y);
@@ -407,7 +440,12 @@
         return true;
       }
     }
-    const helper = L.helperLife && L.helperLife.tap(x, y);
+    // A helper hidden behind a building or a rival's building can't be tapped: the tap's for the building.
+    const hidden = (h) => {
+      const pics = [...this.views.values()].map((v) => v.image).concat([...L.rivals.values()].map((v) => v.image));
+      return pics.some((im) => im.visible && im.depth > h.actor.image.depth && PE.Anim.solidAt(this, im, x, y));
+    };
+    const helper = L.helperLife && L.helperLife.tap(x, y, hidden);
     if (helper) {
       this.g.helpers.chat(helper.id);
       return true;
@@ -464,6 +502,9 @@
       if (!chapter || !PE.App.state.settings.helpers) return;
       const rival = PE.Data.rivals.find((r) => r.id === rivalId);
       PE.App.g.map.markStorySeen(rivalId);
+      // A rival makes a move: anyone on the map reacts as the chapter starts.
+      const m = PE.App.game.scene.getScene('empire');
+      if (m && m.ready && m.life && m.life.helperLife) m.life.helperLife.react('rival');
       PE.Talk.play({ title: chapter.title, cls: 'story', lines: chapter.lines, rivalId, rivalName: rival.name });
     },
   };

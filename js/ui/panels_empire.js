@@ -17,6 +17,7 @@
     sheet: true,
     render() {
       const game = g();
+      PE.Travel.preload();
       return game.map.districts().map((d) => {
         const open = game.map.isUnlocked(d.id);
         const here = game.map.current() === d.id;
@@ -27,9 +28,9 @@
     },
     actions: {
       go(id) {
-        if (!g().map.setCurrent(id)) return;
+        if (!g().map.isUnlocked(id)) return;
         PE.App.back();
-        PE.App.router.replace('empire', { district: id });
+        PE.Travel.go(id);
       },
     },
   };

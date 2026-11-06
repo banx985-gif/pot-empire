@@ -56,7 +56,7 @@
       const el = $('helper');
       el.className = calm ? 'still' : '';
       el.innerHTML = `<div class="helper-pop" data-act="skip">
-          <div class="who"><div class="splash"><i></i><i></i><i></i></div>${PE.AnimDom.html(e.helper, 230)}</div>
+          <div class="who"><div class="splash"><i></i><i></i><i></i></div>${PE.AnimDom.html(e.helper, 230, '', PE.Data.scenes.messyEvents.includes(e.event) ? 'messy' : 'styled')}</div>
           <div class="bubble"><b>${esc(e.name)}</b><p class="talk-line">${esc(e.text)}</p><small>Tap anywhere to skip</small></div>
         </div>`;
       el.hidden = false;

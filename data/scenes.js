@@ -12,9 +12,13 @@ globalThis.PE.Data.scenes = {
     prestige: 'cheer', idleReturn: 'greet', rank: 'cheer', setComplete: 'cheer', rival: 'laugh', chat: 'chat',
   },
 
+  // Uncle Haze's helper pop-ups that show him busy or just woken up (messy hair, data/anim_moves.js). All others are styled.
+  messyEvents: ['idleReturn'],
+
+  // The welcome back shows Haze messy: he's been hard at work (js/ui/panels_grow.js).
   welcomeBack: {
     plain: [
-      { who: 'HAZE', move: 'greet', text: 'There you are, kid. The place ran itself. Mostly.', react: { BUDZ: 'cheer' } },
+      { who: 'HAZE', move: 'flick', text: 'There you are, kid. The place ran itself. Mostly.', react: { BUDZ: 'cheer' } },
     ],
     thirsty: [
       { who: 'LEAFY', move: 'puzzled', text: "Your plants got thirsty while you were away. Water them and they'll perk right up.", react: { BUDZ: 'shrug' } },
@@ -56,8 +60,19 @@ globalThis.PE.Data.scenes = {
   reactions: {
     harvest: { HAZE: 'cheer', BUDZ: 'cheer', LEAFY: 'clap' },
     ripe: { BUDZ: 'rub', HAZE: 'clap', LEAFY: 'think' },
-    wilted: { BUDZ: 'angry', HAZE: 'angry', LEAFY: 'puzzled' },
+    wilted: { BUDZ: 'angry', HAZE: 'shrug', LEAFY: 'puzzled' },
     locked: { LEAFY: 'puzzled', HAZE: 'shrug', BUDZ: 'shrug' },
     rival: { BUDZ: 'angry', HAZE: 'angry', LEAFY: 'puzzled' },
+  },
+  // Budz never yells at the player. His 'angry' is only ever aimed at a thirsty plant (standing behind it) or a rival's
+  // building (js/ui/helper_life.js): with nothing to aim at, he doesn't do it.
+  budzPlant: ['Grow big, little buddy.', 'Looking good, mate.', "Who's a tall boy?", 'Roots down, leaves up.', 'You and me, pal.'],
+  budzTellOff: ['Drink your water!', 'Oi! Drink up!', 'What did I tell you?!'],
+  budzRival: ['Oi! Beat it!', 'This is OUR town!', 'Take a hike!'],
+  // Now and then, at random, when someone's standing about. weight: how likely. pop: a thought bubble that bursts at the end.
+  liveMoves: {
+    HAZE: [{ move: 'inspect', weight: 3 }, { move: 'roll', weight: 3 }, { move: 'rofl', weight: 1 }],
+    BUDZ: [{ move: 'daydream', weight: 1, pop: true }, { move: 'crush', weight: 1, pop: true }],
+    LEAFY: [{ move: 'drowsy', weight: 1 }],
   },
 };

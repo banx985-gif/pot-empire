@@ -436,7 +436,11 @@
     onGameEvent(type, e) {
       if (type === 'harvest' && e.facility === this.fid) { this.playHarvest(e); this.floatHarvest(e); }
       if (this.helperLife) {
-        if (type === 'harvest' && e.facility === this.fid) this.helperLife.react('harvest');
+        if (type === 'harvest' && e.facility === this.fid) {
+          const haze = this.helperLife.list.find((x) => x.id === 'HAZE');
+          // A high-quality bud gets a closer look from Uncle Haze.
+          if (haze && e.grade >= 3 && haze.state !== 'chat' && !this.helperLife.frozen()) { this.helperLife.liveMove(haze, 'inspect'); } else this.helperLife.react('harvest');
+        }
         else if (type === 'lockedTap') this.helperLife.react('locked');
       }
       if (type === 'watered' && e.facility === this.fid) this.splash(e.station);
@@ -596,7 +600,35 @@
       for (let c = 0; c < cols; c++) xs.push(first.x + c * (box.halfW * 2 + WORLD.gapX) + box.halfW + (c < cols - 1 ? WORLD.gapX / 2 : Math.min(WORLD.gapX / 2, (this.view.w - (first.x + c * (box.halfW * 2 + WORLD.gapX) + box.halfW)) / 2)));
       const ys = [];
       for (let r = 0; r < rows; r++) ys.push(Math.min(this.view.h - 40, first.y + r * (box.up + box.down + WORLD.gapZ) + box.down + WORLD.gapZ * 0.4));
-      this.helperLife = new PE.HelperLife.Life(this, PE.HelperLife.aisleWorld(xs, ys, { height: 560, speed: 240, near: 1000, depth: 40000, textScale: () => PE.App.dpr / this.cameras.main.zoom }));
+      const world = PE.HelperLife.aisleWorld(xs, ys, { height: 560, speed: 240, near: 1000, depth: 40000, textScale: () => PE.App.dpr / this.cameras.main.zoom });
+      world.plantFor = (e, wilted) => this.plantForBudz(e, wilted);
+      this.helperLife = new PE.HelperLife.Life(this, world);
+    }
+    // For Budz: the way to a spot just behind a plant, a little further up the screen than its pot, and how deep to draw him
+    // on each stretch so the plant is in front of him. A thirsty or wilted plant if wilted, otherwise a growing one.
+    plantForBudz(e, wilted) {
+      const now = this.g.now();
+      const found = [];
+      for (let si = 0; si < this.stationCount(); si++) {
+        const v = this.stationViews.get(si);
+        this.stationData(si).pots.forEach((p, pi) => {
+          if (!p || !v || !v.pots || !v.pots[pi] || !v.pots[pi].spot) return;
+          const health = this.g.grow.plantHealth(this.fid, si, p, now);
+          if (wilted ? health.wilted : (now < p.readyMs && !health.wilted)) found.push({ si, pi, spot: v.pots[pi].spot });
+        });
+      }
+      if (!found.length) return null;
+      const t = found[Math.floor(Math.random() * found.length)];
+      const pos = this.room.stations[t.si];
+      const x = pos.x + t.spot.x;
+      const potDepth = pos.y + t.spot.y;
+      const y = pos.y + t.spot.top - 8;                 // his feet, behind the rim of the pot
+      const backY = pos.y - this.room.box.up - 20;      // the gap behind the whole setup
+      const here = [e.actor.x, e.actor.y];
+      const way = [here, [here[0], backY], [x, backY], [x, y]];
+      const front = e.actor.fixedDepth;
+      this.budzAt = { si: t.si, pi: t.pi, x, y, potDepth };
+      return { way, depths: [front, front, potDepth - 1], backDepths: [potDepth - 1, front, front] };
     }
     // Every so often: is anything newly ripe, or newly wilted?
     watchPlants() {

@@ -166,7 +166,7 @@
       const grades = r.grades.map((n, i) => (n ? `${n} ${game.B.quality.grades[i].name}` : '')).filter(Boolean).join(', ');
       const extras = r.extras.map((e) => `<li>${esc(e)}</li>`).join('');
       const script = PE.Data.scenes.welcomeBack[thirsty ? 'thirsty' : 'plain'];
-      const talker = game.state.settings.helpers ? PE.Talk.inlineHtml(script) : PE.Dom.icon('STA-01', 72, 'center-ico');
+      const talker = game.state.settings.helpers ? PE.Talk.inlineHtml(script, 'messy') : PE.Dom.icon('STA-01', 72, 'center-ico');
       PE.Dom.modal({
         title: 'Welcome back!',
         cls: 'welcome',

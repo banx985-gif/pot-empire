@@ -273,7 +273,7 @@
         if (!focus) return L.helperSpots;
         const s = L.spots[focus];
         // On the street near it: the named points are all on the painted streets.
-        const near = Object.entries(L.nodes).filter(([n, p]) => !(L.notStreet || []).includes(n) && Math.hypot(p[0] - s.x, p[1] - s.y) > 110 && p[0] > 60 && p[1] > 60 && p[0] < L.w - 60 && p[1] < L.h - 60 && !PE.MapPaths.onWater(L, p[0], p[1], 10))
+        const near = Object.entries(L.nodes).filter(([n, p]) => !(L.notStreet || []).includes(n) && Math.hypot(p[0] - s.x, p[1] - s.y) > 110 && p[0] > 60 && p[1] > 160 && p[0] < L.w - 60 && p[1] < L.h - 240 && !PE.MapPaths.onWater(L, p[0], p[1], 10))
           .sort((a, b) => Math.hypot(a[1][0] - s.x, a[1][1] - s.y) - Math.hypot(b[1][0] - s.x, b[1][1] - s.y)).slice(0, 3).map(([, [x, y]]) => ({ x, y }));
         return [...near, ...L.helperSpots].slice(0, 3);
       },

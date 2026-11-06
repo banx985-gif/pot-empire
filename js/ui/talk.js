@@ -45,7 +45,7 @@
     return `<div class="talk-stage n${people.length}">${people.map((who) => {
       const on = who === speaker ? 'on' : '';
       if (who === 'RIVAL') return `<span class="talk-slot ${on}" data-who="RIVAL"><img class="story-face bobbing" src="assets/characters/${opts.rivalId}.webp" alt="${esc(opts.rivalName)}" draggable="false" onerror="this.style.visibility='hidden'"></span>`;
-      return `<span class="talk-slot ${on}" data-who="${who}">${PE.AnimDom.html(who, size)}</span>`;
+      return `<span class="talk-slot ${on}" data-who="${who}">${PE.AnimDom.html(who, size, '', opts.hair)}</span>`;
     }).join('')}</div>`;
   }
 
@@ -93,9 +93,10 @@
       step(0);
     },
     // A one-line talker for inside another pop-up (the welcome back): call start() right after the pop-up opens.
-    inlineHtml(lines) {
+    // hair 'messy': he's been working hard or just woke up.
+    inlineHtml(lines, hair) {
       const people = cast(lines).slice(0, 3);
-      return `<div class="talk-inline">${stageHtml(people, lines[0].who, {})}<div class="talk-bubble-line"><b>${esc(names()[lines[0].who])}</b><p class="talk-line">${esc(lines[0].text)}</p></div></div>`;
+      return `<div class="talk-inline">${stageHtml(people, lines[0].who, { hair })}<div class="talk-bubble-line"><b>${esc(names()[lines[0].who])}</b><p class="talk-line">${esc(lines[0].text)}</p></div></div>`;
     },
     startInline(lines) {
       const root = document.querySelector('#modal .talk-inline');

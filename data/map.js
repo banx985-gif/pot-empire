@@ -6,18 +6,19 @@
 // ids they've seen, so nothing needs to change in old saves. A district can be any shape:
 // tests/fixtures/island_layout.js is a working example of islands joined by bridges and boats.
 //
-// Each district's map units are the painting's: 1000 wide, 1800 tall. Move a building by changing its plot's numbers.
+// Each district's map units are the painting's: 1000 wide, 1800 tall. Move a building by changing its clearing's numbers.
 (globalThis.PE = globalThis.PE || {}).Data = globalThis.PE.Data || {};
 (function (Data) {
   const MAX_BUILDING = 360;    // a building never gets wider than this, however big its painted plot
-  // A painted plot: its middle (cx, cy) and its width and height on the painting. A building stands in the middle,
+  // A painted clearing: its middle (cx, cy) and its width and height on the painting. A building stands in the middle,
   // with its front corner at (x, y). The picture's base is about 0.58 as tall as it's wide, so that's where the
   // front corner lands.
+  // Near the painting's top edge a tall building would poke off the map, so a layout can set its own w and y there.
   const plot = (cx, cy, pw, ph, extra = {}) => {
-    const w = Math.min(MAX_BUILDING, Math.round(pw * 0.95));
+    const w = extra.w || Math.min(MAX_BUILDING, Math.round(pw * 0.95));
     return { x: cx, y: Math.round(cy + w * 0.29), w, cx, cy, pw, ph, ...extra };
   };
-  // Every plot joins the street at the nearest named point, and its door is on its edge facing that point.
+  // Every clearing joins the street at the nearest named point, and its door is on its edge facing that point.
   function painted(L) {
     const all = [...Object.values(L.spots), ...Object.values(L.features), ...L.rivalSpots, ...L.spareLots];
     for (const s of all) {
@@ -35,6 +36,13 @@
     // Which picture each renovation shows: base, renovated, renovated, fully renovated.
     lookForRenovation: [1, 2, 2, 3],
     lockedLotArt: 'TIL-12',
+    // How you arrive in each district (js/ui/travel.js). Cowork's pick, from TRANSITION_ART.md: easy to change.
+    travel: {
+      D1: { style: 'A', puff: 'TRANS-PUFF', cloud: 'TRANS-CLOUD-FULL' },
+      D2: { style: 'A', puff: 'TRANS-PUFF', cloud: 'TRANS-CLOUD-FULL' },
+      D3: { style: 'B', band: 'TRANS-SMOKE-WIPE' },
+      D4: { style: 'C', puff: 'TRANS-SMOKE-PINK', cloud: 'TRANS-CLOUD-PINK' },
+    },
     // Where the chimney is on each factory picture (fractions of its width and height): the smoke comes from there.
     chimney: { 'BLD-F05-1': [0.24, 0.21], 'BLD-F05-2': [0.21, 0.22], 'BLD-F05-3': [0.17, 0.21] },
   };

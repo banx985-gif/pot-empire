@@ -6,7 +6,6 @@
 (function (PE) {
   const FONT = 'system-ui, sans-serif';
   const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
-  const OVERSCROLL = 70;    // map units you can drag past the edge before it springs back
 
   // A locked or for-sale plot: the plot itself is painted, so this is only the sign that stands on it.
   const BOX_W = 360, BOX_H = 420;
@@ -270,8 +269,10 @@
 
     // ---- Camera -------------------------------------------------------------------------------------------
     zoomLimits() {
-      const W = this.scale.width;
-      return { min: W / this.layout.w, max: W / 360, start: W / 600 };
+      const W = this.scale.width, H = this.scale.height;
+      // Zoomed right out, the painting still fills the screen: nothing past its edges ever shows.
+      const min = Math.max(W / this.layout.w, H / this.layout.h);
+      return { min, max: Math.max(W / 360, min), start: Math.max(W / 600, min) };
     }
     setUpCamera() {
       const cam = this.cameras.main;
@@ -291,16 +292,14 @@
       cam.preRender();
       this.clampCamera(0);
     }
-    // give = how far past the edge the map may go. While dragging there's a little give, so the edge
-    // feels soft; on letting go it springs back.
-    clampCamera(give = OVERSCROLL) {
+    // The camera never pans past the painting's edges.
+    clampCamera() {
       const cam = this.cameras.main;
       const { w, h } = this.layout;
       const vw = cam.width / cam.zoom, vh = cam.height / cam.zoom;
-      const extra = 90 * PE.App.dpr / cam.zoom;  // the top bar and tabs cover some of the screen
-      const range = (lo, hi, v) => (lo > hi ? (lo + hi) / 2 : clamp(v, lo - give, hi + give));
+      const range = (lo, hi, v) => (lo > hi ? (lo + hi) / 2 : clamp(v, lo, hi));
       const mid = cam.midPoint;
-      cam.centerOn(range(vw / 2, w - vw / 2, mid.x), range(vh / 2 - extra, h - vh / 2 + extra, mid.y));
+      cam.centerOn(range(vw / 2, w - vw / 2, mid.x), range(vh / 2, h - vh / 2, mid.y));
       cam.preRender();
       // Remembered as it moves: when the scene closes, its camera has already gone.
       this.rememberView();
@@ -420,8 +419,8 @@
         PE.App.openPanel('lotInfo', { fid });
       }
     }
-    // Tap a grow building, shop or factory: its roof lifts for a moment, then you're inside. Uses PEEK-Fnn-n once drawn;
-    // until then the top of the building's own picture fades off. Reduced motion goes straight in.
+    // Tap a grow building, shop or factory: its roof lifts for a moment, showing its PEEK-Fnn-n picture, then you're inside.
+    // Reduced motion, or a picture that can't be fetched, goes straight in.
     peekThenGo(fid) {
       const v = this.views.get(fid);
       const mode = this.g.facilities.row(fid).mode;
@@ -436,11 +435,11 @@
         const cutAt = Math.round(src.height * 0.5);
         const roof = this.add.image(v.image.x, v.image.y, v.image.texture.key).setOrigin(0.5, 1).setDisplaySize(v.image.displayWidth, v.image.displayHeight).setDepth(v.image.depth + 1);
         roof.setCrop(0, 0, src.width, cutAt);
-        // Under the lifting roof: the peek picture, or the lower half of the building.
-        if (key) v.image.setTexture(key); else v.image.setCrop(0, cutAt, src.width, src.height - cutAt);
+        // Under the lifting roof: the peek picture.
+        v.image.setTexture(key);
         this.tweens.add({ targets: roof, y: roof.y - 90, alpha: 0, duration: 340, ease: 'Sine.easeOut', onComplete: () => this.time.delayedCall(110, go) });
       };
-      if (!MapArt.load(this, peekId, (key) => lift(key), () => lift(null))) lift(null);
+      if (!MapArt.load(this, peekId, lift, go)) go();
     }
     onGameEvent(type, e) {
       if (this.lifeEvent && this.ready) this.lifeEvent(type, e);

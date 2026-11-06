@@ -160,12 +160,12 @@
       this.ghostText.setPosition(x, y).setAlpha(can ? 1 : 0.5).setText(can ? `+ ${thing}\n${PE.Dom.money(this.g.facilities.nextStationCost(this.fid))}` : `Next ${thing.toLowerCase()}\nopens as this grows`);
     }
 
-    // Customers walk in, up to the counter, and do a happy little thing on their way out. They use their walker pictures
-    // with a bob until their frames arrive, and pick the frames up by themselves when they do.
+    // Customers walk in, up to the counter, talk, do a happy little thing and leave. WLK-06, the dog walker, is the first with
+    // real frames. The others use their walker pictures with a bob until theirs arrive, and pick them up by themselves.
     buildCustomers() {
       if (this.calm()) return;
       const doorY = this.h - 40;
-      ['WLK-02', 'WLK-04'].forEach((id, n) => {
+      ['WLK-06', 'WLK-04'].forEach((id, n) => {
         const actor = new PE.Anim.Actor(this, id, { x: this.w / 2, y: doorY, height: 250 });
         actor.image.setAlpha(0);
         this.walkers.push({ actor, id, state: 'wait', left: n * 5 + 1, from: { x: this.w / 2 + (n ? 150 : -150), y: doorY }, at: { x: this.w / 2 + (n ? 90 : -90), y: WALL + 150 }, speed: 110 + n * 20 });
@@ -187,7 +187,7 @@
           const step = w.speed * dt;
           if (d <= step) {
             A.moveTo(to.x, to.y);
-            if (w.state === 'in') { w.state = 'buy'; w.left = 1.4; A.play('idle'); } else { w.state = 'wait'; w.left = 2 + Math.random() * 5; }
+            if (w.state === 'in') { w.state = 'buy'; w.left = 1.6; A.play('order'); } else { w.state = 'wait'; w.left = 2 + Math.random() * 5; }
           } else { A.moveTo(A.x + (dx / d) * step, A.y + (dy / d) * step); A.heading(dx, dy); }
           A.image.setAlpha(w.state === 'out' ? Math.min(1, Math.hypot(w.from.x - A.x, w.from.y - A.y) / 90) : Math.min(1, Math.hypot(w.from.x - A.x, w.from.y - A.y) / 60 + 0.05));
           continue;
@@ -195,7 +195,7 @@
         w.left -= dt;
         if (w.state === 'buy' && w.left <= 0) {
           w.state = 'happy';
-          w.left = 1.1;
+          w.left = 1.3;
           A.play('happy');
           this.customersHappy = (this.customersHappy || 0) + 1;
           if (this.managerActor) this.giveProduct();

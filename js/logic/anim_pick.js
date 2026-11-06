@@ -7,6 +7,10 @@
   const Data = () => PE.Data;
   const art = (id) => Data().animArt.chars[id] || null;
   const gap = (a, b) => Math.min(Math.abs(a - b), 360 - Math.abs(a - b));
+  const pickSet = (want, frames, roll) => {
+    const list = (Array.isArray(want) ? want : [want]).filter((s) => s && frames[s]);
+    return list.length ? list[Math.min(list.length - 1, Math.floor(roll * list.length))] : null;
+  };
 
   // The direction closest to the way they're heading.
   function dirOf(dx, dy) {
@@ -20,30 +24,33 @@
   }
 
   // Which frames walk this way: { set, flip, dir }, or null if this character has no walk at all.
-  function walkFor(id, dx, dy) {
+  // A direction can list several sets for variety; roll (0 to 1, kept for the whole walk) picks one.
+  function walkFor(id, dx, dy, roll = 0) {
     const frames = art(id);
     if (!frames) return null;
     const map = Data().animMoves.walk[id] || Data().animMoves.defaultWalk;
     const a = DIRS[dirOf(dx, dy)];
     const order = Object.keys(DIRS).sort((p, q) => gap(a, DIRS[p]) - gap(a, DIRS[q]));
     for (const d of order) {
-      if (map[d] && frames[map[d]]) return { set: map[d], flip: false, dir: d };
-      const m = MIRROR[d];
-      if (m && map[m] && frames[map[m]]) return { set: map[m], flip: true, dir: d };
+      const here = pickSet(map[d], frames, roll);
+      if (here) return { set: here, flip: false, dir: d };
+      const other = pickSet(map[MIRROR[d]], frames, roll);
+      if (other) return { set: other, flip: true, dir: d };
     }
     return null;
   }
 
-  const lookOf = (id, set) => ((Data().animMoves.looks[id] || {})[set]) || 'messy';
-  // Moving between hairstyles has to happen behind a cut.
-  const needsCut = (id, fromSet, toSet) => !!fromSet && lookOf(id, fromSet) !== lookOf(id, toSet);
+  // Uncle Haze's two hairstyles: anything not on his messy list is styled. Nobody else has two.
+  const lookOf = (id, set) => (((Data().animMoves.messy[id] || []).includes(set)) ? 'messy' : 'styled');
 
   // What a move turns into for this character, or null if they have no frames for it. roll: 0 to 1, picks from a list.
-  function resolve(id, name, roll = Math.random()) {
+  // look 'messy' uses the character's messy table, if they have one: only for "busy or just woke up" pop-ups.
+  function resolve(id, name, roll = Math.random(), look = 'styled') {
     const A = Data().animMoves;
     const frames = art(id);
     if (!frames) return null;
-    const spec = (A.moves[id] || A.defaultMoves)[name];
+    const table = (look === 'messy' && A.moves[`${id}_MESSY`]) || A.moves[id] || A.defaultMoves;
+    const spec = table[name];
     if (!spec) return null;
     const list = (Array.isArray(spec.set) ? spec.set : [spec.set]).filter((s) => frames[s]);
     if (!list.length) return null;
@@ -56,9 +63,9 @@
       for (let i = (spec.from || 1) - 1; i <= (spec.to || n) - 1; i++) order.push(i);
     }
     order = order.filter((f) => f < n);
-    return { name, set, order, fps: spec.fps || 6, loop: !!spec.loop, hold: !!spec.hold, times: spec.times || 1, random: !!spec.random, then: spec.then || null, look: lookOf(id, set) };
+    return { name, set, order, fps: spec.fps || 6, loop: !!spec.loop, hold: !!spec.hold, times: spec.times || 1, random: !!spec.random, then: spec.then || null, bob: !!spec.bob, look: lookOf(id, set) };
   }
   const hasFrames = (id) => !!art(id);
 
-  PE.AnimPick = { DIRS, dirOf, walkFor, lookOf, needsCut, resolve, hasFrames };
+  PE.AnimPick = { DIRS, dirOf, walkFor, lookOf, resolve, hasFrames };
 })(globalThis.PE = globalThis.PE || {});

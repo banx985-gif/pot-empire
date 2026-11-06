@@ -37,7 +37,7 @@
         const side = i % 2 ? 1 : -1;
         const x = x0 - ((y1 - y0) / len) * 32 * side, y = y0 + ((x1 - x0) / len) * 32 * side;
         if (x < 30 || y < 30 || x > L.w - 30 || y > L.h - 30) continue;
-        if (MapPaths.onWater(L, x, y) || prints.some((f) => MapPaths.inFootprint(f, x, y, 6))) continue;
+        if (MapPaths.onWater(L, x, y, 16) || prints.some((f) => MapPaths.inFootprint(f, x, y, 6))) continue;
         if (streets.some((o) => MapPaths.distToLine(x, y, o.pts) < 24)) continue;
         DECO[ev.deco](G, x, y, ev.bunting[n++ % ev.bunting.length]);
       }
