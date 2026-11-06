@@ -198,8 +198,9 @@ globalThis.PE.Data.balance = {
     wiltFullHours: 72,            // and it's as low as it goes after this long
     // A plant that has lost more grades than it had is worth this much of a Standard: 1 step past, then all the way down.
     veryLowValue: [0.6, 0.25],
-    autoFromSprinkler: 3,         // sprinkler level that waters by itself. Those stations never wilt.
-    // While you're away, an automatic sprinkler keeps watering for this many hours, by sprinkler level.
+    autoFromSprinkler: 3,         // sprinkler level that waters by itself while you play.
+    // While you're away, an automatic sprinkler only keeps watering for this many hours, by sprinkler level. After that
+    // the station is dry and its plants can wilt, until you water or harvest them.
     awayHoursBySprinkler: [0, 0, 2, 6, 12, 24],
   },
 

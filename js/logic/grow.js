@@ -99,7 +99,9 @@
         * (1 + g.effects.get('maintenanceInterval', contextFor(fid, si)));
     }
     const autoWaters = (st) => st.levels.sprinkler >= B.water.autoFromSprinkler;
-    const neverWilts = (st) => autoWaters(st) || (st.auto.harvest && hasStationFeature(st, 'autoHarvest'));
+    // An automatic sprinkler keeps a station watered while you play, and for its level's hours while you're away (see
+    // js/logic/offline.js). After that it can wilt like any other. Only auto-harvest takes ripe plants out of the way.
+    const neverWilts = (st) => st.auto.harvest && hasStationFeature(st, 'autoHarvest');
     // How the meter stands: 1 is just watered, 0 is dry.
     function waterMeter(st, fid, si, now = g.now()) {
       return Math.max(0, 1 - (now - st.lastServiceMs) / (waterInterval(st, fid, si) * 1000));
@@ -446,6 +448,7 @@
           });
         }
         st.lastServiceMs = now;
+        delete st.dryFromAway;
         g.emit('watered', { facility: fid, station: si, boosted: thirsty });
         g.emit('changed');
         return true;
@@ -463,9 +466,19 @@
         const m = waterMeter(st, fid, si, now);
         return m <= 0 ? 0 : m < B.water.boostBelowMeter ? 1 : 2;
       },
-      // Called by the game's tick. Automatic sprinklers top themselves up while you're here.
+      // Called by the game's tick. Automatic sprinklers top themselves up while you're here. A station that ran dry
+      // while you were away waits for you: otherwise coming back would undo the damage by itself. Once none of its
+      // plants are suffering any more (watered or harvested), the sprinkler carries on.
       tickWater() {
-        eachStation((fid, si, st) => { if (autoWaters(st)) st.lastServiceMs = g.now(); });
+        const now = g.now();
+        eachStation((fid, si, st) => {
+          if (!autoWaters(st)) return;
+          if (st.dryFromAway) {
+            if (st.pots.some((p) => p && plantHealth(st, fid, si, p, now).lost > 0)) return;
+            delete st.dryFromAway;
+          }
+          st.lastServiceMs = now;
+        });
       },
 
       setAuto(fid, si, which, on) {

@@ -67,6 +67,7 @@
       this.makeRoomTextures();
       PE.UI.loadIcons(this, ['ACT-01', 'ACT-04'], () => {});
       this.lastCull = '';
+      this.helperLife = null;
       this.refresh(true);
       this.ready = true;
       if (!PE.App.state.settings.reducedMotion && !this.testOverride) this.cameras.main.fadeIn(170, 20, 10, 36);
@@ -369,6 +370,11 @@
       // A ripe plant is picked at once. Anything else waits a moment, in case it's the first of a double-tap.
       const ripe = hit && !hit.ghost && hit.pi !== null && (() => { const p = this.stationData(hit.si).pots[hit.pi]; return p && g.now() >= p.readyMs; })();
       if (ripe) { g.grow.harvest(this.fid, hit.si, hit.pi); return; }
+      // A helper in the gaps between setups: tap for a tip or a joke.
+      if (!hit && this.helperLife) {
+        const e = this.helperLife.tap(pt.x, pt.y);
+        if (e) { g.helpers.chat(e.id); return; }
+      }
       if (this.tapWait) {
         this.tapWait.remove();
         this.tapWait = null;
@@ -385,8 +391,7 @@
       const g = this.g;
       if (hit.ghost) {
         const r = g.facilities.buyStation(this.fid);
-        if (!r.ok) PE.Dom.toast(r.why === 'cash' ? 'Not enough cash yet' : 'This one opens as the place grows');
-        else PE.App.saveGame();
+        if (!r.ok) { PE.Dom.toast(r.why === 'cash' ? 'Not enough cash yet' : 'This one opens as the place grows'); g.emit('lockedTap', {}); } else PE.App.saveGame();
         return;
       }
       const { si, pi } = hit;
@@ -430,6 +435,10 @@
 
     onGameEvent(type, e) {
       if (type === 'harvest' && e.facility === this.fid) { this.playHarvest(e); this.floatHarvest(e); }
+      if (this.helperLife) {
+        if (type === 'harvest' && e.facility === this.fid) this.helperLife.react('harvest');
+        else if (type === 'lockedTap') this.helperLife.react('locked');
+      }
       if (type === 'watered' && e.facility === this.fid) this.splash(e.station);
     }
 
@@ -577,8 +586,46 @@
       return this.testOverride ? this.testOverride.stations[si] : this.g.grow.stationOf(this.fid, si);
     }
 
-    update(time) {
+    // Haze and friends wander the gaps between the setups. Not during the guide: Haze is talking to you then.
+    buildLife() {
+      const R = this.room, box = R.box;
+      const cols = Math.min(R.cols, Math.max(1, this.open));
+      const rows = Math.max(1, Math.ceil(this.open / R.cols));
+      const first = R.stations[0];
+      const xs = [first.x - box.halfW + 130 - WORLD.margin];
+      for (let c = 0; c < cols; c++) xs.push(first.x + c * (box.halfW * 2 + WORLD.gapX) + box.halfW + (c < cols - 1 ? WORLD.gapX / 2 : Math.min(WORLD.gapX / 2, (this.view.w - (first.x + c * (box.halfW * 2 + WORLD.gapX) + box.halfW)) / 2)));
+      const ys = [];
+      for (let r = 0; r < rows; r++) ys.push(Math.min(this.view.h - 40, first.y + r * (box.up + box.down + WORLD.gapZ) + box.down + WORLD.gapZ * 0.4));
+      this.helperLife = new PE.HelperLife.Life(this, PE.HelperLife.aisleWorld(xs, ys, { height: 560, speed: 240, near: 1000, depth: 40000, textScale: () => PE.App.dpr / this.cameras.main.zoom }));
+    }
+    // Every so often: is anything newly ripe, or newly wilted?
+    watchPlants() {
+      const L = this.helperLife;
+      if (!L) return;
+      let ripe = 0, wilted = 0;
+      const now = this.g.now();
+      for (let si = 0; si < this.stationCount(); si++) {
+        for (const p of this.stationData(si).pots) {
+          if (!p || now < p.readyMs) continue;
+          ripe += 1;
+          if (this.g.grow.plantHealth(this.fid, si, p, now).wilted) wilted += 1;
+        }
+      }
+      if (wilted > (this.seenWilted || 0)) L.react('wilted');
+      else if (ripe > (this.seenRipe || 0)) L.react('ripe');
+      this.seenWilted = wilted;
+      this.seenRipe = ripe;
+    }
+    update(time, delta) {
       if (!this.ready) return;
+      if (!this.testOverride && !this.helperLife && !this.g.tutorial.active()) this.buildLife();
+      if (this.helperLife) {
+        const dt = Math.min(0.1, (delta || 16) / 1000);
+        PE.Anim.stepAll(this, dt);
+        this.helperLife.update(dt);
+        if (PE.App.state.settings.helpers) this.helperLife.setVisible(true);
+        if (time - (this.lastWatch || 0) > 3000) { this.lastWatch = time; this.watchPlants(); }
+      }
       if (time - (this.lastRefresh || 0) < 200) return;
       this.lastRefresh = time;
       this.refresh();

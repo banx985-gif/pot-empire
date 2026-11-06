@@ -535,18 +535,11 @@ ul.plain li { padding: 3px 0; }
 #ui .comic-skip { color: #d7c9ef; font-size: 14px; text-decoration: underline; min-height: 44px; padding: 0 8px; background: none; border: 0; }
 .comic-dots { color: #fff; letter-spacing: 3px; font-weight: 800; }
 
-.haze-anim { display: block; background-repeat: no-repeat; background-size: 1100% 100%; background-position: 0 0; }
-.haze-anim.moving { animation: haze-idle 1.57s steps(10) infinite; }
-@keyframes haze-idle { from { background-position: 0 0; } to { background-position: 100% 0; } }
-.calm .haze-anim.moving { animation: none; }
-@media (prefers-reduced-motion: reduce) { .haze-anim.moving { animation: none; } }
-.helper-pop .who .haze-anim { position: relative; z-index: 1; margin: 0 auto; }
 
 /* The big talker: fills the bottom of the screen. */
 .tut-talk { position: absolute; left: 0; right: 0; bottom: 0; height: 56%; pointer-events: auto; display: flex; flex-direction: column; justify-content: flex-end; background: linear-gradient(transparent, #120820ee 30%); }
 .talk-who { position: absolute; left: -8px; bottom: 0; width: 62%; height: 72%; display: flex; align-items: flex-end; pointer-events: none; }
 .talk-who img { width: 100%; height: 100%; object-fit: contain; object-position: left bottom; }
-.talk-who .haze-anim { height: 100%; }
 .talk-bubble { position: absolute; left: 12px; right: 12px; top: 0; background: #fff; color: #1d0f33; border: 4px solid #1d0f33; border-radius: 26px; padding: 12px 16px; box-shadow: 0 5px 0 #1d0f33; font-size: 17px; line-height: 1.32; }
 .talk-bubble b { color: #a01a6f; }
 .talk-bubble p { margin: 3px 0 0; }
@@ -570,3 +563,22 @@ ul.plain li { padding: 3px 0; }
 .tut-open #bottomnav.ok { pointer-events: auto; }
 
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+/* Characters from the animation player (js/ui/anim.js): a box with the feet at the bottom middle. */
+.anim-box { position: relative; display: inline-block; flex: none; }
+.anim-sheet { position: absolute; display: block; background-repeat: no-repeat; pointer-events: none; }
+.helper-pop .who .anim-box { position: relative; z-index: 1; display: block; margin: 0 auto; }
+.untyped { visibility: hidden; }
+/* Pop-up conversations (js/ui/talk.js) */
+.talk-stage { display: flex; justify-content: center; align-items: flex-end; gap: 4px; margin-bottom: 6px; min-height: 104px; }
+.talk-slot { display: inline-flex; align-items: flex-end; opacity: .72; transition: opacity .15s; }
+.talk-slot.on { opacity: 1; }
+.talk-stage .story-face { width: 110px; height: 110px; margin: 0; object-fit: contain; }
+.bobbing { animation: talk-bob 1.8s ease-in-out infinite; }
+@keyframes talk-bob { 50% { transform: translateY(-4px); } }
+.calm .bobbing { animation: none; }
+@media (prefers-reduced-motion: reduce) { .bobbing { animation: none; } }
+.talk-bubble-line { background: #fff; color: #1d0f33; border: 3px solid #140a24; border-radius: 14px; padding: 8px 12px; text-align: left; }
+.talk-bubble-line b { color: #a01a6f; }
+.talk-bubble-line p { margin: 3px 0 0; font-size: 15px; line-height: 1.35; }
+.talk-inline { margin-bottom: 8px; }

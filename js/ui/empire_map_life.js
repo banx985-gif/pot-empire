@@ -1,6 +1,6 @@
 // What makes the Empire map feel alive (job 5, Stage 2): vans, walkers, chimney smoke, glowing grow
-// buildings, swaying plants, butterflies, the helpers standing about, the free gift flyer and the rival
-// buildings. It adds to the map scene in js/ui/empire_map.js.
+// buildings, swaying plants, butterflies, the helpers and managers (js/ui/helper_life.js), the free gift flyer and the
+// rival buildings. It adds to the map scene in js/ui/empire_map.js.
 //
 // Kept light on purpose: about 20 small pictures moved with simple sums, no physics and no timers per
 // object. With reduced motion on, nothing moves but everything can still be tapped.
@@ -58,7 +58,7 @@
     this.buildBuildingLife();
     this.buildFlyers();
     this.buildHelpers();
-    this.buildHazeOutsideShack();
+    this.buildManagers();
   };
 
   proto.makeLifeTextures = function makeLifeTextures() {
@@ -192,53 +192,82 @@
     }
   };
 
-  // ---- Helpers: near what's new ---------------------------------------------------------------------------------
+  // ---- Helpers: they walk the painted streets near what's new, and Uncle Haze starts outside his Shack ------------
   proto.buildHelpers = function buildHelpers() {
     if (!PE.App.state.settings.helpers) return;
+    const L = this.layout;
+    const onFoot = (k) => (PE.MapPaths.KINDS[k] || {}).walk;
+    const shack = (L.features || {}).X01;
     const spots = this.g.map.helperSpots(this.district);
-    PE.Data.helpers.forEach((h, i) => {
-      if (h.id === 'HAZE' && (this.layout.features || {}).X01) return;   // he's outside his Shack here
-      const id = PE.Data.helperSprites.mapPose[h.id];
-      const key = 'helper-' + id;
-      const at = spots[i];
-      const entry = { id: h.id, at, image: null };
-      this.life.helpers.set(h.id, entry);
-      const place = () => {
-        if (this.sys.settings.status >= Phaser.Scenes.SHUTDOWN) return;
-        entry.image = this.add.image(at.x, at.y + 8, key).setOrigin(0.5, 0.96).setDisplaySize(110, 110).setDepth(at.y);
-      };
-      if (this.textures.exists(key)) { place(); return; }
-      const img = new Image();
-      img.onload = () => { if (this.sys.settings.status < Phaser.Scenes.SHUTDOWN) { if (!this.textures.exists(key)) this.textures.addImage(key, img); place(); } };
-      img.src = PE.HelperArt.url(id);
-      this.life.loaded.push(key);
-    });
+    const names = Object.keys(L.nodes).filter((n) => !(L.notStreet || []).includes(n));
+    const nearest = (x, y, list = names) => list.slice().sort((p, q) => Math.hypot(L.nodes[p][0] - x, L.nodes[p][1] - y) - Math.hypot(L.nodes[q][0] - x, L.nodes[q][1] - y))[0];
+    const home = spots[0] || { x: L.w / 2, y: L.h / 2 };
+    const world = {
+      height: 100,
+      speed: 24,
+      near: 170,
+      textScale: () => PE.App.dpr / this.cameras.main.zoom,
+      start: (i, id) => {
+        const p = id === 'HAZE' && shack ? { x: shack.x - shack.w * 0.42, y: shack.y + 14 } : (spots[i] || home);
+        return { x: p.x, y: p.y + (id === 'HAZE' && shack ? 0 : 8), node: nearest(p.x, p.y) };
+      },
+      // Along the streets to somewhere not far from here, or towards someone.
+      path: (e, toward) => {
+        const close = names.filter((n) => n !== e.node && Math.hypot(L.nodes[n][0] - e.actor.x, L.nodes[n][1] - e.actor.y) < 620);
+        const to = toward ? nearest(toward.x, toward.y) : close[Math.floor(Math.random() * close.length)];
+        if (!to || to === e.node) return null;
+        const way = PE.MapPaths.route(L, e.node, to, onFoot);
+        if (!way || way.length < 2) return null;
+        e.node = to;
+        return [[e.actor.x, e.actor.y], ...way];
+      },
+    };
+    const life = this.life.helperLife = new PE.HelperLife.Life(this, world);
+    for (const e of life.list) {
+      this.life.helpers.set(e.id, e);
+      if (e.id === 'HAZE' && shack) this.life.haze = e;
+    }
   };
 
-  // Uncle Haze stands outside his Shack: his idle loop, and now and then he turns to look around.
-  proto.buildHazeOutsideShack = function buildHazeOutsideShack() {
-    const shack = (this.layout.features || {}).X01;
-    if (!shack || !PE.App.state.settings.helpers) return;
-    const A = PE.Data.hazeAnim;
-    const at = { x: shack.x - shack.w * 0.42, y: shack.y + 14 };
-    const entry = { id: 'HAZE', at, image: null, f: 0, turn: null, next: 5 };
-    this.life.helpers.set('HAZE', entry);
-    const load = (key, url, spec, ready) => {
-      if (this.textures.exists(key)) { ready(); return; }
-      const img = new Image();
-      img.onload = () => {
-        if (this.sys.settings.status >= Phaser.Scenes.SHUTDOWN) return;
-        if (!this.textures.exists(key)) { const t = this.textures.addImage(key, img); for (let i = 0; i < spec.frames; i++) t.add('f' + i, 0, i * spec.w, 0, spec.w, spec.h); }
-        ready();
-      };
-      img.src = url;
-    };
-    load('haze-idle', 'assets/haze/haze_idle.webp', A.idle, () => {
-      entry.image = this.add.image(at.x, at.y, 'haze-idle', 'f0').setOrigin(0.5, 0.97).setDepth(at.y);
-      entry.image.setDisplaySize((A.idle.w / A.idle.h) * 98, 98);
+  // ---- Managers stand at their building, and hand something over when it sells ------------------------------------
+  proto.buildManagers = function buildManagers() {
+    this.life.managers = [];
+    if (!PE.App.state.settings.helpers) return;
+    for (const fid of this.def.facilities) {
+      if (!this.g.facilities.isOwned(fid) || this.g.facilities.row(fid).mode !== 'Retail') continue;
+      const id = this.g.collections.managersAt(fid)[0];
+      if (!id) continue;
+      const s = this.layout.spots[fid];
+      const actor = new PE.Anim.Actor(this, id, { x: s.x + s.w * 0.38, y: s.y + 10, height: 74 });
+      this.life.managers.push({ id, fid, actor });
+    }
+  };
+  // Hand it over: the "here you go" move if they have one, and the product icon pops out beside the hand.
+  PE.Anim.handOver = function handOver(scene, actor) {
+    actor.play('give');
+    PE.UI.loadIcons(scene, ['ACT-03'], () => {
+      if (actor.gone || !scene.textures.exists('ui-ACT-03')) return;
+      const size = actor.height * 0.34;
+      const s = scene.add.image(actor.x + actor.height * 0.3, actor.y - actor.height * 0.5, 'ui-ACT-03').setDisplaySize(size, size).setDepth(actor.image.depth + 1);
+      if (PE.App.state.settings.reducedMotion) { scene.time.delayedCall(400, () => s.destroy()); return; }
+      scene.tweens.add({ targets: s, y: s.y - actor.height * 0.45, x: s.x + actor.height * 0.12, alpha: 0, duration: 800, ease: 'Sine.easeOut', onComplete: () => s.destroy() });
     });
-    load('haze-turn', 'assets/haze/haze_turn.webp', A.turn, () => {});
-    this.life.haze = entry;
+  };
+  proto.lifeEvent = function lifeEvent(type, e) {
+    const L = this.life;
+    if (!L) return;
+    if (L.helperLife) {
+      if (type === 'harvest' || type === 'rivalBeaten') L.helperLife.react('harvest');
+      else if (type === 'lockedTap') L.helperLife.react('locked');
+    }
+    if (type === 'currency' && e.why === 'retail' && L.managers && L.managers.length) {
+      const now = performance.now();
+      if (now - (L.lastGive || 0) < 5000) return;
+      const m = L.managers.find((x) => !x.actor.paused);
+      if (!m) return;
+      L.lastGive = now;
+      PE.Anim.handOver(this, m.actor);
+    }
   };
 
   // ---- Every frame: simple sums only --------------------------------------------------------------------------
@@ -247,6 +276,8 @@
     const dt = Math.min(0.1, (time - (L.last || time)) / 1000);
     L.last = time;
     this.updateGift(time, dt);
+    PE.Anim.stepAll(this, dt);
+    if (L.helperLife) L.helperLife.update(dt);
     if (this.calmNow) return;
     L.t += dt;
     const T = L.t;
@@ -276,18 +307,6 @@
       w.sprite.setPosition(p.x + (p.dy / len) * w.side, p.y - (p.dx / len) * w.side - Math.abs(Math.sin(T * 7 + w.d)) * 3);
       w.sprite.setFlipX(p.dx * w.dir > 0);
       w.sprite.setDepth(p.y);
-    }
-    if (L.haze && L.haze.image) {
-      const h = L.haze;
-      h.f += dt;
-      if (h.turn !== null) {
-        // A short look round, then back to the idle.
-        const i = Math.floor(h.f * 7);
-        if (i >= 8) { h.turn = null; h.f = 0; h.next = T + 7 + (T % 5); h.image.setTexture('haze-idle', 'f0'); } else if (this.textures.exists('haze-turn')) h.image.setTexture('haze-turn', 'f' + i);
-      } else {
-        h.image.setFrame('f' + (Math.floor(h.f * 7) % 11));
-        if (T > h.next && this.textures.exists('haze-turn')) { h.turn = 0; h.f = 0; }
-      }
     }
     for (const p of L.puffs) {
       const k = (T * 0.22 + p.phase) % 1;
@@ -325,7 +344,7 @@
         v.label.setText(beaten ? `${v.rival.name}: taken over!` : v.rival.name).setColor(beaten ? '#c6ff3d' : '#ffd9d9');
       }
     }
-    for (const h of L.helpers.values()) if (h.image) h.image.setVisible(PE.App.state.settings.helpers);
+    if (L.helperLife) L.helperLife.setVisible(PE.App.state.settings.helpers);
   };
   // Reduced motion: everything stops somewhere sensible and stays tappable.
   proto.settleLife = function settleLife() {
@@ -388,16 +407,15 @@
         return true;
       }
     }
-    for (const h of L.helpers.values()) {
-      if (!h.image || !h.image.visible) continue;
-      if (Math.abs(x - h.at.x) < 40 && y < h.at.y + 12 && y > h.at.y - 95) {
-        this.g.helpers.chat(h.id);
-        return true;
-      }
+    const helper = L.helperLife && L.helperLife.tap(x, y);
+    if (helper) {
+      this.g.helpers.chat(helper.id);
+      return true;
     }
     for (const v of L.rivals.values()) {
       if (Math.abs(x - v.spot.x) < Math.max(v.spot.w / 2, 70) && y < v.spot.y + 46 && y > v.spot.y - Math.max(v.spot.w * 0.95, 170)) {
         this.rememberView();
+        if (!v.beaten && L.helperLife) L.helperLife.react('rival');
         if (v.beaten && PE.Story.has(v.spot.rival)) PE.Story.show(v.spot.rival);
         else PE.App.openPanel('rivals', {});
         return true;
@@ -435,7 +453,7 @@
 
   // Used by the automatic browser test to really tap things.
   proto.giftPagePoint = function giftPagePoint() { const s = this.life.gift.sprite; return this.worldToPage(s.x, s.y); };
-  proto.helperPagePoint = function helperPagePoint(id) { const h = this.life.helpers.get(id); return this.worldToPage(h.at.x, h.at.y - 60); };
+  proto.helperPagePoint = function helperPagePoint(id) { return this.life.helperLife.pagePoint(id); };
   proto.rivalPagePoint = function rivalPagePoint(id) { const v = this.life.rivals.get(id); return this.worldToPage(v.spot.x, v.spot.y - 50); };
 
   // ---- The story scene for a beaten rival: short, and one tap skips it --------------------------------------------------
@@ -445,25 +463,8 @@
       const chapter = PE.Data.rivalStory[rivalId];
       if (!chapter || !PE.App.state.settings.helpers) return;
       const rival = PE.Data.rivals.find((r) => r.id === rivalId);
-      const names = Object.fromEntries(PE.Data.helpers.map((h) => [h.id, h.name]));
       PE.App.g.map.markStorySeen(rivalId);
-      // A comic strip: each new line pops in as a panel under the one before, speakers on alternating sides.
-      const panel = (line, i, fresh) => {
-        const who = line.who === 'RIVAL' ? rival.name : names[line.who];
-        const src = line.who === 'RIVAL' ? `assets/characters/${rivalId}.webp` : PE.HelperArt.url(line.face);
-        return `<div class="comic-panel ${i % 2 ? 'right' : ''} ${fresh ? 'fresh' : ''}"><img class="story-face" src="${src}" alt="${PE.Dom.esc(who)}" onerror="this.style.visibility='hidden'"><div class="comic-say"><b class="story-who">${PE.Dom.esc(who)}</b><p>${PE.Dom.esc(line.text)}</p></div></div>`;
-      };
-      const step = (i) => {
-        const last = i === chapter.lines.length - 1;
-        const from = Math.max(0, i - 1);   // the line before stays up, so it reads as a conversation
-        PE.Dom.modal({
-          title: chapter.title,
-          cls: 'story',
-          html: `<div class="comic">${chapter.lines.slice(from, i + 1).map((l, k) => panel(l, from + k, from + k === i)).join('')}</div>`,
-          buttons: last ? [{ label: 'Done', style: 'go' }] : [{ label: 'Skip', style: 'plain' }, { label: 'Next', style: 'go', onTap: () => step(i + 1) }],
-        });
-      };
-      step(0);
+      PE.Talk.play({ title: chapter.title, cls: 'story', lines: chapter.lines, rivalId, rivalName: rival.name });
     },
   };
   PE.Story = Story;

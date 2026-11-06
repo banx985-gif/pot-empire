@@ -53,7 +53,11 @@
 
       g.grow.eachStation((fid, si, st) => {
         // An automatic sprinkler kept watering for a while after you left, by its level.
-        if (g.grow.autoWaters(fid, si)) st.lastServiceMs = Math.max(st.lastServiceMs, Math.min(now, from + B.water.awayHoursBySprinkler[st.levels.sprinkler - 1] * 3600000));
+        if (g.grow.autoWaters(fid, si)) {
+          const until = from + B.water.awayHoursBySprinkler[st.levels.sprinkler - 1] * 3600000;
+          st.lastServiceMs = Math.max(st.lastServiceMs, Math.min(now, until));
+          if (until < now) st.dryFromAway = true;   // it ran out before you came back
+        }
         const cycling = st.auto.harvest && st.auto.replant
           && g.grow.hasStationFeature(st, 'autoHarvest') && g.grow.hasStationFeature(st, 'autoReplant');
         const eff = efficiency(st, fid, si);

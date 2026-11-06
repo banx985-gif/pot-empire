@@ -82,6 +82,13 @@
       const game = g();
       const f = game.meta.festivalNow();
       const s = game.meta.festivalState();
+      // The first look during each festival: the helpers tell you about it.
+      if (f.active && game.state.settings.helpers && game.state.ui.festivalTalk !== f.theme) {
+        game.state.ui.festivalTalk = f.theme;
+        const ev = PE.Data.events.find((x) => x.name === f.theme);
+        const scenes = PE.Data.scenes.festivals;
+        PE.Talk.play({ title: f.theme, cls: 'story', lines: (ev && scenes[ev.id]) || scenes.default });
+      }
       if (!f.active) return `<p class="center"><b>${esc(f.theme)} is next.</b></p><p class="center muted">It starts in ${duration((f.endsMs - game.now()) / 1000)}. You have ${Money.format(game.state.currencies.festivalTickets)} Festival Tickets.</p>`;
       const n = game.B.meta.festival.tiers;
       let rows = '';

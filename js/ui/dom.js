@@ -44,8 +44,17 @@
   // fingers "a finger is down" only ends at touchend: if it ended at pointerup, a menu's once-a-second
   // redraw could slip in before touchend, replace the button, and the tap would be lost (the cause of
   // the two taps that failed in job 002; tools/browser_lost_tap.js shows it).
+  // If the thing under the finger is removed while it's down (a pop-up closing by itself), that touchend never reaches
+  // the page, so nothing would say the finger had gone, and the top bar and menus would stop redrawing until the next
+  // touch. So a finger's pointerup also ends it, a moment later, well after any real touchend.
   let touching = false;
-  window.addEventListener('pointerup', (e) => { if (e.pointerType !== 'touch') touching = false; }, true);
+  let touchSeq = 0;
+  window.addEventListener('pointerdown', () => { touchSeq += 1; }, true);
+  window.addEventListener('pointerup', (e) => {
+    if (e.pointerType !== 'touch') { touching = false; return; }
+    const seq = touchSeq;
+    setTimeout(() => { if (seq === touchSeq) touching = false; }, 350);
+  }, true);
   window.addEventListener('pointercancel', () => { touching = false; }, true);
   window.addEventListener('touchend', (e) => { if (!e.touches || !e.touches.length) setTimeout(() => { touching = false; }, 0); }, true);
   window.addEventListener('touchcancel', () => { touching = false; }, true);

@@ -1,5 +1,4 @@
-// Small things that make the first minutes feel good (job 10): the loading screen ending, the intro comic, Uncle Haze's
-// idle animation, and the red arrows at the edge of the screen. No game rules here.
+// Small things that make the first minutes feel good (job 10): the loading screen ending, the intro comic, and the red arrows at the edge of the screen. No game rules here.
 (function (PE) {
   const $ = (id) => document.getElementById(id);
   const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -9,20 +8,11 @@
     done() { const el = $('loading'); if (el) el.remove(); },
   };
 
-  // ---- Uncle Haze's idle: 11 frames at about 7 a second. Reduced motion shows the first frame only. ------------------
-  PE.HazeAnim = {
-    html(height, cls = '') {
-      const { w, h } = PE.Data.hazeAnim.idle;
-      const width = Math.round((w / h) * height);
-      return `<span class="haze-anim ${calm() ? '' : 'moving'} ${cls}" role="img" aria-label="Uncle Haze" style="width:${width}px;height:${height}px;background-image:url(assets/haze/haze_idle.webp)"></span>`;
-    },
-  };
-
   // ---- The intro comic: skippable, and Settings can replay it ---------------------------------------------------------
   const STAND = {
     town: () => '<img src="assets/map/BLD-F03-1.webp" alt="" draggable="false">',
     velvet: () => '<img src="assets/characters/RIVAL-12.webp" alt="The Velvet Investor" draggable="false" onerror="this.style.visibility=\'hidden\'">',
-    haze: () => PE.HazeAnim.html(Math.min(window.innerHeight * 0.5, 420)),
+    haze: () => PE.AnimDom.html('HAZE', Math.min(window.innerHeight * 0.5, 420)),
     garage: () => '<img src="assets/map/BLD-F01-1.webp" alt="" draggable="false">',
   };
   const Intro = {
@@ -60,6 +50,7 @@
         <div class="comic-row"><button class="comic-skip" data-act="skip">Skip</button><span class="comic-dots">${list.map((_, k) => (k === i ? '●' : '○')).join('')}</span>
         <button class="btn go" data-act="next">${i === list.length - 1 ? "Let's go!" : 'Next'}</button></div>`;
       el.hidden = false;
+      PE.AnimDom.play(el.querySelector('.anim-box'), 'chat');
     },
     close() {
       Intro.open = false;

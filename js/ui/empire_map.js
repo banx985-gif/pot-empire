@@ -38,7 +38,13 @@
         if (!scene.textures.exists(key)) scene.textures.addImage(key, img);
         onReady(key);
       };
-      img.onerror = () => { if (onFail && scene.sys.settings.status < Phaser.Scenes.SHUTDOWN) onFail(); };
+      // A busy server now and then says no: try twice more before giving up on the picture.
+      let tries = 0;
+      img.onerror = () => {
+        if (scene.sys.settings.status >= Phaser.Scenes.SHUTDOWN) return;
+        if (++tries <= 2) { setTimeout(() => { img.src = `${url}?retry=${tries}`; }, 900 * tries); return; }
+        if (onFail) onFail();
+      };
       img.src = url;
       return true;
     },
@@ -409,7 +415,10 @@
       const feature = this.g.map.featureRow(fid);
       if (feature) PE.App.openPanel(feature.route, {});
       else if (this.g.facilities.isOwned(fid)) this.peekThenGo(fid);
-      else PE.App.openPanel('lotInfo', { fid });
+      else {
+        if (!this.g.facilities.isAvailable(fid)) this.g.emit('lockedTap', { fid });
+        PE.App.openPanel('lotInfo', { fid });
+      }
     }
     // Tap a grow building, shop or factory: its roof lifts for a moment, then you're inside. Uses PEEK-Fnn-n once drawn;
     // until then the top of the building's own picture fades off. Reduced motion goes straight in.
@@ -433,7 +442,8 @@
       };
       if (!MapArt.load(this, peekId, (key) => lift(key), () => lift(null))) lift(null);
     }
-    onGameEvent(type) {
+    onGameEvent(type, e) {
+      if (this.lifeEvent && this.ready) this.lifeEvent(type, e);
       if (type === 'changed' && this.ready) this.needRefresh = true;
     }
 

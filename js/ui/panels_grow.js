@@ -160,15 +160,17 @@
       const thirsty = game.offline.thirsty();
       if (thirsty && !PE.Offline.toldThirst) {
         PE.Offline.toldThirst = true;
-        PE.Dom.toast('Your plants got thirsty while you were away. Water them and they\'ll perk right up.', 'big', 'ACT-04');
+        if (!r || !game.state.settings.helpers) PE.Dom.toast('Your plants got thirsty while you were away. Water them and they\'ll perk right up.', 'big', 'ACT-04');
       }
       if (!r || PE.Dom.modalNow) return;
       const grades = r.grades.map((n, i) => (n ? `${n} ${game.B.quality.grades[i].name}` : '')).filter(Boolean).join(', ');
       const extras = r.extras.map((e) => `<li>${esc(e)}</li>`).join('');
+      const script = PE.Data.scenes.welcomeBack[thirsty ? 'thirsty' : 'plain'];
+      const talker = game.state.settings.helpers ? PE.Talk.inlineHtml(script) : PE.Dom.icon('STA-01', 72, 'center-ico');
       PE.Dom.modal({
         title: 'Welcome back!',
         cls: 'welcome',
-        html: `${PE.Dom.icon('STA-01', 72, 'center-ico')}<p>You were away for <b>${duration(r.awaySeconds)}</b>.${r.capped ? ` Automation is capped at ${duration(game.offline.capSeconds())}.` : ''}</p>
+        html: `${talker}<p>You were away for <b>${duration(r.awaySeconds)}</b>.${r.capped ? ` Automation is capped at ${duration(game.offline.capSeconds())}.` : ''}</p>
           <p class="bigcash">${money(r.cash)}</p>
           <ul class="plain"><li>${PE.Money.format(r.harvests)} harvests sold${grades ? `: ${grades}` : ''}</li><li>+${PE.Money.format(r.xp)} XP</li>${extras}</ul>`,
         buttons: [{
@@ -182,6 +184,7 @@
           onTap: () => PE.Store.watchAd('doubleOfflineClaim', (res) => { if (!res.ok) { game.offline.claim(); PE.App.saveGame(); } }),
         }] : []),
       });
+      if (game.state.settings.helpers) PE.Talk.startInline(script);
     },
   };
 })(globalThis.PE = globalThis.PE || {});

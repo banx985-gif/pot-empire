@@ -95,17 +95,24 @@
         Tutorial.box = null;
         const who = names()[s.who];
         const dims = '<div class="dim d-top"></div><div class="dim d-bottom"></div><div class="dim d-left"></div><div class="dim d-right"></div><div class="tut-hole"></div>';
-        const big = s.who === 'HAZE' ? PE.HazeAnim.html(Math.round($('ui').clientHeight * 0.4)) : `<img src="${PE.HelperArt.url(s.face)}" alt="${esc(who)}" draggable="false">`;
+        const big = PE.AnimDom.html(s.who, Math.round($('ui').clientHeight * 0.4));
         if (s.talk) {
           // The big talker: bottom half of the screen, round bubble, Continue.
           el.innerHTML = `${dims}<div class="tut-talk"><div class="talk-who">${big}</div>
-            <div class="talk-bubble"><b>${esc(who)}</b><p>${esc(s.text)}</p></div>
+            <div class="talk-bubble"><b>${esc(who)}</b><p class="talk-line">${esc(s.text)}</p></div>
             <div class="talk-row"><button class="btn go" data-act="next">Continue</button><button class="tut-skip" data-act="skip">Skip guide</button></div></div>`;
         } else {
           // A spiky tip: one line, no button, gone when the thing is done.
           el.innerHTML = `${dims}<div class="tut-arrow">${icon('UPG-06', 54)}</div><div class="tut-hand" hidden>${PE.GrowTools.HAND}</div>
             <div class="tut-tip"><b class="sr">${esc(who)}: </b>${esc(s.text)}</div>
             <div class="tip-row">${speed ? `<button class="btn small go" data-act="speed">${icon('STA-04', 18)}Grow it now</button>` : ''}<button class="tut-skip" data-act="skip">Skip guide</button></div>`;
+        }
+        if (s.talk) {
+          const box = el.querySelector('.tut-talk .anim-box');
+          const move = s.move || 'chat';
+          let typing = true;
+          PE.AnimDom.play(box, move, move === 'chat' ? {} : { done: () => { if (typing && box.isConnected) PE.AnimDom.play(box, 'chat'); } });
+          PE.Talk.typeOut(el.querySelector('.tut-talk .talk-line'), s.text, () => { typing = false; if (box.dataset.move === 'chat') PE.AnimDom.settle(box); });
         }
         el.className = s.drag ? 'open' : '';
         document.body.classList.add('tut-open');
@@ -182,7 +189,7 @@
       if (!h) return;
       g.tutorial.markHint(h.id);
       Tutorial.lastHint = performance.now();
-      if (PE.App.state.settings.helpers) PE.HelperUI.add({ helper: h.who, name: names()[h.who], text: h.text, face: h.face, hint: true });
+      if (PE.App.state.settings.helpers) PE.HelperUI.add({ helper: h.who, name: names()[h.who], text: h.text, face: h.face, move: h.move, hint: true });
       else PE.Dom.toast(h.text, 'big', 'SYS-05');
       PE.App.saveGame();
     },

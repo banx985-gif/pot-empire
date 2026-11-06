@@ -32,12 +32,14 @@
       this.setUpCamera();
       this.setUpInput();
       this.walkers = [];
+      this.buildLife();
       if (this.retail) this.buildCustomers();
+      this.unsub = this.g.on((type, e) => this.onGameEvent(type, e));
       this.sig = null;
       this.ready = true;
       this.refresh();
       if (!this.calm()) this.cameras.main.fadeIn(170, 20, 10, 36);
-      this.events.once('shutdown', () => { this.ready = false; });
+      this.events.once('shutdown', () => { this.ready = false; this.unsub(); this.helperLife = null; this.managerActor = null; });
       PE.Hud.refresh();
     }
 
@@ -158,34 +160,84 @@
       this.ghostText.setPosition(x, y).setAlpha(can ? 1 : 0.5).setText(can ? `+ ${thing}\n${PE.Dom.money(this.g.facilities.nextStationCost(this.fid))}` : `Next ${thing.toLowerCase()}\nopens as this grows`);
     }
 
+    // Customers walk in, up to the counter, and do a happy little thing on their way out. They use their walker pictures
+    // with a bob until their frames arrive, and pick the frames up by themselves when they do.
     buildCustomers() {
       if (this.calm()) return;
       const doorY = this.h - 40;
-      ['WLK-02', 'WLK-04'].forEach((art, n) => {
-        PE.MapArt.load(this, art, (k) => {
-          if (!this.ready) return;
-          const src = this.textures.get(k).getSourceImage();
-          const s = this.add.image(this.w / 2 + (n ? 120 : -120), doorY, k).setOrigin(0.5, 1).setDepth(35).setAlpha(0);
-          s.setDisplaySize((src.width / src.height) * 170, 170);
-          this.walkers.push({ s, t: n * 0.45, speed: 0.045 + n * 0.012, from: { x: s.x, y: doorY } });
-        });
+      ['WLK-02', 'WLK-04'].forEach((id, n) => {
+        const actor = new PE.Anim.Actor(this, id, { x: this.w / 2, y: doorY, height: 250 });
+        actor.image.setAlpha(0);
+        this.walkers.push({ actor, id, state: 'wait', left: n * 5 + 1, from: { x: this.w / 2 + (n ? 150 : -150), y: doorY }, at: { x: this.w / 2 + (n ? 90 : -90), y: WALL + 150 }, speed: 110 + n * 20 });
       });
+    }
+    stepCustomers(dt) {
+      const stocked = this.g.business.slots(this.fid).some((s) => s.sku);
+      for (const w of this.walkers) {
+        const A = w.actor;
+        if (w.state === 'wait') {
+          A.image.setAlpha(0);
+          w.left -= dt;
+          if (w.left <= 0 && stocked) { w.state = 'in'; A.moveTo(w.from.x, w.from.y); A.heading(w.at.x - w.from.x, w.at.y - w.from.y); }
+          continue;
+        }
+        const to = w.state === 'in' ? w.at : w.from;
+        if (w.state === 'in' || w.state === 'out') {
+          const dx = to.x - A.x, dy = to.y - A.y, d = Math.hypot(dx, dy);
+          const step = w.speed * dt;
+          if (d <= step) {
+            A.moveTo(to.x, to.y);
+            if (w.state === 'in') { w.state = 'buy'; w.left = 1.4; A.play('idle'); } else { w.state = 'wait'; w.left = 2 + Math.random() * 5; }
+          } else { A.moveTo(A.x + (dx / d) * step, A.y + (dy / d) * step); A.heading(dx, dy); }
+          A.image.setAlpha(w.state === 'out' ? Math.min(1, Math.hypot(w.from.x - A.x, w.from.y - A.y) / 90) : Math.min(1, Math.hypot(w.from.x - A.x, w.from.y - A.y) / 60 + 0.05));
+          continue;
+        }
+        w.left -= dt;
+        if (w.state === 'buy' && w.left <= 0) {
+          w.state = 'happy';
+          w.left = 1.1;
+          A.play('happy');
+          this.customersHappy = (this.customersHappy || 0) + 1;
+          if (this.managerActor) this.giveProduct();
+          // No frames for it yet: a happy little hop.
+          if (!A.hasFrames) this.tweens.add({ targets: A.image, y: A.image.y - A.height * 0.1, yoyo: true, repeat: 1, duration: 170, ease: 'Sine.easeOut' });
+        } else if (w.state === 'happy' && w.left <= 0) {
+          w.state = 'out';
+          A.heading(w.from.x - A.x, w.from.y - A.y);
+        }
+      }
+    }
+    giveProduct() {
+      const now = performance.now();
+      if (now - (this.lastGive || 0) < 2500) return;
+      this.lastGive = now;
+      PE.Anim.handOver(this, this.managerActor);
+    }
+    // Two helpers wander the wide gaps.
+    buildLife() {
+      const xs = [MARGIN / 2 + 20, MARGIN + CELL_W, this.w - MARGIN / 2 - 20];
+      const rows = Math.max(1, Math.ceil(this.open / COLS));
+      const ys = [WALL + 165];
+      for (let r = 0; r < rows; r++) ys.push(Math.min(this.h - 40, this.spot(r * COLS).y + CELL_H / 2 - 10));
+      this.helperLife = new PE.HelperLife.Life(this, PE.HelperLife.aisleWorld(xs, ys, { height: 320, speed: 120, near: 520, textScale: () => PE.App.dpr / this.cameras.main.zoom }));
+      const manager = this.g.collections.managersAt(this.fid)[0];
+      if (manager && PE.App.state.settings.helpers) {
+        this.managerActor = new PE.Anim.Actor(this, manager, { x: this.w / 2 - 240, y: WALL + 96, height: 250, depth: 5 });
+        this.managerId = manager;
+      }
+    }
+    onGameEvent(type, e) {
+      if (!this.ready) return;
+      if (type === 'lockedTap' && this.helperLife) this.helperLife.react('locked');
+      if (type === 'currency' && e.why === 'retail' && this.managerActor) this.giveProduct();
     }
 
     update(time, delta) {
       if (!this.ready) return;
-      const stocked = this.g.business.slots(this.fid).map((s, i) => (s.sku ? i : -1)).filter((i) => i >= 0);
-      for (const w of this.walkers) {
-        if (!stocked.length) { w.s.setAlpha(0); continue; }
-        w.t += w.speed * (delta / 1000);
-        if (w.t >= 1) { w.t = 0; w.goal = null; }
-        if (!w.goal) w.goal = this.spot(stocked[Math.floor(Math.random() * stocked.length)]);
-        // In from the door, up to a shelf, and back out.
-        const k = w.t < 0.5 ? w.t * 2 : (1 - w.t) * 2;
-        w.s.setPosition(w.from.x + (w.goal.x - w.from.x) * k, w.from.y + (w.goal.y + 180 - w.from.y) * k);
-        w.s.setFlipX((w.t < 0.5) === (w.goal.x > w.from.x));
-        w.s.setAlpha(Math.min(1, w.t * 12, (1 - w.t) * 12));
-      }
+      const dt = Math.min(0.1, (delta || 16) / 1000);
+      PE.Anim.stepAll(this, dt);
+      if (this.helperLife) this.helperLife.update(dt);
+      this.stepCustomers(dt);
       if (time - (this.lastRefresh || 0) < 300) return;
       this.lastRefresh = time;
       this.refresh();
@@ -251,8 +303,7 @@
       const near = (i) => { const c = this.spot(i); return Math.abs(pt.x - c.x) < 230 && pt.y > c.y - 200 && pt.y < c.y + 220; };
       if (this.ghostAt !== null && this.ghostAt !== undefined && near(this.ghostAt)) {
         const r = this.g.facilities.buyStation(this.fid);
-        if (!r.ok) PE.Dom.toast(r.why === 'cash' ? 'Not enough cash yet' : 'This one opens as the place grows');
-        else PE.App.saveGame();
+        if (!r.ok) { PE.Dom.toast(r.why === 'cash' ? 'Not enough cash yet' : 'This one opens as the place grows'); this.g.emit('lockedTap', {}); } else PE.App.saveGame();
         return;
       }
       const slots = this.g.business.slots(this.fid);
@@ -269,6 +320,8 @@
         PE.App.openPanel('business', { fid: this.fid });
         return;
       }
+      const helper = this.helperLife && this.helperLife.tap(pt.x, pt.y);
+      if (helper) this.g.helpers.chat(helper.id);
     }
     worldToPage(wx, wy) {
       const cam = this.cameras.main;
