@@ -396,12 +396,20 @@
       }
       return null;
     }
-    pagePoint(id) {
+    // Used by the automatic browser tests: somewhere clearly on their body, in whatever pose they're in.
+    // blocked(e, x, y), if given, says when something is drawn in front of them there (a building on the map).
+    // Then only a point that can really be seen counts, and null means they're out of sight.
+    pagePoint(id, blocked) {
       const e = this.list.find((x) => x.id === id);
       if (!e) return e;
-      // Somewhere clearly on their body, in whatever pose they're in.
-      const up = [0.55, 0.65, 0.45, 0.75, 0.35].find((k) => e.actor.covers(e.actor.x, e.actor.y - e.actor.height * k)) || 0.55;
-      return this.scene.worldToPage(e.actor.x, e.actor.y - e.actor.height * up);
+      const A = e.actor;
+      for (const k of [0.55, 0.65, 0.45, 0.75, 0.35, 0.85, 0.25]) {
+        for (const side of [0, -0.1, 0.1]) {
+          const x = A.x + A.height * side, y = A.y - A.height * k;
+          if (A.covers(x, y) && !(blocked && blocked(e, x, y))) return this.scene.worldToPage(x, y);
+        }
+      }
+      return blocked ? null : this.scene.worldToPage(A.x, A.y - A.height * 0.55);
     }
     setVisible(on) {
       for (const e of this.list) {

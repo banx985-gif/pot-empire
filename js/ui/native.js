@@ -16,6 +16,13 @@
       const c = cap();
       if (!c || !c.addListener) return;
       c.addListener('App', 'appStateChange', (st) => Native.setAway(!st.isActive));
+      // The phone's Back button. The app's wrapper ignores Back once the game has no step left to go back to,
+      // so the game handles it: step back inside the game (popstate in app.js does the rest), or, from the very top,
+      // put the app away the way Home does. The game keeps its place and is saved on the way out.
+      c.addListener('App', 'backButton', (e) => {
+        if (e && e.canGoBack) history.back();
+        else c.nativePromise('App', 'minimizeApp', {}).catch(() => {});
+      });
     },
     // Sound stops when the app goes to the background, and picks up where it left off when it comes back.
     setAway(away) {

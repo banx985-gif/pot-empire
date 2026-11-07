@@ -500,11 +500,7 @@
       }
     }
     // A helper hidden behind a building or a rival's building can't be tapped: the tap's for the building.
-    const hidden = (h) => {
-      const pics = [...this.views.values()].map((v) => v.image).concat([...L.rivals.values()].map((v) => v.image));
-      return pics.some((im) => im.visible && im.depth > h.actor.image.depth && PE.Anim.solidAt(this, im, x, y));
-    };
-    const helper = L.helperLife && L.helperLife.tap(x, y, hidden);
+    const helper = L.helperLife && L.helperLife.tap(x, y, (h) => this.helperBlockedAt(h, x, y));
     if (helper) {
       this.g.helpers.chat(helper.id);
       return true;
@@ -550,7 +546,31 @@
 
   // Used by the automatic browser test to really tap things.
   proto.giftPagePoint = function giftPagePoint() { const s = this.life.gift.sprite; return this.worldToPage(s.x, s.y); };
-  proto.helperPagePoint = function helperPagePoint(id) { return this.life.helperLife.pagePoint(id); };
+  // Is a building or a rival's building drawn in front of this helper at this spot on the map?
+  proto.helperBlockedAt = function helperBlockedAt(h, x, y) {
+    const pics = [...this.views.values()].map((v) => v.image).concat([...this.life.rivals.values()].map((v) => v.image));
+    return pics.some((im) => im.visible && im.depth > h.actor.image.depth && PE.Anim.solidAt(this, im, x, y));
+  };
+  // A point on the helper that can really be seen, or null if a building hides them.
+  proto.helperPagePoint = function helperPagePoint(id) { return this.life.helperLife.pagePoint(id, (h, x, y) => this.helperBlockedAt(h, x, y)); };
+  // For the tests: a point to tap on the helper. If a building hides them, first move them to the nearest open spot on a street,
+  // with the camera on them. (A helper that's out of sight behind a building can't be tapped, by design: the tap is the building's.)
+  proto.helperTapPoint = function helperTapPoint(id) {
+    const here = this.helperPagePoint(id);
+    if (here) return here;
+    const e = this.life.helperLife.list.find((x) => x.id === id);
+    const pts = PE.MapPaths.linesOf(this.layout, (k) => k.walk).flatMap((l) => l.pts)
+      .sort((p, q) => Math.hypot(p[0] - e.actor.x, p[1] - e.actor.y) - Math.hypot(q[0] - e.actor.x, q[1] - e.actor.y));
+    const cam = this.cameras.main;
+    for (const [x, y] of pts) {
+      e.actor.setBehind(null);
+      e.actor.moveTo(x, y);
+      cam.centerOn(x, y - 40); cam.preRender(); this.clampCamera();
+      const p = this.helperPagePoint(id);
+      if (p) return p;
+    }
+    return null;
+  };
   proto.rivalPagePoint = function rivalPagePoint(id) { const v = this.life.rivals.get(id); return this.worldToPage(v.spot.x, v.spot.y - 50); };
 
   // ---- The story scene for a beaten rival: short, and one tap skips it --------------------------------------------------
