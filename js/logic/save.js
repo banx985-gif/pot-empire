@@ -6,8 +6,13 @@
 //   2. copy the current good save to the backup slot
 //   3. write the new save to the main slot, then clear the temporary slot
 //
-// How a save is loaded: try main, then temporary, then backup. Each must pass a checksum (a
-// fingerprint that detects damaged text). Anything damaged is kept aside, never silently thrown away.
+// How a save is loaded: try temporary, then main, then backup. The temporary slot is only ever there if a save didn't finish, and
+// what's in it is the newest game. Each must pass a checksum (a fingerprint that detects damaged text), and then a trial run if the
+// game gives one: a save with a good fingerprint and wrong insides must not stop the game starting. Anything damaged is kept aside,
+// never silently thrown away.
+//
+// Two copies open at once (two tabs): the newest one opened owns the save. An older copy can't save any more, so it can't write old
+// progress over new. It's told, and reopening it makes it the owner.
 (function (PE) {
   const FORMAT = 'pot-empire-save';
   // Prefixed because every Banx game on github.io shares one storage area.
@@ -59,8 +64,14 @@
       temp: KEY_PREFIX + 'temp',
       backup: KEY_PREFIX + 'backup',
       damaged: KEY_PREFIX + 'damaged',
+      owner: KEY_PREFIX + 'owner',
     };
+    const copyId = options.copyId || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+    let otherCopy = false;  // true once a newer copy of the game has taken over this save
+    const readOwner = () => { try { return storage.getItem(KEYS.owner); } catch (e) { return null; } };
+    const takeOwnership = () => { try { storage.setItem(KEYS.owner, copyId); } catch (e) { /* no room: this copy just carries on */ } };
     let blocked = false;   // true when the save on this phone is from a newer build than this one
+    let held = false;      // true during the tester's Fast time: nothing it does may be saved
 
     function keepDamagedCopy(raw) {
       try { storage.setItem(KEYS.damaged, raw); } catch (e) { /* no room: nothing more we can do */ }
@@ -80,6 +91,7 @@
         const state = migrate(old, env.saveVersion, version, migrations);
         const problems = schema.checkState(state);
         if (problems.length) throw new Error(problems.join(', '));
+        if (options.trial) options.trial(JSON.parse(JSON.stringify(state)));
         return { state, migratedFrom: env.saveVersion < version ? env.saveVersion : null };
       } catch (e) {
         keepDamagedCopy(raw);
@@ -89,7 +101,8 @@
 
     function load() {
       const problems = [];
-      for (const slot of ['main', 'temp', 'backup']) {
+      takeOwnership();
+      for (const slot of ['temp', 'main', 'backup']) {
         const res = tryLoad(slot);
         if (res.tooNew) {
           blocked = true;
@@ -111,6 +124,10 @@
 
     function save(state) {
       if (blocked) return { ok: false, error: 'blocked: this phone has a save from a newer build' };
+      if (held) return { ok: false, held: true, error: 'held: fast time is on' };
+      const owner = readOwner();
+      if (owner && owner !== copyId) { otherCopy = true; return { ok: false, otherCopy: true, error: 'the game was opened somewhere else on this phone' }; }
+      if (!owner) takeOwnership();
       const nowUtc = clock.nowUtc();
       state.lastSeenUtc = nowUtc;
       const payload = makeEnvelope(version, state, nowUtc);
@@ -124,6 +141,8 @@
         storage.removeItem(KEYS.temp);
         return { ok: true, savedAtUtc: nowUtc };
       } catch (e) {
+        // A failure the game lived through (usually no room). The last good save stands, and the half-done copy goes to free up room.
+        try { storage.removeItem(KEYS.temp); } catch (e2) { /* nothing more to do */ }
         return { ok: false, error: e.message };
       }
     }
@@ -145,6 +164,7 @@
         const current = storage.getItem(KEYS.main);
         if (current !== null && readEnvelope(current).envelope) storage.setItem(KEYS.backup, current);
         storage.setItem(KEYS.main, makeEnvelope(version, state, clock.nowUtc()));
+        storage.removeItem(KEYS.temp);   // an old unfinished save mustn't win over the restored game
         blocked = true;
         return { ok: true };
       } catch (e) {
@@ -152,7 +172,7 @@
       }
     }
 
-    return { load, save, exportText, importText, isBlocked: () => blocked, KEYS };
+    return { load, save, exportText, importText, isBlocked: () => blocked, isOtherCopy: () => otherCopy, ownedByOther: () => { const o = readOwner(); return !!o && o !== copyId; }, setHold: (v) => { held = !!v; }, KEYS };
   }
 
   PE.Save = { createSaveSystem, makeEnvelope, readEnvelope, checksum, KEY_PREFIX };

@@ -30,7 +30,8 @@
         ${toggle('haptics', 'Vibration', 'A gentle buzz on harvest, collect and level up')}
         <h4>Look and feel</h4>
         ${toggle('reducedMotion', 'Reduced motion', 'Fewer moving effects; celebrations stay still')}
-        ${toggle('bigText', 'Bigger text', 'Larger writing in menus and pop-ups')}
+        <div class="item"><div class="grow"><b>Text size</b><small>The writing in menus and pop-ups. Tap to change.</small></div>
+          <button class="btn small go" data-act="flip:bigText" aria-pressed="${!!s.bigText}">${s.bigText ? 'Large' : 'Normal'}</button></div>
         ${toggle('colourBlind', 'Colour-blind friendly', 'Quality shows a letter and shape, not just a colour')}
         ${toggle('helpers', 'Helper jokes', 'Uncle Haze, Budz and Leafy now and then')}
         <button class="btn wide plain" data-act="replayList">Help: replay helper lines</button>
@@ -47,11 +48,12 @@
         <button class="btn wide plain" data-act="replayIntro">Replay intro</button>
         ${PE.HelperArt.says(PE.Data.helperSprites.screens.howToPlay, PE.Data.helperSprites.words.howToPlay, 'Leafy')}
         ${HELP.map(([t, x]) => `<div class="item"><div class="grow"><b>${esc(t)}</b><small>${esc(x)}</small></div></div>`).join('')}
-        <p class="muted">Build ${esc(build)} · Balance table v${g().B.tableVersion} (provisional) · Save version ${PE.SaveSchema.CURRENT_VERSION}</p>
+        <p class="muted" data-act="version">Build ${esc(build)} · Balance table v${g().B.tableVersion} (provisional) · Save version ${PE.SaveSchema.CURRENT_VERSION}</p>
         <p class="muted">Music and ambience by TomMusic. Sound effects from ESM's Vibrant Game.</p>
         <p class="muted">A fictional game for adults. Nothing here is real advice or a real product.${s ? '' : ''}</p>`;
     },
     actions: {
+      version() { PE.Tester.tapVersion(); },
       flip(key) { S()[key] = !S()[key]; changed(); if (key === 'colourBlind') PE.Look.redrawRoom(); },
       vol(key, v) { S()[key] = Math.max(0, Math.min(1, Number(v) / 100)); changed(); if (key === 'sound') PE.Sound.play('tap'); },
       replayList() { PE.App.router.go('helperReplay', {}); },

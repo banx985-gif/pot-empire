@@ -18,7 +18,7 @@
   <script>
     // The loading screen: the van rolls along the road as each part of the game arrives.
     (function () {
-      var total = 82, got = 0;
+      var total = 3, got = 0;
       document.addEventListener('load', function (e) {
         if (!e.target || e.target.tagName !== 'SCRIPT') return;
         got++;
@@ -28,6 +28,7 @@
       }, true);
     })();
   </script>
+  <script src="js/ui/log.js"></script>
   <div id="safe-probe" aria-hidden="true"></div>
   <div id="game"></div>
   <div id="ui">
@@ -52,100 +53,6 @@
   <pre id="fatal" hidden></pre>
 
   <script src="vendor/phaser.min.js"></script>
-  <script src="js/build_info.js"></script>
-
-  <!-- Data tables -->
-  <script src="data/strains.js"></script>
-  <script src="data/strain_frames.js"></script>
-  <script src="data/managers.js"></script>
-  <script src="data/rivals.js"></script>
-  <script src="data/vips.js"></script>
-  <script src="data/helpers.js"></script>
-  <script src="data/plant_art.js"></script>
-  <script src="data/anim_art.js"></script>
-  <script src="data/anim_moves.js"></script>
-  <script src="data/scenes.js"></script>
-  <script src="data/helper_sprites.js"></script>
-  <script src="data/jokes.js"></script>
-  <script src="data/shop.js"></script>
-  <script src="data/events.js"></script>
-  <script src="data/ladder.js"></script>
-  <script src="data/collectibles.js"></script>
-  <script src="data/balance.v4.js"></script>
-  <script src="data/recipes.js"></script>
-  <script src="data/map.js"></script>
-  <script src="data/map/D1.js"></script>
-  <script src="data/map/D2.js"></script>
-  <script src="data/map/D3.js"></script>
-  <script src="data/map/D4.js"></script>
-  <script src="data/rival_story.js"></script>
-  <script src="data/asset_registry.js"></script>
-  <script src="data/ui_art.js"></script>
-  <script src="data/feature_buildings.js"></script>
-  <script src="data/hydro_art.js"></script>
-  <script src="data/hydro_anchors.js"></script>
-  <script src="data/tutorial.js"></script>
-
-  <!-- Rules: no Phaser in these, they can be tested on their own -->
-  <script src="js/logic/clock.js"></script>
-  <script src="js/logic/save_schema.js"></script>
-  <script src="js/logic/save.js"></script>
-  <script src="js/logic/router.js"></script>
-  <script src="js/logic/data_check.js"></script>
-  <script src="js/logic/money.js"></script>
-  <script src="js/logic/rng.js"></script>
-  <script src="js/logic/layout.js"></script>
-  <script src="js/logic/game.js"></script>
-  <script src="js/logic/effects.js"></script>
-  <script src="js/logic/progress.js"></script>
-  <script src="js/logic/grow.js"></script>
-  <script src="js/logic/facilities.js"></script>
-  <script src="js/logic/collections.js"></script>
-  <script src="js/logic/business.js"></script>
-  <script src="js/logic/meta.js"></script>
-  <script src="js/logic/offline.js"></script>
-  <script src="js/logic/helpers.js"></script>
-  <script src="js/logic/profile.js"></script>
-  <script src="js/logic/purchases.js"></script>
-  <script src="js/logic/map_paths.js"></script>
-  <script src="js/logic/empire_map.js"></script>
-  <script src="js/logic/calendar.js"></script>
-  <script src="js/logic/tutorial.js"></script>
-  <script src="js/logic/goals.js"></script>
-  <script src="js/logic/anim_pick.js"></script>
-
-  <!-- Drawing: Phaser only shows what the rules say -->
-  <script src="js/ui/screen.js"></script>
-  <script src="js/ui/dom.js"></script>
-  <script src="js/ui/quality_fx.js"></script>
-  <script src="js/ui/screens.js"></script>
-  <script src="js/ui/anim.js"></script>
-  <script src="js/ui/talk.js"></script>
-  <script src="js/ui/helper_life.js"></script>
-  <script src="js/ui/feel.js"></script>
-  <script src="js/ui/grow_room.js"></script>
-  <script src="js/ui/biz_room.js"></script>
-  <script src="js/ui/grow_tools.js"></script>
-  <script src="js/ui/empire_map_ground.js"></script>
-  <script src="js/ui/empire_map.js"></script>
-  <script src="js/ui/panels_grow.js"></script>
-  <script src="js/ui/panels_hydro.js"></script>
-  <script src="js/ui/panels_empire.js"></script>
-  <script src="js/ui/panels_collection.js"></script>
-  <script src="js/ui/panels_meta.js"></script>
-  <script src="js/ui/helpers_ui.js"></script>
-  <script src="js/ui/chest_reveal.js"></script>
-  <script src="js/ui/panels_calendar.js"></script>
-  <script src="js/ui/empire_map_life.js"></script>
-  <script src="js/ui/travel.js"></script>
-  <script src="js/ui/panels_profile.js"></script>
-  <script src="js/ui/sound.js"></script>
-  <script src="js/ui/panels_settings.js"></script>
-  <script src="js/ui/panels_features.js"></script>
-  <script src="js/ui/panels_shop.js"></script>
-  <script src="js/ui/menus.js"></script>
-  <script src="js/ui/juice.js"></script>
-  <script src="js/ui/tutorial_ui.js"></script>
-  <script src="js/ui/app.js"></script>
+  <script src="js/game.bundle.js"></script>
 </body>
 </html>

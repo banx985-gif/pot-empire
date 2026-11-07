@@ -393,7 +393,8 @@
       }
       // Nearest building front wins where two overlap.
       const hits = [...this.views.values()].filter((v) => Math.abs(pt.x - v.s.x) < Math.max(v.s.w / 2, 70) && pt.y < v.s.y + 46 && pt.y > v.s.y - Math.max(v.artTop || 0, 170)).sort((a, b) => b.s.y - a.s.y);
-      if (hits.length) this.openBuilding(hits[0].fid);
+      if (hits.length) { this.openBuilding(hits[0].fid); return; }
+      if (this.tapLot) this.tapLot(pt.x, pt.y);
     }
     collectAt(v) {
       const r = this.g.map.collect(v.fid);

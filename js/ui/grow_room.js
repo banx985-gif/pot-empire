@@ -147,6 +147,7 @@
       }).setOrigin(0.5).setAlpha(0.55).setDepth(-999);
 
       // The real room picture for this size, if it's been drawn and imported.
+      if (!this.testOverride) PE.DecorArt.attach(this, this.fid, { w, wall });
       if (!this.testOverride) PE.MapArt.load(this, `ROOM-${this.fid}-${this.roomSize}`, (key) => { this.add.image(0, 0, key).setOrigin(0, 0).setDisplaySize(w, h).setDepth(-998); });
 
       // The next slot, where it will go: a dashed ghost with its price.

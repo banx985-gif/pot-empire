@@ -30,6 +30,7 @@
   }
 
   // ---- In a scene ---------------------------------------------------------------------------------------------------
+  const RETRY_MS = 20000;   // how long before a picture that failed to arrive is tried again
   class Actor {
     // opts: x, y (feet), height (how tall they stand, in world units), depth (leave out to sort by y)
     constructor(scene, id, opts) {
@@ -57,11 +58,13 @@
       if (!scene.animActors) {
         scene.animActors = [];
         scene.animSheets = new Set();
+        scene.animFetches = new Map();
         scene.events.once('shutdown', () => {
           for (const a of scene.animActors) a.gone = true;
           for (const key of scene.animSheets) if (scene.textures.exists(key)) scene.textures.remove(key);
           scene.animActors = null;
           scene.animSheets = null;
+          scene.animFetches = null;
         });
       }
       scene.animActors.push(actor);
@@ -86,22 +89,35 @@
       };
       img.src = url;
     }
-    // Fetches one sheet of frames, then calls back. Only once per scene.
+    // Fetches one sheet of frames, then calls back. Only once per scene: everyone wanting a sheet that's on its way waits for that one
+    // fetch, and one that failed isn't asked for again for a while. (Walkers ask every frame, so without this a slow or missing
+    // picture was fetched again 60 times a second by each walker.)
     sheet(set, ready, failed) {
       const scene = this.scene;
       const key = `anim-${this.id}-${set}`;
       if (scene.textures.exists(key)) { ready(key); return; }
+      const fetches = scene.animFetches;
+      if (!fetches) { failed(); return; }
+      const known = fetches.get(key);
+      if (known && known.waiting) { known.waiting.push({ ready, failed }); return; }
+      if (known && performance.now() < known.retryAt) { failed(); return; }
+      const job = { waiting: [{ ready, failed }], retryAt: 0 };
+      fetches.set(key, job);
       const f = Art().chars[this.id][set];
       const img = new Image();
-      img.onload = () => {
-        if (this.gone || !scene.animSheets) return;
-        if (!scene.textures.exists(key)) {
+      const finish = (ok) => {
+        const waiting = job.waiting;
+        job.waiting = null;
+        if (scene.animFetches !== fetches) return;   // that visit to the scene has ended
+        if (ok && !scene.textures.exists(key)) {
           scene.textures.addSpriteSheet(key, img, { frameWidth: f.w, frameHeight: f.h });
           scene.animSheets.add(key);
         }
-        ready(key);
+        if (!ok) job.retryAt = performance.now() + RETRY_MS;
+        for (const w of waiting) { if (ok) w.ready(key); else w.failed(); }
       };
-      img.onerror = () => { if (!this.gone) failed(); };
+      img.onload = () => finish(true);
+      img.onerror = () => finish(false);
       img.src = `assets/anim/${this.id}/${set}.webp`;
     }
     // A move by name (chat, cheer, idle...). Calls done() when a move that ends has ended.
@@ -122,12 +138,15 @@
       const w = Pick().walkFor(this.id, dx, dy, this.walkRoll);
       if (!w) { if (!this.hasFrames) this.image.setFlipX(dx > 0); return; }
       if (this.cur && this.cur.walk && this.cur.set === w.set) { this.image.setFlipX(w.flip); return; }
+      if (this.wanted === w.set) return;   // on its way
       const n = Art().chars[this.id][w.set].n;
       this.start({ name: 'walk', walk: true, set: w.set, order: Array.from({ length: n }, (_, i) => i), fps: 8, loop: true, times: 1, flip: w.flip, look: Pick().lookOf(this.id, w.set) });
     }
     start(play) {
       const token = ++this.token;
+      this.wanted = play.set;
       this.sheet(play.set, (key) => {
+        if (token === this.token) this.wanted = null;
         if (this.gone || token !== this.token) return;
         const f = Art().chars[this.id][play.set];
         this.cur = { ...play, key, at: 0 };
@@ -137,7 +156,10 @@
         this.image.setTexture(key, play.order[0]).setOrigin(f.ox, f.oy).setFlipX(!!play.flip)
           .setScale(this.height / (Art().small * 0.92)).setVisible(true);
         if (calm() && play.done) { const done = play.done; play.done = null; this.scene.time.delayedCall(0, () => { if (!this.gone) done(); }); }
-      }, () => this.endFallback(play.done));
+      }, () => {
+        if (token === this.token) this.wanted = null;
+        if (!this.gone) this.endFallback(play.done);
+      });
     }
     // Is this point of the world clearly on the character's body, not on the empty part of their picture or a wisp of
     // smoke? A tap anywhere else belongs to whatever's underneath.

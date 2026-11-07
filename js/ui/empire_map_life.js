@@ -53,6 +53,7 @@
     this.makeLifeTextures();
     this.buildProps();
     this.buildRivals();
+    this.buildLots();
     this.buildVans();
     this.buildWalkers();
     this.buildBuildingLife();
@@ -264,15 +265,73 @@
     }
   };
   // Hand it over: the "here you go" move if they have one, and the product icon pops out beside the hand.
-  PE.Anim.handOver = function handOver(scene, actor) {
+  // sku: what sold. The crop shows the logo of the strain last harvested. A product has a stand-in label until its art arrives.
+  const FAMILY_COLOUR = { Snacks: 0xff8a3d, Drinks: 0x52a6ff, Accessories: 0x62d04b, 'Novelty Gifts': 0xff4fa3, 'Wellness Fiction': 0xb47cff, 'Premium Packs': 0xffd84d };
+  function productLabel(scene, id) {
+    const key = 'product-' + id;
+    if (scene.textures.exists(key)) return key;
+    const p = PE.Data.collectibles.products.find((x) => x.id === id);
+    if (!p) return null;
+    const size = 96;
+    const tex = scene.textures.createCanvas(key, size, size);
+    const c = tex.context;
+    const col = (FAMILY_COLOUR[p.family] !== undefined ? FAMILY_COLOUR[p.family] : 0xff4fa3).toString(16).padStart(6, '0');
+    c.fillStyle = '#' + col; c.beginPath(); c.roundRect(4, 4, size - 8, size - 8, 16); c.fill();
+    c.lineWidth = 5; c.strokeStyle = '#1d0f33'; c.stroke();
+    c.fillStyle = '#1d0f33'; c.font = '900 40px system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText(p.name.split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase(), size / 2, size / 2 + 2);
+    tex.refresh();
+    return key;
+  }
+  function soldPicture(scene, sku, ready) {
+    const g = PE.App.g;
+    if (sku && sku !== g.business.CROP) { const k = productLabel(scene, sku); if (k) { ready(k); return; } }
+    if (sku === g.business.CROP || !sku) {
+      let strain = PE.App.lastHarvestStrain;
+      if (!strain) g.grow.eachStation((f, si, st) => { if (!strain) strain = st.lastStrains.find(Boolean); });
+      if (strain) {
+        const key = 'logo-' + strain;
+        if (scene.textures.exists(key)) { ready(key); return; }
+        const pic = new Image();
+        pic.onload = () => { if (scene.sys.settings.status >= Phaser.Scenes.SHUTDOWN) return; if (!scene.textures.exists(key)) scene.textures.addImage(key, pic); ready(key); };
+        pic.src = `assets/logos/${strain}.webp`;
+        return;
+      }
+    }
+    PE.UI.loadIcons(scene, ['ACT-03'], () => { if (scene.textures.exists('ui-ACT-03')) ready('ui-ACT-03'); });
+  }
+  PE.Anim.handOver = function handOver(scene, actor, sku) {
     actor.play('give');
-    PE.UI.loadIcons(scene, ['ACT-03'], () => {
-      if (actor.gone || !scene.textures.exists('ui-ACT-03')) return;
+    soldPicture(scene, sku, (key) => {
+      if (actor.gone) return;
+      PE.Anim.lastHanded = key;
       const size = actor.height * 0.34;
-      const s = scene.add.image(actor.x + actor.height * 0.3, actor.y - actor.height * 0.5, 'ui-ACT-03').setDisplaySize(size, size).setDepth(actor.image.depth + 1);
+      const s = scene.add.image(actor.x + actor.height * 0.3, actor.y - actor.height * 0.5, key).setDisplaySize(size, size).setDepth(actor.image.depth + 1);
       if (PE.App.state.settings.reducedMotion) { scene.time.delayedCall(400, () => s.destroy()); return; }
       scene.tweens.add({ targets: s, y: s.y - actor.height * 0.45, x: s.x + actor.height * 0.12, alpha: 0, duration: 800, ease: 'Sine.easeOut', onComplete: () => s.destroy() });
     });
+  };
+  // Spare clearings are lots for future buildings. A stand-in sign drawn in code, until its art arrives (PRP-LOT).
+  proto.buildLots = function buildLots() {
+    const L = this.layout;
+    const props = L.props || [];
+    this.lotSigns = (L.spareLots || []).filter((s) => !props.some((p) => Math.hypot(p.x - s.x, p.y - s.y) < 46)).map((s) => {
+      const c = this.add.container(s.x, s.y).setDepth(s.y);
+      const G = this.add.graphics();
+      G.fillStyle(0x000000, 0.25).fillEllipse(0, 2, 70, 16);
+      G.fillStyle(0x6a4628, 1).fillRect(-4, -46, 8, 48);
+      G.fillStyle(0xf6efe0, 1).fillRoundedRect(-37, -78, 74, 40, 6);
+      G.lineStyle(3, 0x1d0f33, 1).strokeRoundedRect(-37, -78, 74, 40, 6);
+      const t = this.add.text(0, -58, 'LOT\nFOR SALE', { fontFamily: 'system-ui, sans-serif', fontStyle: '900', fontSize: '13px', color: '#1d0f33', align: 'center', lineSpacing: -2 }).setOrigin(0.5).setResolution(2);
+      c.add([G, t]);
+      return { x: s.x, y: s.y };
+    });
+  };
+  proto.tapLot = function tapLot(x, y) {
+    const hit = (this.lotSigns || []).find((s) => Math.abs(x - s.x) < 50 && y < s.y + 22 && y > s.y - 90);
+    if (!hit) return false;
+    PE.Dom.toast('More of the empire is coming soon');
+    return true;
   };
   proto.lifeEvent = function lifeEvent(type, e) {
     const L = this.life;
@@ -281,13 +340,13 @@
       if (type === 'rivalBeaten') { L.helperLife.react('harvest'); this.bigWin(); } else if (type === 'harvest') L.helperLife.react('harvest');
       else if (type === 'lockedTap') L.helperLife.react('locked');
     }
-    if (type === 'currency' && e.why === 'retail' && L.managers && L.managers.length) {
+    if (type === 'sold' && L.managers && L.managers.length) {
       const now = performance.now();
       if (now - (L.lastGive || 0) < 5000) return;
-      const m = L.managers.find((x) => !x.actor.paused);
+      const m = L.managers.find((x) => !x.actor.paused && x.fid === e.fid) || L.managers.find((x) => !x.actor.paused);
       if (!m) return;
       L.lastGive = now;
-      PE.Anim.handOver(this, m.actor);
+      PE.Anim.handOver(this, m.actor, e.sku);
     }
   };
 

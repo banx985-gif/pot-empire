@@ -71,7 +71,7 @@
     },
     play(name) {
       const vol = settings().sound;
-      if (!Sound.ctx || !(vol > 0) || document.hidden) return;
+      if (!Sound.ctx || !(vol > 0) || document.hidden || PE.Native.away) return;
       const now = performance.now();
       if (now - (Sound.last[name] || 0) < 70) return;   // a burst of the same sound plays once
       Sound.last[name] = now;
@@ -109,7 +109,7 @@
       return tr;
     },
     setTrack(name, level) {
-      const on = Sound.ctx && level > 0 && !document.hidden;
+      const on = Sound.ctx && level > 0 && !document.hidden && !PE.Native.away;
       if (!on && !Sound.tracks[name]) return null;
       const tr = Sound.track(name);
       if (!tr.el) return tr;
@@ -125,7 +125,7 @@
       const tr = Sound.setTrack('music', s.music * 0.45);
       Sound.setTrack('ambience', Sound.onMap ? s.sound * 0.3 : 0);
       // The generated chords only if the real music file can't be had.
-      const chords = !!(tr && tr.failed) && s.music > 0 && !document.hidden;
+      const chords = !!(tr && tr.failed) && s.music > 0 && !document.hidden && !PE.Native.away;
       if (chords && !Sound.musicTimer) {
         const step = () => {
           const v = settings().music * 0.035;

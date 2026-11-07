@@ -84,7 +84,14 @@
     return g;
   }
 
-  PE.Game = { createGame, services: {}, serviceOrder: [] };
+  // Runs a save for a moment on a throwaway game: throws if it can't. The real game starts only from a save that passes.
+  function tryOut(state, clock, data) {
+    const g = createGame({ state, clock, data });
+    g.offline.settle();
+    g.tick();
+  }
+
+  PE.Game = { createGame, tryOut, services: {}, serviceOrder: [] };
   // Each service file registers itself here. Order = load order in index.html.
   PE.Game.register = (name, fn) => { PE.Game.services[name] = fn; PE.Game.serviceOrder.push(name); };
 })(globalThis.PE = globalThis.PE || {});

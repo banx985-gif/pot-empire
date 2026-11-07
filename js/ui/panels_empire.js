@@ -193,7 +193,7 @@
           ${ready && !waiting ? `<button class="btn small go" data-act="claim:${i}">Claim</button>` : rush}</div>
           <div class="row-btns">${levelsBlock(fid, i, l, { speed: 'Speed', batch: 'Batch', value: 'Value' })}</div></div>`;
       }
-      return `<div class="shelf"><div class="item" data-act="pick:${i}"><div class="grow"><b>Line ${i + 1}</b><small>Idle${l.sku ? `, last made ${esc(game.stock.skuName(l.sku))}` : ''}. Tap to choose a product.</small></div><span class="tag go">Start</span></div>
+      return `<div class="shelf"><div class="item" data-act="pick:${i}"><div class="grow"><b>Line ${i + 1}</b><small>Idle${l.sku ? `, last made ${esc(game.stock.skuName(l.sku))}` : ''}.${l.waitForPlayer ? ' Its next batch costs cash, so it waited for you.' : ''} Tap to choose a product.</small></div><span class="tag go">Start</span></div>
         <div class="row-btns">${levelsBlock(fid, i, l, { speed: 'Speed', batch: 'Batch', value: 'Value' })}</div></div>`;
     }).join('');
     return `<p><b>Crop stock: ${worth(game.state.stock.crop)}</b></p>

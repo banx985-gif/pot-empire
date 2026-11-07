@@ -72,6 +72,7 @@
         G.fillStyle(0x24242c, 1).fillRect(90, WALL - 20, w - 180, 26);
         for (let x = 150; x < w - 150; x += 180) { G.fillStyle(0xffd84d, 0.9).fillRect(x, WALL - 20, 90, 8); }
       }
+      PE.DecorArt.attach(this, this.fid, { w, wall: WALL });
       PE.MapArt.load(this, `ROOM-${this.fid}-${this.size}`, (key) => { this.add.image(0, 0, key).setOrigin(0, 0).setDisplaySize(w, h).setDepth(-995); });
     }
 
@@ -207,11 +208,13 @@
         }
       }
     }
-    giveProduct() {
+    // sku: what just sold. A customer at the counter buys whatever's on a stocked shelf here.
+    giveProduct(sku) {
       const now = performance.now();
       if (now - (this.lastGive || 0) < 2500) return;
       this.lastGive = now;
-      PE.Anim.handOver(this, this.managerActor);
+      const stocked = this.g.business.slots(this.fid).filter((s) => s.sku);
+      PE.Anim.handOver(this, this.managerActor, sku || (stocked.length ? stocked[Math.floor(Math.random() * stocked.length)].sku : null));
     }
     // Two helpers wander the wide gaps.
     buildLife() {
@@ -229,7 +232,7 @@
     onGameEvent(type, e) {
       if (!this.ready) return;
       if (type === 'lockedTap' && this.helperLife) this.helperLife.react('locked');
-      if (type === 'currency' && e.why === 'retail' && this.managerActor) this.giveProduct();
+      if (type === 'sold' && e.fid === this.fid && this.managerActor) this.giveProduct(e.sku);
     }
 
     update(time, delta) {

@@ -39,9 +39,24 @@
     const clock = PE.Clock.createClock();
     const saves = PE.Save.createSaveSystem({
       storage: getStorage(), clock, balanceVersion: PE.Data.balance.tableVersion,
+      trial: (state) => PE.Game.tryOut(state, clock, PE.Data),
     });
+    // A save that fails is written in the log, however it was called.
+    const realSave = saves.save;
+    saves.save = (state) => { const r = realSave(state); if (r.otherCopy) tellOtherCopy(); else if (!r.ok && !r.held && !saves.isBlocked()) PE.Log.error('save', r.error); return r; };
+    // The game was opened again somewhere else on this phone. This copy has stopped saving, so it has to be reopened to carry on.
+    let told = false;
+    function tellOtherCopy() {
+      if (told || !PE.Dom || !PE.Dom.modal) return;
+      told = true;
+      PE.Log.add('info', 'another copy of the game took over the save');
+      PE.Dom.modal({ title: 'Open somewhere else', html: '<p>The game was opened in another tab or window, and that copy is saving now. Tap below to carry on here instead.</p>', buttons: [{ label: 'Play here', style: 'go', onTap: () => location.reload() }] });
+    }
+    window.addEventListener('storage', (e) => { if (e.key === saves.KEYS.owner && saves.ownedByOther()) tellOtherCopy(); });
+
     const loaded = saves.load();
     let notice = null;
+    if (loaded.problems && loaded.problems.length) PE.Log.error('load', loaded.problems.join('; '));
     if (loaded.source === 'too-new') notice = 'This phone has a save from a newer build. Close the game fully and reopen it to update. Nothing is being saved until then.';
     else if (loaded.recovered) notice = 'Your latest save was damaged, so an earlier copy was restored.';
     else if (loaded.lostSave) notice = 'Your save was damaged and could not be restored, so this is a new game. The damaged copy has been kept.';
@@ -70,6 +85,15 @@
     PE.EdgeArrows.init();
     PE.GrowTools.init();
     PE.Juice.init();
+
+    PE.Native.init();
+
+    // A picture or sound the game's loader couldn't fetch goes in the log.
+    const baseNext = Phaser.Loader.LoaderPlugin.prototype.nextFile;
+    Phaser.Loader.LoaderPlugin.prototype.nextFile = function (file, success) {
+      if (!success) PE.Log.error('failed to load', file && (file.url || file.key));
+      return baseNext.call(this, file, success);
+    };
 
     const fromFile = location.protocol === 'file:';
     const game = new Phaser.Game({
@@ -214,6 +238,7 @@
     let hudSoon = false;
     // ---- Game events -> messages ---------------------------------------------------------------------
     g.on((type, e) => {
+      if (type === 'harvest' && e.strainId) app.lastHarvestStrain = e.strainId;
       if (type === 'levelUp') {
         PE.Dom.toast(`Level ${e.level}!${e.rewards.length ? ' ' + e.rewards[0] : ''}`, 'big', 'RWD-06');
       } else if (type === 'celebrate') {
@@ -282,7 +307,8 @@
 
   // Service worker: makes the installed game work offline. Only over http(s), so opening
   // index.html straight from a file on the PC keeps working.
-  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  // The Android app carries all its files with it, so it doesn't need one.
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !PE.Native.isApp()) {
     window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
   }
 })(globalThis.PE = globalThis.PE || {});

@@ -412,7 +412,7 @@ globalThis.PE.Data.balance = {
       cashHarvestsPerTier: 10,
     },
     prestige: {
-      unlockLevel: 29,          // v3: was 25 (the 45-minute player prestiged on Day 2)
+      unlockLevel: 33,          // job 13B: was 29 (the 45-minute player prestiged on day 1.4; Aaron wants day 3)
       thresholds: { D1: 2000000, D2: 100000000, D3: 10000000000, D4: 1000000000000 },
       repeatGrowth: 6,        // v3: each earlier prestige of the same district multiplies its threshold by this
       bonusPerShare: 0.02,

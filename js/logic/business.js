@@ -184,6 +184,7 @@
       const seconds = r.seconds;
       const now = g.now();
       line.sku = sku;
+      delete line.waitForPlayer;
       line.job = { input: r.inputs[0].need, output: r.output, startMs: now, endMs: now + seconds * 1000 };
       g.emit('changed');
       return { ok: true };
@@ -319,8 +320,9 @@
       if (g.research.hasFlag('factoryAuto')) {
         for (const fid of g.business.ids('Factory')) {
           slots(fid).forEach((line, i) => {
-            if (line.job && g.now() >= line.job.endMs) { const sku = line.sku; claimLine(fid, i); startLine(fid, i, sku); }
-            else if (!line.job && line.sku) startLine(fid, i, line.sku);
+            // Aaron's rule (job 13B): a line whose next batch costs cash waits for the player after time away. See settleOffline.
+            if (line.job && g.now() >= line.job.endMs) { const sku = line.sku; claimLine(fid, i); if (!line.waitForPlayer) startLine(fid, i, sku); }
+            else if (!line.job && line.sku && !line.waitForPlayer) startLine(fid, i, line.sku);
           });
         }
       }
@@ -458,6 +460,7 @@
                 const whole = Math.floor(shelf.pendingCash);
                 shelf.pendingCash -= whole;
                 g.earn('cash', whole, 'retail');
+                g.emit('sold', { fid, sku: shelf.sku });
                 g.facilities.addLocalXp(fid, gapSeconds / 60);
               }
             }
@@ -477,15 +480,20 @@
             if (shelf.sku) g.facilities.addLocalXp(fid, creditedSeconds / 600);
           }
         }
-        let batches = 0;
+        let batches = 0, waiting = 0;
         for (const fid of g.business.ids('Factory')) {
           slots(fid).forEach((line, i) => {
-            if (line.job && now >= line.job.endMs && g.research.hasFlag('factoryAuto') && !storeFull(line.sku)) {
+            if (!g.research.hasFlag('factoryAuto') || !line.sku) return;
+            const done = !line.job || now >= line.job.endMs;
+            // The next batch costs cash: nothing takes money while the player is away, so this line waits for them.
+            const costsCash = done && !!recipeRow(line.sku).cashShare;
+            if (costsCash && !line.waitForPlayer) { line.waitForPlayer = true; waiting++; }
+            if (line.job && done && !storeFull(line.sku)) {
               const boost = 1 + g.effects.get('factoryOffline', factoryCtx(fid, line, line.sku));
               line.job.output *= boost;
               const sku = line.sku;
               claimLine(fid, i);
-              startLine(fid, i, sku);
+              if (!costsCash) startLine(fid, i, sku);
               batches++;
             }
           });
@@ -505,6 +513,7 @@
           report.extras.push(`Shops sold $${PE.Money.format(retail)}`);
         }
         if (batches) report.extras.push(`${batches} factory batches finished`);
+        if (waiting) report.extras.push(waiting === 1 ? 'A factory line is waiting for you: its next batch costs cash' : `${waiting} factory lines are waiting for you: their next batches cost cash`);
         if (delivered) report.extras.push(`Deliveries paid $${PE.Money.format(delivered)}`);
       },
     };

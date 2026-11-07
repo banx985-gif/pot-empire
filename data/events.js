@@ -9,7 +9,7 @@
 (globalThis.PE = globalThis.PE || {}).Data = globalThis.PE.Data || {};
 globalThis.PE.Data.events = [
   {
-    id: 'rainbow', name: 'Rainbow Roadtrip', tint: 0xffe08a, tintAlpha: 0.08, bunting: [0xff4f4f, 0xff8a3d, 0xffd84d, 0x62d04b, 0x52a6ff, 0xb47cff], deco: 'flag',
+    id: 'rainbow', name: 'Rainbow Roadtrip', tint: 0xffe08a, tintAlpha: 0.14, bunting: [0xff4f4f, 0xff8a3d, 0xffd84d, 0x62d04b, 0x52a6ff, 0xb47cff], deco: 'flag',
     blurb: 'The whole town hits the road. Mind the campervans.',
     roomTheme: { id: 'evt_rainbow', name: 'Roadtrip Rainbow', wall: 0x2f4a6e, floor: 0x4a3f5e },
     items: [
@@ -18,7 +18,7 @@ globalThis.PE.Data.events = [
     ],
   },
   {
-    id: 'cosmic', name: 'Cosmic Carnival', tint: 0x7a4fff, tintAlpha: 0.16, bunting: [0xb47cff, 0x52e6ff, 0xff4fa3, 0xffffff], deco: 'star',
+    id: 'cosmic', name: 'Cosmic Carnival', tint: 0x7a4fff, tintAlpha: 0.3, bunting: [0xb47cff, 0x52e6ff, 0xff4fa3, 0xffffff], deco: 'star',
     blurb: 'Fortune tellers, rides and a suspicious amount of glitter.',
     roomTheme: { id: 'evt_cosmic', name: 'Cosmic Carnival', wall: 0x25145c, floor: 0x3a2a70 },
     items: [
@@ -27,7 +27,7 @@ globalThis.PE.Data.events = [
     ],
   },
   {
-    id: 'neon', name: 'Neon Night Market', tint: 0x1a1060, tintAlpha: 0.3, bunting: [0xff4fa3, 0x52e6ff, 0xc6ff3d], deco: 'lantern',
+    id: 'neon', name: 'Neon Night Market', tint: 0x1a1060, tintAlpha: 0.42, bunting: [0xff4fa3, 0x52e6ff, 0xc6ff3d], deco: 'lantern',
     blurb: 'The sun clocks off. The stalls do not.',
     roomTheme: { id: 'evt_neon', name: 'Night Market', wall: 0x10082e, floor: 0x2a1650 },
     items: [
@@ -36,7 +36,7 @@ globalThis.PE.Data.events = [
     ],
   },
   {
-    id: 'peace', name: 'Peace & Petals', tint: 0xff9ecb, tintAlpha: 0.12, bunting: [0xff9ecb, 0xffffff, 0xc6ff3d, 0xffd84d], deco: 'petal',
+    id: 'peace', name: 'Peace & Petals', tint: 0xff9ecb, tintAlpha: 0.22, bunting: [0xff9ecb, 0xffffff, 0xc6ff3d, 0xffd84d], deco: 'petal',
     blurb: 'Everyone is getting along. It is deeply unsettling.',
     roomTheme: { id: 'evt_peace', name: 'Peace & Petals', wall: 0x5c3a56, floor: 0x5a4a50 },
     items: [
@@ -45,7 +45,7 @@ globalThis.PE.Data.events = [
     ],
   },
   {
-    id: 'disco', name: 'Disco Harvest', tint: 0xff8a3d, tintAlpha: 0.13, bunting: [0xffd84d, 0xff4fa3, 0xb47cff, 0xff8a3d], deco: 'disco',
+    id: 'disco', name: 'Disco Harvest', tint: 0xff8a3d, tintAlpha: 0.2, bunting: [0xffd84d, 0xff4fa3, 0xb47cff, 0xff8a3d], deco: 'disco',
     blurb: 'The plants have rhythm. Nobody knows how.',
     roomTheme: { id: 'evt_disco', name: 'Harvest Disco', wall: 0x4a1f55, floor: 0x5c3a1f },
     items: [
@@ -54,7 +54,7 @@ globalThis.PE.Data.events = [
     ],
   },
   {
-    id: 'galaxy', name: 'Galaxy Groove', tint: 0x1c3a8c, tintAlpha: 0.22, bunting: [0x52e6ff, 0xffffff, 0x7a9dff, 0xb47cff], deco: 'planet',
+    id: 'galaxy', name: 'Galaxy Groove', tint: 0x1c3a8c, tintAlpha: 0.32, bunting: [0x52e6ff, 0xffffff, 0x7a9dff, 0xb47cff], deco: 'planet',
     blurb: 'Far out. Literally. Someone brought a telescope.',
     roomTheme: { id: 'evt_galaxy', name: 'Galaxy Groove', wall: 0x0e1a4a, floor: 0x1f2c66 },
     items: [

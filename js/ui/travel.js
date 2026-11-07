@@ -181,6 +181,7 @@
       let done = false;
       // A picture of the map as it is now, to stay on screen above the band.
       try {
+        // JPEG, not Phaser's usual PNG: the map has no see-through parts, and it's several times quicker to make on a phone.
         game.renderer.snapshot((image) => {
           if (done || this.now !== run) return;
           done = true;
@@ -191,7 +192,7 @@
           old.src = image.src;
           run.phase = 'covered';
           this.swap(run, () => this.band(run, old));
-        });
+        }, 'image/jpeg', 0.88);
       } catch (e) { fallback(); }
       setTimeout(() => { if (!done) { done = true; fallback(); } }, 700);
     },

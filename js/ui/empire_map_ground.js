@@ -15,6 +15,7 @@
   const circ = (G, x, y, r, c, a = 1) => G.fillStyle(c, a).fillCircle(P(x), P(y), P(r));
   const poly = (G, pts) => G.fillPoints(pts.map(([x, y]) => ({ x: P(x), y: P(y) })), true);
 
+  const DECO_SIZE = 1.7;
   // The little things an event puts along the streets. data/events.js says which event uses which.
   const DECO = {
     flag(G, x, y, c) { rect(G, x - 2, y - 50, 4, 50, 0x5a3f28); G.fillStyle(c, 1); poly(G, [[x + 2, y - 50], [x + 34, y - 40], [x + 2, y - 28]]); },
@@ -30,8 +31,19 @@
     const prints = MapPaths.footprints(L);
     const streets = MapPaths.linesOf(L, (k, kind) => kind !== 'boat' && kind !== 'rail' && kind !== 'drive');
     let n = 0;
+    // Strings of little flags along every street, in the event's colours.
     for (const l of streets) {
-      for (let i = 6; i < l.pts.length - 1; i += 22) {
+      for (let i = 2; i < l.pts.length - 1; i += 3) {
+        const [x0, y0] = l.pts[i], [x1, y1] = l.pts[i + 1];
+        if (MapPaths.onWater(L, x0, y0, 6)) continue;
+        const len = Math.hypot(x1 - x0, y1 - y0) || 1;
+        const ux = (x1 - x0) / len, uy = (y1 - y0) / len;
+        G.fillStyle(ev.bunting[n++ % ev.bunting.length], 0.95);
+        poly(G, [[x0 - ux * 8, y0 - uy * 8 - 10], [x0 + ux * 8, y0 + uy * 8 - 10], [x0, y0 + 6]]);
+      }
+    }
+    for (const l of streets) {
+      for (let i = 6; i < l.pts.length - 1; i += 13) {
         const [x0, y0] = l.pts[i], [x1, y1] = l.pts[i + 1];
         const len = Math.hypot(x1 - x0, y1 - y0) || 1;
         const side = i % 2 ? 1 : -1;
@@ -39,10 +51,13 @@
         if (x < 30 || y < 30 || x > L.w - 30 || y > L.h - 30) continue;
         if (MapPaths.onWater(L, x, y, 16) || prints.some((f) => MapPaths.inFootprint(f, x, y, 6))) continue;
         if (streets.some((o) => MapPaths.distToLine(x, y, o.pts) < 24)) continue;
-        DECO[ev.deco](G, x, y, ev.bunting[n++ % ev.bunting.length]);
+        G.save();
+        G.translateCanvas(P(x), P(y));
+        G.scaleCanvas(DECO_SIZE, DECO_SIZE);
+        DECO[ev.deco](G, 0, 0, ev.bunting[n++ % ev.bunting.length]);
+        G.restore();
       }
     }
-    rect(G, 0, 0, L.w, L.h, ev.tint, ev.tintAlpha);
   }
 
   const base = (L) => `assets/map/districts/${L.id}/base.webp`;
@@ -81,6 +96,8 @@
           G.generateTexture(eventKey, Math.ceil(P(L.w)), Math.ceil(P(L.h)));
           G.destroy();
         }
+        // The colour wash over the ground, then the decorations.
+        scene.add.rectangle(0, 0, L.w, L.h, ev.tint, ev.tintAlpha).setOrigin(0, 0).setDepth(-99100);
         scene.add.image(0, 0, eventKey).setOrigin(0, 0).setScale(1 / S).setDepth(-99000);
       }
       return ground;
