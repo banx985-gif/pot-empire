@@ -118,7 +118,25 @@
   }
   const expansionActions = {
     slot() { const r = g().facilities.buyStation(params().fid); if (!r.ok) why(r); },
-    renovate() { const r = g().facilities.renovate(params().fid); if (!r.ok) why(r); },
+    renovate() {
+      const fid = params().fid;
+      const game = g();
+      const F = game.facilities;
+      const reno = F.renovationInfo(fid);
+      const now = F.roomSize(fid);
+      const next = reno ? PE.Data.map.roomForRenovation[reno.index + 1] : now;
+      const go = () => { const r = F.renovate(fid); if (!r.ok) why(r); else PE.App.saveGame(); };
+      // When the room knocks through into its next size, show it first: before and after, with the price.
+      const before = PE.MapArt.url(`ROOM-${fid}-${now}`), after = PE.MapArt.url(`ROOM-${fid}-${next}`);
+      if (!reno || !reno.ready || next <= now || !before || !after) { go(); return; }
+      const spots = (s) => F.roomSpots(fid, s);
+      const thing = F.row(fid).mode === 'Grow' ? 'setups' : F.row(fid).mode === 'Retail' ? 'shelves' : 'machines';
+      PE.Dom.confirm(`Renovation ${reno.index + 1}`, `<div class="room-preview">
+          <figure><img src="${before}" alt="The room now"><figcaption>Now: room for ${spots(now)} ${thing}</figcaption></figure>
+          <figure><img src="${after}" alt="The room after"><figcaption>After: room for ${spots(next)} ${thing}</figcaption></figure>
+        </div>
+        <p>The walls come down and the room grows. Everything you've set up stays as it is.</p>`, `Renovate: ${money(reno.cost)}`, go);
+    },
     expand() { const r = g().facilities.expand(params().fid); if (!r.ok) why(r); },
   };
   PE.Panels.facilityInfo = {

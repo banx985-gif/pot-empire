@@ -1,7 +1,7 @@
 // The grow room: one open floor, pan and pinch-zoom, fixed setups. Each upgrade makes it bigger, with more spots.
-// The hydro stations are real art, built from pieces (data/hydro_anchors.js says where they attach). The room's
-// floor and walls are STAND-INS until art/rooms/ROOM-Fnn-1..3 arrive (they're used by file name once imported). There
-// are no pads: the spots come from js/logic/layout.js. This file only draws and passes taps along.
+// The hydro stations are real art, built from pieces (data/hydro_anchors.js says where they attach). The room is Aaron's
+// picture for this building at its size (art/rooms/ROOM-Fnn-1..3, js/ui/room_art.js), and the setups stand at the spots
+// worked out for that picture (data/room_spots.js). No pads are painted. This file only draws and passes taps along.
 // (An outdoor grow, if Aaron wants one, would be another screen like this: soil plots and water, no lights.)
 (function (PE) {
   const { WORLD } = PE.Layout;
@@ -32,15 +32,22 @@
       this.g = app.g;
       this.bal = this.g.B;
       const row = this.g.facilities.row(this.fid);
-      this.room = PE.Layout.room(PE.Data, row.stations);
-      // Which of the room's 3 sizes it's at. Spots beyond that aren't part of the room yet.
-      this.roomSize = this.testOverride ? 3 : this.g.facilities.roomSize(this.fid);
-      this.open = this.testOverride ? row.stations : this.g.facilities.roomSpots(this.fid, this.roomSize);
-      this.view = this.testOverride ? this.room : PE.Layout.roomView(this.room, this.open, this.roomSize);
+      // Which of the room's 3 sizes it's at: its picture, and the spots on its floor. Spots beyond those you can use aren't shown.
+      this.roomSize = this.testOverride ? (this.testOverride.size || 3) : this.g.facilities.roomSize(this.fid);
+      this.room = PE.Layout.roomAt(PE.Data, this.fid, this.roomSize, PE.RoomSpots.local());
+      if (!this.room) {
+        // No room picture for this building: the plain stand-in floor, as before job 16.
+        this.room = PE.Layout.room(PE.Data, row.stations);
+        this.room.spots = this.room.stations.map((q) => ({ ...q, type: 'setup' }));
+        this.room.foot = PE.Layout.FOOT.setup;
+      }
+      this.open = this.testOverride ? Math.min(row.stations, this.room.spots.length) : this.g.facilities.roomSpots(this.fid, this.roomSize);
+      this.view = this.room.picture ? { w: this.room.w, h: this.room.h } : this.testOverride ? this.room : PE.Layout.roomView(this.room, this.open, this.roomSize);
       this.harvestAnims = [];
       this.stationViews = new Map();
       this.floaters = [];
       this.roomSig = null;
+      this.knocking = false;   // a restarted room is the same object: start each time with no knock-through going
       this.lastRefresh = 0;
       this.ready = false;
       this.cameras.main.setBackgroundColor('#140a24');
@@ -109,6 +116,16 @@
     // ---- The room itself ----------------------------------------------------------
     drawRoom() {
       const { w, h } = this.view;
+      // Aaron's room picture. If it's missing, the plain stand-in floor shows instead.
+      this.roomArt = this.room.picture ? PE.RoomArt.show(this, this.room) : null;
+      this.glows = [];
+      this.ghostSig = null;
+      if (this.roomArt) {
+        // Bought decorations go on the back wall, which in the picture is just above the open floor.
+        const wall = Math.min(...this.room.floor.map((q) => q[1]));
+        if (!this.testOverride) PE.DecorArt.attach(this, this.fid, { w, wall });
+        return;
+      }
       const wall = WORLD.wallHeight;
       const f = this.g.facilities.get(this.fid);
       const reno = f ? f.renovation : 0;
@@ -146,33 +163,27 @@
         fontFamily: FONT, fontStyle: '900', fontSize: '74px', color: '#ff4fa3', stroke: '#c6ff3d', strokeThickness: 4,
       }).setOrigin(0.5).setAlpha(0.55).setDepth(-999);
 
-      // The real room picture for this size, if it's been drawn and imported.
       if (!this.testOverride) PE.DecorArt.attach(this, this.fid, { w, wall });
-      if (!this.testOverride) PE.MapArt.load(this, `ROOM-${this.fid}-${this.roomSize}`, (key) => { this.add.image(0, 0, key).setOrigin(0, 0).setDisplaySize(w, h).setDepth(-998); });
-
-      // The next slot, where it will go: a dashed ghost with its price.
-      this.ghostG = this.add.graphics().setDepth(-900);
-      this.ghostText = this.add.text(0, 0, '', { fontFamily: FONT, fontStyle: 'bold', fontSize: '40px', color: '#ffffff', align: 'center', stroke: '#140a24', strokeThickness: 6 }).setOrigin(0.5).setDepth(-899).setVisible(false);
-      this.ghostSig = null;
     }
+    // Empty spots you can use: a soft glowing outline with a "+". The next one says its price (or when it opens).
+    // Spots the room doesn't have yet at this size aren't shown at all.
     drawGhost() {
-      const i = this.stationCount();
-      const on = !this.testOverride && i < this.open && i < this.room.stations.length;
-      const canBuy = on && this.g.facilities.canBuyStation(this.fid);
-      const sig = on ? `${i}|${canBuy}|${canBuy ? this.g.facilities.nextStationCost(this.fid) : ''}` : '';
+      const owned = this.stationCount();
+      const last = Math.min(this.open, this.room.spots.length);
+      const next = owned < last ? owned : null;
+      const canBuy = next !== null && !this.testOverride && this.g.facilities.canBuyStation(this.fid);
+      const sig = this.testOverride ? 'test' : `${owned}|${last}|${canBuy}|${canBuy ? this.g.facilities.nextStationCost(this.fid) : ''}|${PE.RoomSpots.editing}`;
       if (sig === this.ghostSig) return;
       this.ghostSig = sig;
-      this.ghostG.clear();
-      this.ghostText.setVisible(on);
-      this.ghost = on ? i : null;
-      if (!on) return;
-      const b = PE.Layout.setupBounds(this.room.stations[i], this.room.box);
-      const x0 = b.left + 60, x1 = b.right - 60, y0 = b.top + 240, y1 = b.bottom - 40;
-      const dash = (ax, ay, bx, by) => { const n = Math.floor(Math.hypot(bx - ax, by - ay) / 54); for (let k = 0; k < n; k += 2) this.ghostG.lineBetween(ax + ((bx - ax) * k) / n, ay + ((by - ay) * k) / n, ax + ((bx - ax) * (k + 1)) / n, ay + ((by - ay) * (k + 1)) / n); };
-      this.ghostG.lineStyle(8, canBuy ? 0xc6ff3d : 0xffffff, canBuy ? 0.75 : 0.25);
-      dash(x0, y0, x1, y0); dash(x1, y0, x1, y1); dash(x1, y1, x0, y1); dash(x0, y1, x0, y0);
-      this.ghostText.setPosition((x0 + x1) / 2, (y0 + y1) / 2).setAlpha(canBuy ? 1 : 0.4)
-        .setText(canBuy ? `+ Station\n${PE.Dom.money(this.g.facilities.nextStationCost(this.fid))}` : 'Next station\nopens as this place grows');
+      this.glows.forEach((x) => x.destroy());
+      this.glows = [];
+      this.ghost = this.testOverride ? null : next;
+      if (this.testOverride) return;
+      for (let i = owned; i < last; i++) {
+        const label = i !== next ? null : canBuy ? `Station ${PE.Dom.money(this.g.facilities.nextStationCost(this.fid))}` : 'Opens as this place grows';
+        this.glows.push(PE.RoomArt.spotGlow(this, this.room, i, { strong: i === next && canBuy, label, calm: this.calm() }));
+      }
+      PE.RoomSpots.drawMarks(this, this.room);
     }
 
     // ---- Camera: pan, pinch, limits -------------------------------------------------------------
@@ -300,6 +311,7 @@
 
       input.on('pointerdown', (p) => {
         if (!onCanvas(p) || menuOpen()) { drag = null; return; }
+        if (PE.RoomSpots.down(this, p)) { drag = null; return; }
         const a = input.pointer1, b = input.pointer2;
         if (a.isDown && b.isDown) {
           this.closeSi = null;
@@ -311,6 +323,7 @@
       });
       input.on('pointermove', (p) => {
         const cam = this.cameras.main;
+        if (PE.RoomSpots.drag(this, p)) return;
         if (pinch && input.pointer1.isDown && input.pointer2.isDown) {
           const a = input.pointer1, b = input.pointer2;
           const d = Phaser.Math.Distance.Between(a.x, a.y, b.x, b.y);
@@ -329,6 +342,7 @@
         drag.lastX = p.x; drag.lastY = p.y;
       });
       input.on('pointerup', (p) => {
+        if (PE.RoomSpots.up(this, p)) return;
         if (pinch) { if (!input.pointer1.isDown && !input.pointer2.isDown) pinch = null; drag = null; return; }
         if (drag && p.id === drag.id) {
           if (!drag.moved) this.tapAt(p.x, p.y);
@@ -344,8 +358,8 @@
       const owned = this.stationCount();
       const box = this.room.box;
       if (this.ghost !== null && this.ghost !== undefined) {
-        const b = PE.Layout.setupBounds(this.room.stations[this.ghost], box);
-        if (wx > b.left + 60 && wx < b.right - 60 && wy > b.top + 240 && wy < b.bottom - 40) return { ghost: true };
+        const q = this.room.stations[this.ghost], F = this.room.foot;
+        if (wx > q.x + F.l && wx < q.x + F.r && wy > q.y + F.t - 200 && wy < q.y + F.b) return { ghost: true };
       }
       for (let si = owned - 1; si >= 0; si--) {
         const pos = this.room.stations[si];
@@ -594,14 +608,14 @@
     // Haze and friends wander the gaps between the setups. Not during the guide: Haze is talking to you then.
     buildLife() {
       const R = this.room, box = R.box;
-      const cols = Math.min(R.cols, Math.max(1, this.open));
-      const rows = Math.max(1, Math.ceil(this.open / R.cols));
-      const first = R.stations[0];
-      const xs = [first.x - box.halfW + 130 - WORLD.margin];
-      for (let c = 0; c < cols; c++) xs.push(first.x + c * (box.halfW * 2 + WORLD.gapX) + box.halfW + (c < cols - 1 ? WORLD.gapX / 2 : Math.min(WORLD.gapX / 2, (this.view.w - (first.x + c * (box.halfW * 2 + WORLD.gapX) + box.halfW)) / 2)));
-      const ys = [];
-      for (let r = 0; r < rows; r++) ys.push(Math.min(this.view.h - 40, first.y + r * (box.up + box.down + WORLD.gapZ) + box.down + WORLD.gapZ * 0.4));
-      const world = PE.HelperLife.aisleWorld(xs, ys, { height: 560, speed: 240, near: 1000, depth: 40000, textScale: () => PE.App.dpr / this.cameras.main.zoom });
+      const opts = { height: 560, speed: 240, near: 1000, depth: 40000, textScale: () => PE.App.dpr / this.cameras.main.zoom };
+      // They walk on the open floor, in the gaps: never across a setup, or the spot of one still to come, and not in the strip
+      // just behind one either (they're drawn in front, so it would look like walking through it).
+      const spots = R.stations.slice(0, Math.max(this.open, this.stationCount()));
+      const blocked = (x, y) => spots.some((q) => x > q.x - box.halfW - 30 && x < q.x + box.halfW + 30 && y > q.y - box.up + 250 && y < q.y + box.down + 40);
+      this.walkWorld = R.picture ? PE.RoomArt.floorWorld(R, blocked, { ...opts, step: 80 }) : null;
+      const world = this.walkWorld;
+      if (!world || !world.spots.length) { this.helperLife = false; return; }
       world.plantFor = (e, wilted) => this.plantForBudz(e, wilted);
       this.helperLife = new PE.HelperLife.Life(this, world);
     }
@@ -626,9 +640,16 @@
       const y = pos.y + t.spot.top - 8;                 // his feet, behind the rim of the pot
       const backY = pos.y - this.room.box.up - 20;      // the gap behind the whole setup
       const here = [e.actor.x, e.actor.y];
-      const way = [here, [here[0], backY], [x, backY], [x, y]];
       const front = e.actor.fixedDepth;
       this.budzAt = { si: t.si, pi: t.pi, x, y, potDepth };
+      // Along the open floor to the gap behind that setup, then in behind the plant.
+      const floor = this.walkWorld && this.walkWorld.route(here, [x, Math.max(backY, pos.y - 600)]);
+      if (floor && floor.length > 1) {
+        const way = [here, ...floor.slice(1), [x, backY], [x, y]];
+        const n = way.length - 1;
+        return { way, depths: [...Array(n - 1).fill(front), potDepth - 1], backDepths: [potDepth - 1, ...Array(n - 1).fill(front)] };
+      }
+      const way = [here, [here[0], backY], [x, backY], [x, y]];
       return { way, depths: [front, front, potDepth - 1], backDepths: [potDepth - 1, front, front] };
     }
     // Every so often: is anything newly ripe, or newly wilted?
@@ -651,7 +672,7 @@
     }
     update(time, delta) {
       if (!this.ready) return;
-      if (!this.testOverride && !this.helperLife && !this.g.tutorial.active()) this.buildLife();
+      if (!this.testOverride && this.helperLife === null && !this.g.tutorial.active()) this.buildLife();
       if (this.helperLife) {
         const dt = Math.min(0.1, (delta || 16) / 1000);
         PE.Anim.stepAll(this, dt);
@@ -659,6 +680,7 @@
         if (PE.App.state.settings.helpers) this.helperLife.setVisible(true);
         if (time - (this.lastWatch || 0) > 3000) { this.lastWatch = time; this.watchPlants(); }
       }
+      if (time - (this.lastSharp || 0) > 150) { this.lastSharp = time; PE.RoomArt.keepSharp(this, this.roomArt); }
       if (time - (this.lastRefresh || 0) < 200) return;
       this.lastRefresh = time;
       this.refresh();
@@ -668,9 +690,15 @@
       const count = this.stationCount();
       const now = this.testOverride ? this.testOverride.now : this.g.now();
       const f = this.g.facilities.get(this.fid);
-      const size = this.testOverride ? 3 : this.g.facilities.roomSize(this.fid);
+      const size = this.testOverride ? (this.testOverride.size || 3) : this.g.facilities.roomSize(this.fid);
       const roomSig = `${count}|${f ? f.renovation : 0}|${size}`;
-      if (this.roomSig && this.roomSig !== roomSig) { this.scene.restart(); return; }
+      if (this.roomSig && this.roomSig !== roomSig) {
+        // The room grew into its next size: a knock-through, then the bigger room.
+        if (this.knocking) return;
+        this.knocking = true;
+        if (size > this.roomSize) PE.RoomArt.knockThrough(this, () => this.scene.restart()); else this.scene.restart();
+        return;
+      }
       this.roomSig = roomSig;
 
       const B = this.bars;

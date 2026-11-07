@@ -87,6 +87,26 @@
     ].join('\n');
   }
 
+  // The room you came in from (a grow room, a shop or the factory), if it has spots.
+  function roomScene() {
+    for (const key of ['garage', 'bizroom']) {
+      const sc = PE.App.game.scene.getScene(key);
+      if (sc && (sc.sys.isActive() || sc.sys.isSleeping()) && sc.room && sc.room.id) return sc;
+    }
+    return null;
+  }
+  // Every spot of that room, as text for data/room_spot_overrides.js: shared, or copied, or shown to copy by hand.
+  async function copySpots() {
+    const sc = roomScene();
+    if (!sc) { PE.Dom.toast('Go into a room first, then open this panel.'); return; }
+    const text = PE.RoomSpots.text(sc.room);
+    if (PE.Native.isApp()) {
+      try { await PE.Native.share(`Pot Empire spots ${sc.room.id}`, text); } catch (e) { PE.App.router.go('testerReport', { text }); }
+      return;
+    }
+    try { await navigator.clipboard.writeText(text); PE.Dom.toast(`Spots for ${sc.room.id} copied.`); } catch (e) { PE.App.router.go('testerReport', { text }); }
+  }
+
   async function sendReport() {
     const text = reportText();
     try { window.localStorage.setItem('potEmpire.lastReport', text); } catch (e) { /* no room: it still gets sent */ }
@@ -139,6 +159,10 @@
         ${toggle('flip:showFps', 'Speed counter', 'Pictures per second in the corner', S().showFps)}
         ${toggle('flip:reducedMotion', 'Reduced motion', 'Fewer moving effects', S().reducedMotion)}
         ${toggle('fast', `Fast time (${FAST_FACTOR}x growth)`, 'For testing only. Nothing is saved while it\'s on, and switching it off goes back to your save.', Fast.on)}
+        <h4>Room spots</h4>
+        ${toggle('spots', 'Move spots', 'In a room, drag a numbered spot to move it. Only on this phone, until Cowork adds them.', PE.RoomSpots.editing)}
+        <button class="btn wide" data-act="copySpots">Copy spots</button>
+        <button class="btn wide" data-act="resetSpots">Put this room's spots back</button>
         <h4>Problems</h4>
         <button class="btn wide go" data-act="report">Report a problem</button>
         <p class="muted">${PE.Native.isApp() ? 'Opens the phone\'s share list so you can send it.' : 'Copies the report so you can paste it.'} It has the build, phone details, recent log lines, errors and the current screen. No save data.</p>`;
@@ -147,6 +171,15 @@
       flip(key) { S()[key] = !S()[key]; PE.App.saveGame(); PE.Look.apply(); },
       fast() { if (Fast.on) stopFast(); else startFast(); },
       report() { sendReport(); },
+      spots() { PE.RoomSpots.editing = !PE.RoomSpots.editing; PE.Dom.toast(PE.RoomSpots.editing ? 'Close this panel and drag the numbered spots.' : 'Spots stay where you put them.'); },
+      copySpots() { copySpots(); },
+      resetSpots() {
+        const sc = roomScene();
+        if (!sc) { PE.Dom.toast('Go into a room first, then open this panel.'); return; }
+        PE.RoomSpots.clear(sc.room.id);
+        PE.Dom.toast(`${sc.room.id} spots put back.`);
+        sc.scene.restart(sc.sys.settings.data);
+      },
     },
   };
 

@@ -35,6 +35,8 @@
     painted,
     // Which picture each renovation shows: base, renovated, renovated, fully renovated.
     lookForRenovation: [1, 2, 2, 3],
+    // Which size each building's inside is at, by renovation (job 16): size 2 at R1, size 3 at R2. R3 keeps size 3.
+    roomForRenovation: [1, 2, 3, 3],
     lockedLotArt: 'TIL-12',
     // How you arrive in each district (js/ui/travel.js). Cowork's pick, from TRANSITION_ART.md: easy to change.
     travel: {

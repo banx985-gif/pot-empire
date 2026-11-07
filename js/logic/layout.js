@@ -181,5 +181,38 @@
     return { left: pos.x - box.halfW, right: pos.x + box.halfW, top: pos.y - box.up, bottom: pos.y + box.down };
   }
 
-  PE.Layout = { WORLD, maxPlantSize, setupBox, anchorX, slotY, model, modelBounds, piece, potSpot, overhead, columnsFor, room, roomView, setupBounds };
+  // ---- The real rooms (job 16): Aaron's room pictures, with spots worked out by tools/build_room_spots.js ----------
+  // A shelf or machine in a shop or the factory, around its spot (js/ui/biz_room.js draws them this size).
+  const FURNITURE = { halfW: 215, up: 200, down: 190 };
+  // Where each setup's legs stand, around its middle pot hole: the part that has to be on open floor.
+  const FOOT = { setup: { l: -690, r: 705, t: -60, b: 480 }, shelf: { l: -215, r: 215, t: -40, b: 190 }, machine: { l: -215, r: 215, t: -40, b: 190 } };
+
+  // One building's room at one of its 3 sizes. Spots fine-tuned by eye win over the worked-out ones: first the shared
+  // ones in data/room_spot_overrides.js, then (on a tester's phone) any moved with the tester panel.
+  // Returns the room's size in game units, its picture, and its spots in order (spot i is station, shelf or machine i).
+  function roomAt(data, fid, size, local) {
+    const id = `${fid}-${size}`;
+    const r = data.roomSpots && data.roomSpots[id];
+    if (!r) return null;
+    const moved = Object.assign({}, (data.roomSpotOverrides || {})[id], local && local[id]);
+    const spots = r.spots.map((p, i) => (moved[i] ? { ...p, x: Math.round(moved[i][0]), y: Math.round(moved[i][1]) } : { ...p }));
+    const box = r.kind === 'grow' ? setupBox(data) : FURNITURE;
+    return {
+      id, fid, size, kind: r.kind, w: r.w, h: r.h, scale: r.scale, picture: `ROOM-${id}`, pictureSize: r.picture,
+      floor: r.floor, counter: r.counter, door: r.door, keepClear: r.keepClear || [],
+      spots, stations: spots.map((p) => ({ x: p.x, y: p.y })), box, foot: FOOT[spots[0] ? spots[0].type : 'setup'],
+    };
+  }
+  // Is this point on the room's open floor?
+  function onFloor(room, x, y) {
+    let inside = false;
+    const P = room.floor;
+    for (let i = 0, j = P.length - 1; i < P.length; j = i++) {
+      const [xi, yi] = P[i], [xj, yj] = P[j];
+      if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+    }
+    return inside;
+  }
+
+  PE.Layout = { WORLD, FURNITURE, FOOT, maxPlantSize, setupBox, anchorX, slotY, model, modelBounds, piece, potSpot, overhead, columnsFor, room, roomView, setupBounds, roomAt, onFloor };
 })(globalThis.PE = globalThis.PE || {});

@@ -1,7 +1,8 @@
-// Walk-in rooms for both dispensaries and the Processing Factory. One open floor; shelves or machines stand at spots the
-// game chooses, with wide gaps; each renovation makes the room bigger, with more spots.
-// The floor, walls, counter, shelves and machines are STAND-INS drawn here, until art/rooms/ROOM-Fnn-1..3 and their
-// furniture arrive. All the numbers and actions stay in the Manage menu (js/ui/panels_empire.js) and js/logic/business.js.
+// Walk-in rooms for both dispensaries and the Processing Factory. One open floor; shelves or machines stand at spots worked
+// out for each room picture (data/room_spots.js), with wide gaps; each renovation makes the room bigger, with more spots.
+// The room is Aaron's picture (art/rooms/ROOM-Fnn-1..3, js/ui/room_art.js), with the counter painted on. The shelves and
+// machines are still STAND-INS drawn here until their art arrives. All the numbers and actions stay in the Manage menu
+// (js/ui/panels_empire.js) and js/logic/business.js.
 (function (PE) {
   const FONT = 'system-ui, sans-serif';
   const CELL_W = 620, CELL_H = 560, WALL = 210, MARGIN = 120, TOP_GAP = 150;
@@ -12,21 +13,28 @@
     init(params) { this.fid = params.fid; }
 
     calm() { return PE.App.state.settings.reducedMotion || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
-    spot(i) { return { x: MARGIN + CELL_W / 2 + (i % COLS) * CELL_W, y: WALL + TOP_GAP + CELL_H / 2 + Math.floor(i / COLS) * CELL_H }; }
+    spot(i) {
+      if (this.room && this.room.spots[i]) return this.room.spots[i];
+      return { x: MARGIN + CELL_W / 2 + (i % COLS) * CELL_W, y: WALL + TOP_GAP + CELL_H / 2 + Math.floor(i / COLS) * CELL_H };
+    }
 
     create() {
       this.g = PE.App.g;
       this.row = this.g.facilities.row(this.fid);
       this.retail = this.row.mode === 'Retail';
+      this.knocking = false;   // a restarted room is the same object: start each time with no knock-through going
       this.size = this.g.facilities.roomSize(this.fid);
       this.open = this.g.facilities.roomSpots(this.fid, this.size);
-      const rows = Math.max(1, Math.ceil(this.open / COLS));
-      this.w = MARGIN * 2 + COLS * CELL_W + (this.size - 1) * 60;
-      this.h = WALL + TOP_GAP + rows * CELL_H + 60 + (this.size - 1) * 100;
+      this.room = PE.Layout.roomAt(PE.Data, this.fid, this.size, PE.RoomSpots.local());
+      if (this.room) { this.w = this.room.w; this.h = this.room.h; } else {
+        const rows = Math.max(1, Math.ceil(this.open / COLS));
+        this.w = MARGIN * 2 + COLS * CELL_W + (this.size - 1) * 60;
+        this.h = WALL + TOP_GAP + rows * CELL_H + 60 + (this.size - 1) * 100;
+      }
       this.cameras.main.setBackgroundColor('#140a24');
       this.views = [];
       this.drawRoom();
-      this.bars = this.add.graphics().setDepth(5000);
+      this.bars = this.add.graphics().setDepth(90002);
       this.ghostText = this.add.text(0, 0, '', { fontFamily: FONT, fontStyle: 'bold', fontSize: '38px', color: '#ffffff', align: 'center', stroke: '#140a24', strokeThickness: 6 }).setOrigin(0.5).setDepth(40);
       this.ghostG = this.add.graphics().setDepth(39);
       this.setUpCamera();
@@ -45,6 +53,13 @@
 
     drawRoom() {
       const { w, h, retail } = this;
+      this.glows = [];
+      // Aaron's room picture, counter and all. If it's missing, the stand-in room below.
+      this.roomArt = this.room ? PE.RoomArt.show(this, this.room, -995) : null;
+      if (this.roomArt) {
+        PE.DecorArt.attach(this, this.fid, { w, wall: Math.min(...this.room.floor.map((q) => q[1])) });
+        return;
+      }
       const reno = (this.g.facilities.get(this.fid) || {}).renovation || 0;
       const G = this.add.graphics().setDepth(-1000);
       const wall = retail ? [0x7a3b6a, 0x85426f, 0x94497a, 0xa35285][reno] : [0x3d4356, 0x444b60, 0x4d546a, 0x565e75][reno];
@@ -73,7 +88,6 @@
         for (let x = 150; x < w - 150; x += 180) { G.fillStyle(0xffd84d, 0.9).fillRect(x, WALL - 20, 90, 8); }
       }
       PE.DecorArt.attach(this, this.fid, { w, wall: WALL });
-      PE.MapArt.load(this, `ROOM-${this.fid}-${this.size}`, (key) => { this.add.image(0, 0, key).setOrigin(0, 0).setDisplaySize(w, h).setDepth(-995); });
     }
 
     // Stand-in furniture: a shelf with whatever's stocked on it, or a machine. Redrawn only when it changes.
@@ -111,16 +125,22 @@
       const now = g.now();
       const size = g.facilities.roomSize(this.fid);
       const sigRoom = `${slots.length}|${size}|${(g.facilities.get(this.fid) || {}).renovation}`;
-      if (this.sig && this.sig !== sigRoom) { this.scene.restart({ fid: this.fid }); return; }
+      if (this.sig && this.sig !== sigRoom) {
+        // The room grew into its next size: a knock-through, then the bigger room.
+        if (this.knocking) return;
+        this.knocking = true;
+        if (size > this.size) PE.RoomArt.knockThrough(this, () => this.scene.restart({ fid: this.fid })); else this.scene.restart({ fid: this.fid });
+        return;
+      }
       this.sig = sigRoom;
       slots.forEach((slot, i) => {
         let v = this.views[i];
         if (!v) {
           const { x, y } = this.spot(i);
           v = this.views[i] = {
-            g: this.add.graphics().setDepth(10 + i),
-            name: this.add.text(x, y + 168, '', { fontFamily: FONT, fontStyle: 'bold', fontSize: '30px', color: '#ffffff', align: 'center', stroke: '#1d0f33', strokeThickness: 6 }).setOrigin(0.5, 0).setDepth(30),
-            mark: this.add.text(x + 160, y - 170, '', { fontFamily: FONT, fontStyle: '900', fontSize: '42px', color: '#ffffff', backgroundColor: '#ff2d55', padding: { x: 16, y: 4 } }).setOrigin(0.5).setDepth(31).setVisible(false),
+            g: this.add.graphics().setDepth(y),
+            name: this.add.text(x, y + 168, '', { fontFamily: FONT, fontStyle: 'bold', fontSize: '30px', color: '#ffffff', align: 'center', stroke: '#1d0f33', strokeThickness: 6 }).setOrigin(0.5, 0).setDepth(90000),
+            mark: this.add.text(x + 160, y - 170, '', { fontFamily: FONT, fontStyle: '900', fontSize: '42px', color: '#ffffff', backgroundColor: '#ff2d55', padding: { x: 16, y: 4 } }).setOrigin(0.5).setDepth(90001).setVisible(false),
             look: null,
           };
         }
@@ -143,58 +163,108 @@
       this.drawGhost(slots.length);
       PE.EdgeArrows.update(this, slots.map((slot, i) => ({ slot, i })).filter(({ slot }) => !this.retail && slot.job && now >= slot.job.endMs).map(({ i }) => { const p = this.spot(i); return { id: 'm' + i, x: p.x, y: p.y, tap: () => { this.cameras.main.centerOn(p.x, p.y); this.clampCamera(); } }; }));
     }
+    // Empty spots you can use: a soft glowing outline with a "+". The next one says its price (or when it opens).
     drawGhost(owned) {
-      const on = owned < this.open;
-      const can = on && this.g.facilities.canBuyStation(this.fid);
-      const sig = `${on}|${can}|${can ? this.g.facilities.nextStationCost(this.fid) : ''}`;
+      const last = Math.min(this.open, this.room ? this.room.spots.length : this.open);
+      const next = owned < last ? owned : null;
+      const can = next !== null && this.g.facilities.canBuyStation(this.fid);
+      const thing = this.retail ? 'Shelf' : 'Machine';
+      const sig = `${owned}|${last}|${can}|${can ? this.g.facilities.nextStationCost(this.fid) : ''}|${PE.RoomSpots.editing}`;
       if (sig === this.ghostSig) return;
       this.ghostSig = sig;
+      this.ghostAt = next;
       this.ghostG.clear();
-      this.ghostText.setVisible(on);
-      this.ghostAt = on ? owned : null;
-      if (!on) return;
-      const { x, y } = this.spot(owned);
-      const dash = (ax, ay, bx, by) => { const n = Math.floor(Math.hypot(bx - ax, by - ay) / 40); for (let k = 0; k < n; k += 2) this.ghostG.lineBetween(ax + ((bx - ax) * k) / n, ay + ((by - ay) * k) / n, ax + ((bx - ax) * (k + 1)) / n, ay + ((by - ay) * (k + 1)) / n); };
-      this.ghostG.lineStyle(7, can ? 0xc6ff3d : 0xffffff, can ? 0.8 : 0.3);
-      dash(x - 210, y - 150, x + 210, y - 150); dash(x + 210, y - 150, x + 210, y + 150); dash(x + 210, y + 150, x - 210, y + 150); dash(x - 210, y + 150, x - 210, y - 150);
-      const thing = this.retail ? 'Shelf' : 'Machine';
-      this.ghostText.setPosition(x, y).setAlpha(can ? 1 : 0.5).setText(can ? `+ ${thing}\n${PE.Dom.money(this.g.facilities.nextStationCost(this.fid))}` : `Next ${thing.toLowerCase()}\nopens as this grows`);
+      this.ghostText.setVisible(false);
+      this.glows.forEach((x) => x.destroy());
+      this.glows = [];
+      if (!this.room) {
+        if (next === null) return;
+        const { x, y } = this.spot(owned);
+        this.ghostG.lineStyle(7, can ? 0xc6ff3d : 0xffffff, can ? 0.8 : 0.3).strokeRect(x - 210, y - 150, 420, 300);
+        this.ghostText.setVisible(true).setPosition(x, y).setText(can ? `+ ${thing}\n${PE.Dom.money(this.g.facilities.nextStationCost(this.fid))}` : `Next ${thing.toLowerCase()}\nopens as this grows`);
+        return;
+      }
+      for (let i = owned; i < last; i++) {
+        const label = i !== next ? null : can ? `${thing} ${PE.Dom.money(this.g.facilities.nextStationCost(this.fid))}` : 'Opens as this grows';
+        this.glows.push(PE.RoomArt.spotGlow(this, this.room, i, { strong: i === next && can, label, calm: this.calm() }));
+      }
+      PE.RoomSpots.drawMarks(this, this.room);
     }
 
-    // Customers walk in, up to the counter, talk, do a happy little thing and leave. WLK-06, the dog walker, is the first with
-    // real frames. The others use their walker pictures with a bob until theirs arrive, and pick them up by themselves.
+    // Customers walk in at the front, look at a stocked shelf, walk up to the counter, pay, do a happy little thing and leave.
+    // They keep to the open floor, round the shelves (js/ui/room_art.js finds the way). WLK-06 the dog walker and VIP-08 Nova
+    // have all their frames; anyone without a happy reaction does a hop instead.
     buildCustomers() {
       if (this.calm()) return;
-      const doorY = this.h - 40;
-      ['WLK-06', 'WLK-04'].forEach((id, n) => {
-        const actor = new PE.Anim.Actor(this, id, { x: this.w / 2, y: doorY, height: 250 });
+      const R = this.room;
+      const door = R ? R.door : { x: this.w / 2, y: this.h - 40 };
+      const counter = R && R.counter ? { x: R.counter.x, y: R.counter.y + 70 } : { x: this.w / 2, y: WALL + 150 };
+      const ids = ['WLK-06', 'VIP-08'].filter((id) => PE.AnimPick.hasFrames(id));
+      if (!ids.length) ids.push('WLK-06', 'WLK-04');
+      const tall = R ? 270 : 250;
+      ids.forEach((id, n) => {
+        const actor = new PE.Anim.Actor(this, id, { x: door.x, y: door.y, height: tall });
         actor.image.setAlpha(0);
-        this.walkers.push({ actor, id, state: 'wait', left: n * 5 + 1, from: { x: this.w / 2 + (n ? 150 : -150), y: doorY }, at: { x: this.w / 2 + (n ? 90 : -90), y: WALL + 150 }, speed: 110 + n * 20 });
+        this.walkers.push({ actor, id, state: 'wait', left: n * 5 + 1, door: { x: door.x + (n ? 60 : -60), y: door.y }, counter: { x: counter.x + (n ? 70 : -70), y: counter.y }, speed: 150 + n * 20, way: null });
       });
     }
+    // The way from here to there: along the open floor if this room has one, otherwise straight.
+    wayTo(from, to) {
+      const W = this.walkWorld;
+      const r = W && W.route([from.x, from.y], [to.x, to.y]);
+      if (!r) return [[from.x, from.y], [to.x, to.y]];
+      // Only step onto the exact spot if it's open floor; otherwise stop at the nearest open point.
+      const end = W.isOpen(to.x, to.y) ? [[to.x, to.y]] : [];
+      const way = [[from.x, from.y], ...r.slice(1), ...end];
+      return way.length > 1 ? way : [[from.x, from.y], r[0]];
+    }
+    // In front of a stocked shelf, where a customer stops to look.
+    browseSpot() {
+      const slots = this.g.business.slots(this.fid);
+      const stocked = slots.map((sl, i) => ({ sl, i })).filter((o) => o.sl.sku);
+      if (!stocked.length) return null;
+      const p = this.spot(stocked[Math.floor(Math.random() * stocked.length)].i);
+      return { x: p.x, y: p.y + 260 };
+    }
     stepCustomers(dt) {
-      const stocked = this.g.business.slots(this.fid).some((s) => s.sku);
+      const stocked = this.g.business.slots(this.fid).some((sl) => sl.sku);
       for (const w of this.walkers) {
         const A = w.actor;
         if (w.state === 'wait') {
           A.image.setAlpha(0);
           w.left -= dt;
-          if (w.left <= 0 && stocked) { w.state = 'in'; A.moveTo(w.from.x, w.from.y); A.heading(w.at.x - w.from.x, w.at.y - w.from.y); }
+          if (w.left <= 0 && stocked && this.retail) {
+            A.moveTo(w.door.x, w.door.y);
+            const shelf = this.browseSpot();
+            w.state = 'in';
+            w.way = this.wayTo(w.door, shelf || w.counter);
+            w.next = shelf ? 'look' : 'buy';
+          }
           continue;
         }
-        const to = w.state === 'in' ? w.at : w.from;
-        if (w.state === 'in' || w.state === 'out') {
-          const dx = to.x - A.x, dy = to.y - A.y, d = Math.hypot(dx, dy);
-          const step = w.speed * dt;
-          if (d <= step) {
-            A.moveTo(to.x, to.y);
-            if (w.state === 'in') { w.state = 'buy'; w.left = 1.6; A.play('order'); } else { w.state = 'wait'; w.left = 2 + Math.random() * 5; }
-          } else { A.moveTo(A.x + (dx / d) * step, A.y + (dy / d) * step); A.heading(dx, dy); }
-          A.image.setAlpha(w.state === 'out' ? Math.min(1, Math.hypot(w.from.x - A.x, w.from.y - A.y) / 90) : Math.min(1, Math.hypot(w.from.x - A.x, w.from.y - A.y) / 60 + 0.05));
+        if (w.way) {
+          // Walking: along the way, a corner at a time. Fades in at the door, and out again on the way back.
+          const [tx, ty] = w.way[1];
+          const dx = tx - A.x, dy = ty - A.y, dist = Math.hypot(dx, dy), step = w.speed * dt;
+          if (dist <= step) {
+            A.moveTo(tx, ty);
+            w.way.shift();
+            if (w.way.length < 2) {
+              w.way = null;
+              if (w.state === 'out') { w.state = 'wait'; w.left = 2 + Math.random() * 5; continue; }
+              if (w.next === 'look') { w.state = 'look'; w.left = 1.4; A.play('idle'); } else { w.state = 'buy'; w.left = 1.6; A.play('order'); }
+            }
+          } else { A.moveTo(A.x + (dx / dist) * step, A.y + (dy / dist) * step); A.heading(dx, dy); }
+          const fromDoor = Math.hypot(w.door.x - A.x, w.door.y - A.y);
+          A.image.setAlpha(Math.min(1, fromDoor / 80 + 0.05));
           continue;
         }
         w.left -= dt;
-        if (w.state === 'buy' && w.left <= 0) {
+        if (w.state === 'look' && w.left <= 0) {
+          w.state = 'in';
+          w.next = 'buy';
+          w.way = this.wayTo({ x: A.x, y: A.y }, w.counter);
+        } else if (w.state === 'buy' && w.left <= 0) {
           w.state = 'happy';
           w.left = 1.3;
           A.play('happy');
@@ -204,7 +274,7 @@
           if (!A.hasFrames) this.tweens.add({ targets: A.image, y: A.image.y - A.height * 0.1, yoyo: true, repeat: 1, duration: 170, ease: 'Sine.easeOut' });
         } else if (w.state === 'happy' && w.left <= 0) {
           w.state = 'out';
-          A.heading(w.from.x - A.x, w.from.y - A.y);
+          w.way = this.wayTo({ x: A.x, y: A.y }, w.door);
         }
       }
     }
@@ -216,16 +286,30 @@
       const stocked = this.g.business.slots(this.fid).filter((s) => s.sku);
       PE.Anim.handOver(this, this.managerActor, sku || (stocked.length ? stocked[Math.floor(Math.random() * stocked.length)].sku : null));
     }
-    // Two helpers wander the wide gaps.
+    // Two helpers wander the open floor, round the shelves and machines.
     buildLife() {
-      const xs = [MARGIN / 2 + 20, MARGIN + CELL_W, this.w - MARGIN / 2 - 20];
-      const rows = Math.max(1, Math.ceil(this.open / COLS));
-      const ys = [WALL + 165];
-      for (let r = 0; r < rows; r++) ys.push(Math.min(this.h - 40, this.spot(r * COLS).y + CELL_H / 2 - 10));
-      this.helperLife = new PE.HelperLife.Life(this, PE.HelperLife.aisleWorld(xs, ys, { height: 320, speed: 120, near: 520, textScale: () => PE.App.dpr / this.cameras.main.zoom }));
+      const opts = { height: 320, speed: 120, near: 520, textScale: () => PE.App.dpr / this.cameras.main.zoom };
+      let world;
+      if (this.room) {
+        const F = PE.Layout.FURNITURE;
+        const spots = this.room.spots.slice(0, Math.max(this.open, this.g.business.slots(this.fid).length));
+        const blocked = (x, y) => spots.some((q) => x > q.x - F.halfW - 50 && x < q.x + F.halfW + 50 && y > q.y - 120 && y < q.y + F.down + 50);
+        world = PE.RoomArt.floorWorld(this.room, blocked, { ...opts, step: 60 });
+        this.walkWorld = world;
+      }
+      if (!world || !world.spots.length) {
+        const xs = [MARGIN / 2 + 20, MARGIN + CELL_W, this.w - MARGIN / 2 - 20];
+        const rows = Math.max(1, Math.ceil(this.open / COLS));
+        const ys = [WALL + 165];
+        for (let r = 0; r < rows; r++) ys.push(Math.min(this.h - 40, this.spot(r * COLS).y + CELL_H / 2 - 10));
+        world = PE.HelperLife.aisleWorld(xs, ys, opts);
+      }
+      this.helperLife = new PE.HelperLife.Life(this, world);
       const manager = this.g.collections.managersAt(this.fid)[0];
       if (manager && PE.App.state.settings.helpers) {
-        this.managerActor = new PE.Anim.Actor(this, manager, { x: this.w / 2 - 240, y: WALL + 96, height: 250, depth: 5 });
+        // The manager serves from beside the counter (or, in the factory, near the back wall).
+        const at = this.room && this.room.counter ? { x: this.room.counter.x + 300, y: this.room.counter.y + 40 } : this.room ? { x: this.w / 2, y: Math.min(...this.room.floor.map((q) => q[1])) + 120 } : { x: this.w / 2 - 240, y: WALL + 96 };
+        this.managerActor = new PE.Anim.Actor(this, manager, { x: at.x, y: at.y, height: 250 });
         this.managerId = manager;
       }
     }
@@ -241,6 +325,7 @@
       PE.Anim.stepAll(this, dt);
       if (this.helperLife) this.helperLife.update(dt);
       this.stepCustomers(dt);
+      if (time - (this.lastSharp || 0) > 150) { this.lastSharp = time; PE.RoomArt.keepSharp(this, this.roomArt); }
       if (time - (this.lastRefresh || 0) < 300) return;
       this.lastRefresh = time;
       this.refresh();
@@ -256,9 +341,10 @@
       const cam = this.cameras.main;
       const lim = this.zoomLimits();
       // A little further back as the room grows.
-      cam.setZoom(Phaser.Math.Clamp(this.scale.width / (this.w + (this.size - 1) * 80), lim.min, lim.max));
+      // The whole room across the screen, as close as that allows.
+      cam.setZoom(Phaser.Math.Clamp(this.scale.width / (this.room ? this.w * 0.92 : this.w + (this.size - 1) * 80), lim.min, lim.max));
       const first = this.spot(0);
-      cam.centerOn(this.w / 2, first.y);
+      cam.centerOn(this.w / 2, this.room ? this.h * 0.55 : first.y);
       cam.preRender();
       this.clampCamera();
     }
@@ -279,11 +365,13 @@
       const menuOpen = () => !!PE.Dom.panelRoute || !!PE.Dom.modalNow;
       input.on('pointerdown', (p) => {
         if (!onCanvas(p) || menuOpen()) { drag = null; return; }
+        if (PE.RoomSpots.down(this, p)) { drag = null; return; }
         const a = input.pointer1, b = input.pointer2;
         if (a.isDown && b.isDown) { pinch = { dist: Phaser.Math.Distance.Between(a.x, a.y, b.x, b.y), zoom: this.cameras.main.zoom }; drag = null; } else drag = { id: p.id, sx: p.x, sy: p.y, lastX: p.x, lastY: p.y, moved: false };
       });
       input.on('pointermove', (p) => {
         const cam = this.cameras.main;
+        if (PE.RoomSpots.drag(this, p)) return;
         if (pinch && input.pointer1.isDown && input.pointer2.isDown) {
           const lim = this.zoomLimits();
           cam.setZoom(Phaser.Math.Clamp((pinch.zoom * Phaser.Math.Distance.Between(input.pointer1.x, input.pointer1.y, input.pointer2.x, input.pointer2.y)) / pinch.dist, lim.min, lim.max));
@@ -296,6 +384,7 @@
         drag.lastX = p.x; drag.lastY = p.y;
       });
       input.on('pointerup', (p) => {
+        if (PE.RoomSpots.up(this, p)) return;
         if (pinch) { if (!input.pointer1.isDown && !input.pointer2.isDown) pinch = null; drag = null; return; }
         if (drag && p.id === drag.id && !drag.moved) this.tapAt(p.x, p.y);
         drag = null;

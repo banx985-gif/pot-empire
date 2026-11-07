@@ -142,7 +142,9 @@
     const count = shops.length ? 4 : 3;
     const strolls = PE.MapPaths.linesOf(L, (k, kind) => k.walk && kind !== 'drive').filter((l) => l.pts.length > 3).sort((a, b) => b.pts.length - a.pts.length);
     for (let i = 0; i < count; i++) {
-      const artId = 'WLK-0' + (((i + Number(this.district.slice(1))) % 6) + 1);
+      // The last one is a VIP with her own frames (VIP-08 Nova, or VIP-09 Goldie in every other district).
+      const vip = ['VIP-08', 'VIP-09'][(Number(this.district.slice(1)) + 1) % 2];
+      const artId = i === count - 1 && PE.AnimPick.hasFrames(vip) ? vip : 'WLK-0' + (((i + Number(this.district.slice(1))) % 6) + 1);
       let way = null, entering = false;
       if (shops.length) {
         // Customers walk the streets from a few junctions away, up to the shop door, and go in.

@@ -54,7 +54,7 @@
       const step = (t) => { if (this.now !== run) return; if (fn(t) !== false) requestAnimationFrame(step); };
       requestAnimationFrame(step);
     },
-    // The new district's title: Aaron's picture, or live text until his TITLE-D1 arrives.
+    // The new district's title: Aaron's picture (all four are drawn). Live text only if a picture fails to load.
     title(run) {
       const name = PE.App.g.map.districts().find((d) => d.id === run.id).name;
       const box = el('travel-title', run.root);
