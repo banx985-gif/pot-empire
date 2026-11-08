@@ -23,7 +23,9 @@
 
   // Every setting with its default. Old saves get any missing ones filled in.
   function newSettings() {
-    return { reducedMotion: false, helpers: true, sound: 0.8, music: 0.5, bigText: false, colourBlind: false, showFps: false, pretendShop: false, haptics: true };
+    return { reducedMotion: false, helpers: true, sound: 0.8, music: 0.5, bigText: false, colourBlind: false, showFps: false, pretendShop: false, haptics: true,
+      // Phone notifications (job 18): the main switch and one for each kind.
+      notify: true, notifyHarvest: true, notifyTank: true, notifyOrders: true, notifyDaily: true, notifyEvents: true };
   }
 
   // The first-time guide and the one-time hints. done means the guide won't start by itself.

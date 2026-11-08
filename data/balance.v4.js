@@ -202,6 +202,12 @@ globalThis.PE.Data.balance = {
     // While you're away, an automatic sprinkler only keeps watering for this many hours, by sprinkler level. After that
     // the station is dry and its plants can wilt, until you water or harvest them.
     awayHoursBySprinkler: [0, 0, 2, 6, 12, 24],
+    // Job 18: each station has a water pump with a see-through tank. It fills by itself over one watering interval (the
+    // same time the meter takes to run dry), a tap on the pump adds pumpTap of a tank, and once it's full the player taps
+    // "Spray!" to water at once. Nobody tapping? The sprinklers go off by themselves autoSpraySeconds after it's full,
+    // while you're playing. Only a spray you set off yourself gives a thirsty station its growth boost.
+    pumpTap: 0.15,
+    autoSpraySeconds: 6,
   },
 
   qualityOdds: {

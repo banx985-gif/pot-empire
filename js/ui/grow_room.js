@@ -321,6 +321,12 @@
           pinch = { dist: Phaser.Math.Distance.Between(a.x, a.y, b.x, b.y), zoom: this.cameras.main.zoom };
           drag = null;
         } else {
+          // A finger down on a station with something ripe: a flick of the harvest tool (job 18, js/ui/grow_tools.js),
+          // not a pan. A plain tap there still does what a tap does.
+          if (!this.testOverride && this.ripeUnder(p.x, p.y)) {
+            const r = this.game.canvas.getBoundingClientRect();
+            if (PE.GrowTools.flickStart(r.left + (p.x * r.width) / this.scale.width, r.top + (p.y * r.height) / this.scale.height)) { drag = null; return; }
+          }
           drag = { id: p.id, sx: p.x, sy: p.y, lastX: p.x, lastY: p.y, moved: false };
         }
       });
@@ -357,7 +363,17 @@
     }
 
     // ---- Tapping ----------------------------------------------------------------------------------
+    // Is this canvas point on a station that has a ripe plant? (Then a swipe there is a flick, job 18.)
+    ripeUnder(sx, sy) {
+      const pt = this.cameras.main.getWorldPoint(sx, sy);
+      const hit = this.hitAt(pt.x, pt.y);
+      if (!hit || hit.ghost || hit.pump || hit.spray || hit.si === undefined) return false;
+      const now = this.g.now();
+      return this.stationData(hit.si).pots.some((q) => q && now >= q.readyMs);
+    }
     hitAt(wx, wy) {
+      const pump = this.hitPump(wx, wy);
+      if (pump) return pump;
       const owned = this.stationCount();
       const box = this.room.box;
       if (this.ghost !== null && this.ghost !== undefined) {
@@ -375,8 +391,19 @@
           const ax = pos.x + Layout.anchorX(pi), ay = pos.y + Layout.slotY(PE.Data, st.model, pi);
           if (Math.abs(wx - ax) <= WORLD.potSpacing / 2 && wy <= ay + 56 && wy >= ay - 240) return { si, pi };
         }
-        return { si, pi: null };
+        return { si, pi: null, part: this.partAt(st, pos, wx, wy) };
       }
+      return null;
+    }
+    // Which piece of a station a point is on (job 18: touch the thing to upgrade it): the light, the sprinkler or the
+    // computer. Null for the rest of it.
+    partAt(st, pos, wx, wy) {
+      const M = Layout.model(PE.Data, st.model);
+      const O = Layout.overhead(PE.Data, st.model, st.levels.lights, st.levels.sprinkler);
+      const x = wx - pos.x, y = wy - pos.y;
+      if (Math.abs(x - M.computer.x) < 130 && y > M.computer.y - 380 && y < M.computer.y + 20) return 'computer';
+      if (Math.abs(x - O.x) < O.L.w / 2 + 20 && y >= O.lightTop - 20 && y < O.lightBottom) return 'lights';
+      if (Math.abs(x - O.x) < O.S.w / 2 + 40 && y >= O.sprTop && y < O.sprBottom + 40) return 'sprinkler';
       return null;
     }
 
@@ -384,7 +411,10 @@
       const pt = this.cameras.main.getWorldPoint(sx, sy);
       const hit = this.hitAt(pt.x, pt.y);
       if (this.testOverride) return;
+      if (PE.GrowTools.swallowTap()) return;
       const g = this.g;
+      // The pump and Spray! work at once: you tap the pump again and again.
+      if (hit && (hit.pump || hit.spray)) { this.tapPump(hit); return; }
       // A ripe plant is picked at once. Anything else waits a moment, in case it's the first of a double-tap.
       const ripe = hit && !hit.ghost && hit.pi !== null && (() => { const p = this.stationData(hit.si).pots[hit.pi]; return p && g.now() >= p.readyMs; })();
       if (ripe) { g.grow.harvest(this.fid, hit.si, hit.pi); return; }
@@ -413,9 +443,15 @@
         return;
       }
       const { si, pi } = hit;
-      if (pi === null) { PE.App.openPanel('station', { fid: this.fid, si }); return; }
+      if (pi === null) {
+        PE.App.openPanel('station', { fid: this.fid, si });
+        // Tapped the light, the sprinkler or the computer: its upgrade is right there, lit up.
+        if (hit.part) setTimeout(() => PE.Dom.spotlight && PE.Dom.spotlight(`#panel [data-act="up:${hit.part}"]`), 60);
+        return;
+      }
       const p = this.stationData(si).pots[pi];
-      if (!p) { PE.App.openPanel('strainPicker', { fid: this.fid, si, pi }); return; }
+      // An empty pot: your seeds pop up beside it, to drag one on (job 18, js/ui/grow_tools.js).
+      if (!p) { PE.GrowTools.openStash(si, pi); return; }
       if (g.now() >= p.readyMs) g.grow.harvest(this.fid, si, pi);
       else PE.App.openPanel('plant', { fid: this.fid, si, pi });
     }
@@ -443,6 +479,17 @@
       cam.preRender();
       this.clampCamera();
     }
+    // Moves the camera, if it has to, so one pot can be seen, side to side as well as up and down (the guide uses it).
+    showPot(si, pi) {
+      const pos = this.room.stations[si];
+      const x = pos.x + Layout.anchorX(pi), y = pos.y + Layout.slotY(PE.Data, this.stationData(si).model, pi) - 60;
+      const cam = this.cameras.main, v = cam.worldView;
+      const m = 150 * PE.App.dpr / cam.zoom;
+      if (x > v.x + m && x < v.right - m && y > v.y + m && y < v.bottom - m) return;
+      cam.centerOn(x, y);
+      cam.preRender();
+      this.clampCamera();
+    }
     worldToPage(wx, wy) {
       const cam = this.cameras.main;
       const r = this.game.canvas.getBoundingClientRect();
@@ -462,6 +509,8 @@
         else if (type === 'lockedTap') this.helperLife.react('locked');
       }
       if (type === 'watered' && e.facility === this.fid) this.splash(e.station);
+      if (type === 'sprayed' && e.facility === this.fid) this.sprayed(e.station);
+      if (type === 'pumped' && e.facility === this.fid) { this.wobblePump(e.station); this.lastRefresh = 0; }
     }
 
     floatHarvest(e) {
@@ -684,6 +733,7 @@
     update(time, delta) {
       if (!this.ready) return;
       PE.SprayAnim.stepAll(this, Math.min(0.1, (delta || 16) / 1000));
+      this.stepHalos(time);
       if (!this.testOverride && this.helperLife === null && !this.g.tutorial.active()) this.buildLife();
       if (this.helperLife) {
         const dt = Math.min(0.1, (delta || 16) / 1000);
@@ -755,7 +805,8 @@
         }
         if (due && !view.water && this.textures.exists('ui-ACT-04')) view.water = this.add.image(pos.x - 220, pos.y + 150, 'ui-ACT-04').setDisplaySize(64, 64).setDepth(pos.y + 330);
         if (view.water) view.water.setVisible(due);
-        this.updateSpray(view, growing && !due);
+        this.updatePump(view, si, st, growing, now);
+        this.updateSpray(view, this.sprinklerOn(view, si, growing));
       }
       if (!this.testOverride) PE.EdgeArrows.update(this, arrows);
       this.cullStations();
@@ -807,7 +858,7 @@
         const set = (o) => { if (o) o.setVisible(on && o.wantVisible !== false); };
         view.parts.forEach(set);
         view.texts.forEach(set);
-        view.pots.forEach((pv) => [pv.tray, pv.back, pv.front, pv.img, pv.logo, pv.logoBg, pv.fx, pv.glow].forEach((o) => { if (o) o.setVisible(on && !(o === pv.logo && !pv.logoShown)); }));
+        view.pots.forEach((pv) => [pv.tray, pv.back, pv.front, pv.img, pv.logo, pv.logoBg, pv.fx, pv.glow, pv.halo].forEach((o) => { if (o) o.setVisible(on && !(o === pv.logo && !pv.logoShown)); }));
       }
     }
 
@@ -840,11 +891,13 @@
         v.gone = true;
         if (v.sprayTween) v.sprayTween.stop();
         if (v.sprayAnim) v.sprayAnim.destroy();
+        if (v.pump && v.pump.bob) v.pump.bob.stop();
         if (v.water) v.water.destroy();
         v.parts.forEach((o) => o.destroy());
         v.texts.forEach((t) => t.destroy());
         v.pots.forEach((pv) => {
-          [pv.seedIcon, pv.img, pv.logo, pv.logoBg, pv.fx, pv.tray, pv.back, pv.front, pv.glow].forEach((o) => { if (o) o.destroy(); });
+          [pv.seedIcon, pv.img, pv.logo, pv.logoBg, pv.fx, pv.tray, pv.back, pv.front, pv.glow, pv.halo].forEach((o) => { if (o) o.destroy(); });
+          if (this.exoticHalos) this.exoticHalos.delete(pv);
           if (pv.tween) pv.tween.stop();
           if (pv.glowTween) pv.glowTween.stop();
         });
@@ -955,6 +1008,8 @@
       const cx = pos.x + M.computer.x, cy = pos.y + M.computer.y;
       this.part(v, `M${m}-BASE`, cx, cy, base.w, base.h, pos.y + 210, 0.5, 1);
       this.part(v, `M${m}-CMP-${L.computer}`, cx, cy - base.h * 0.86, cmp.w, cmp.h, pos.y + 211, 0.5, 1);
+      // The water pump and its tank, on the other side (job 18, js/ui/grow_hands.js).
+      this.drawPump(v, si, st, pos);
 
       // The water timer and meter on the computer, and the station's mood face above it.
       if (!this.testOverride) {
@@ -1007,6 +1062,7 @@
       if (pv.fx) { pv.fx.destroy(); pv.fx = null; }
       if (pv.glowTween) { pv.glowTween.stop(); pv.glowTween = null; }
       if (pv.glow) { pv.glow.destroy(); pv.glow = null; }
+      this.updateHalo(pv, null);
 
       if (!p) {
         if (pv.img) { pv.img.destroy(); pv.img = null; }
@@ -1054,6 +1110,7 @@
         if (wilted) { this.showWilted(pv, p, f); return; }
         pv.img.clearTint();
         pv.img.setRotation(0);
+        if (!this.testOverride) this.updateHalo(pv, p, stage, x, pos, spot, depth, v);
         this.onStageShown(pv, p, stage, x, pos, had, spot, depth);
       };
       PE.UI.loadStrain(this, p.s, apply);

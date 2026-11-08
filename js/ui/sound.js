@@ -10,8 +10,12 @@
   const settings = () => PE.App.state.settings;
 
   // The stand-in tones: [ [frequency Hz, start s, length s, wave], ... ]
+  const TONE_ONLY = new Set(['pump', 'spray']);   // no file to fetch
   const TONES = {
     tap: [[660, 0, 0.05, 'triangle']],
+    // Job 18: the pump's gurgle and the sprinklers' whoosh. Made from tones only: there are no sound files for them yet.
+    pump: [[320, 0, 0.05, 'sine'], [230, 0.045, 0.06, 'sine'], [360, 0.1, 0.05, 'sine']],
+    spray: [[880, 0, 0.08, 'sine'], [660, 0.06, 0.1, 'sine'], [990, 0.14, 0.12, 'sine']],
     button: [[660, 0, 0.05, 'triangle']],
     upgrade: [[523, 0, 0.07, 'triangle'], [784, 0.06, 0.1, 'triangle']],
     plant: [[440, 0, 0.06, 'sine']],
@@ -86,7 +90,7 @@
         src.start();
         return;
       }
-      Sound.fetchSound(name);
+      if (!TONE_ONLY.has(name)) Sound.fetchSound(name);
       for (const [f, at, len, wave] of TONES[name] || []) Sound.tone(f, at, len, wave, 0.12 * vol);
     },
     // A long looping file. Fetched whole first: that also makes it work from the offline copy.

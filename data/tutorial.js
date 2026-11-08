@@ -8,7 +8,8 @@
 //   until       what ends the step (js/logic/tutorial.js has the list). 'next' means a Continue button.
 //   talk        the helper fills the bottom of the screen, with a round bubble and Continue. Without it: a short spiky tip.
 //   move        what they play while they say it (data/anim_moves.js has the names). Without one: chat.
-//   drag        which tool the guide hand shows being dragged: seed, water or shears. Tapping still works.
+//   drag        what the guide hand shows: 'seed' (a seed dragged from the stash onto the pot) or 'flick' (a swipe across
+//               the ripe plant). Tapping still works.
 //   camera      'close' keeps the room's camera right in on the first pot. Otherwise it pulls back.
 //   drain       the station's water meter is low when this step starts, so watering has something to do
 //   skipIf      skip this step when it can't be done (say, on a replay with no empty pots)
@@ -21,13 +22,13 @@
 globalThis.PE.Data.tutorial = {
   steps: [
     { id: 'welcome', who: 'HAZE', face: 'HAZE-27', move: 'greet', talk: true, camera: 'close', text: "Kid! You made it. This garage is all that's left of the family business. Let's wake it up.", until: 'next' },
-    { id: 'seed', who: 'HAZE', face: 'HAZE-03', camera: 'close', drag: 'seed', text: 'Drag the seed onto the pot!', point: 'seedTarget', until: 'plantedOne', skipIf: 'noEmptyPot' },
+    { id: 'seed', who: 'HAZE', face: 'HAZE-03', camera: 'close', drag: 'seed', text: 'Tap the pot, then drag a seed onto it!', point: 'seedTarget', until: 'plantedOne', skipIf: 'noEmptyPot' },
     { id: 'lights', who: 'BUDZ', face: 'BUDZ-19', move: 'cheer', talk: true, camera: 'close', text: "Lights on! See that? The whole place wakes up when something's growing.", until: 'next' },
-    { id: 'water', who: 'LEAFY', face: 'LEAFY-03', camera: 'close', drag: 'water', drain: true, text: 'Thirsty! Drag the water onto it.', point: 'firstPlant', until: 'wateredOne', skipIf: 'nothingGrowing' },
+    { id: 'water', who: 'LEAFY', face: 'LEAFY-03', camera: 'close', drain: true, text: 'Thirsty! Tap the pump to fill the tank, then hit Spray!', point: 'pump', until: 'wateredOne', skipIf: 'nothingGrowing' },
     { id: 'wait', who: 'BUDZ', face: 'BUDZ-03', camera: 'close', text: 'Growing! First one is on me. Tap to grow it now.', until: 'somethingRipe', speedUp: true, skipIf: 'nothingGrowing' },
-    { id: 'harvest', who: 'HAZE', face: 'HAZE-04', camera: 'close', drag: 'shears', text: 'See it glow? Drag the shears across it!', point: 'ripePot', until: 'harvested', skipIf: 'nothingRipe' },
+    { id: 'harvest', who: 'HAZE', face: 'HAZE-04', camera: 'close', drag: 'flick', text: 'See it glow? Flick the shears across it!', point: 'ripePot', until: 'harvested', skipIf: 'nothingRipe' },
     { id: 'sold', who: 'LEAFY', face: 'LEAFY-03', move: 'think', talk: true, text: 'Buds sell by themselves. Cash goes up top. Please do not spend it all on sneakers. Budz.', point: 'cash', until: 'next' },
-    { id: 'seedAgain', who: 'HAZE', face: 'HAZE-03', drag: 'seed', text: 'Plant another one.', point: 'seedTarget', until: 'plantedOne', skipIf: 'noEmptyPot' },
+    { id: 'seedAgain', who: 'HAZE', face: 'HAZE-03', drag: 'seed', text: 'Plant another one. Tap a pot.', point: 'seedTarget', until: 'plantedOne', skipIf: 'noEmptyPot' },
     { id: 'bench', who: 'HAZE', face: 'HAZE-22', text: 'A little startup envelope. Tap the bench.', point: 'firstBench', until: 'stationOpen', gift: true, skipIf: 'cantUpgrade' },
     { id: 'upgrade', who: 'BUDZ', face: 'BUDZ-21', text: 'A bigger light! Faster plants!', point: 'upgradeLight', until: 'upgraded', needs: 'stationOpen', skipIf: 'stationShut' },
     { id: 'closeSheet', who: 'LEAFY', face: 'LEAFY-03', text: 'Good. Close that before Budz buys another.', point: 'closePanel', until: 'noPanel', skipIf: 'stationShut' },

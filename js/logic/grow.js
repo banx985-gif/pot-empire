@@ -102,6 +102,18 @@
     // An automatic sprinkler keeps a station watered while you play, and for its level's hours while you're away (see
     // js/logic/offline.js). After that it can wilt like any other. Only auto-harvest takes ripe plants out of the way.
     const neverWilts = (st) => st.auto.harvest && hasStationFeature(st, 'autoHarvest');
+    // ---- The pump and tank (job 18) ----------------------------------------------------------------
+    // How full the tank is, 0 to 1: it fills over one watering interval from when it was last emptied, plus any pumping.
+    // Old saves have no tank yet: it counts from the last watering.
+    function tankLevel(st, fid, si, now = g.now()) {
+      const from = st.tankAt === undefined ? st.lastServiceMs : st.tankAt;
+      return Math.min(1, Math.max(0, (now - from) / (waterInterval(st, fid, si) * 1000) + (st.tankPumped || 0)));
+    }
+    // When it filled up (or will), in game time.
+    function tankFullAt(st, fid, si) {
+      const from = st.tankAt === undefined ? st.lastServiceMs : st.tankAt;
+      return from + Math.max(0, 1 - (st.tankPumped || 0)) * waterInterval(st, fid, si) * 1000;
+    }
     // How the meter stands: 1 is just watered, 0 is dry.
     function waterMeter(st, fid, si, now = g.now()) {
       return Math.max(0, 1 - (now - st.lastServiceMs) / (waterInterval(st, fid, si) * 1000));
@@ -434,11 +446,12 @@
       },
 
       // Watering. A thirsty station's plants get a growth boost, and any lost quality comes back.
-      service(fid, si) {
+      // opts.auto: the sprinklers went off by themselves (job 18): they water, but the boost is only for the player.
+      service(fid, si, opts = {}) {
         const st = stationOf(fid, si);
         if (!st) return false;
         const now = g.now();
-        const thirsty = waterMeter(st, fid, si, now) < B.water.boostBelowMeter;
+        const thirsty = !opts.auto && waterMeter(st, fid, si, now) < B.water.boostBelowMeter;
         if (thirsty) {
           st.pots.forEach((p) => {
             if (!p || now >= p.readyMs) return;
@@ -454,6 +467,32 @@
         return true;
       },
       waterMeter: (fid, si, now) => waterMeter(stationOf(fid, si), fid, si, now),
+      // The pump and tank (job 18).
+      tankLevel: (fid, si, now) => tankLevel(stationOf(fid, si), fid, si, now),
+      tankFullAt: (fid, si) => tankFullAt(stationOf(fid, si), fid, si),
+      // A tap on the pump: a bit more water in the tank. Returns the new level.
+      pump(fid, si) {
+        const st = stationOf(fid, si);
+        if (!st) return 0;
+        const now = g.now();
+        const before = tankLevel(st, fid, si, now);
+        if (before >= 1) return 1;
+        st.tankPumped = Math.min(1, (st.tankPumped || 0) + B.water.pumpTap);
+        if (st.tankAt === undefined) st.tankAt = st.lastServiceMs;
+        const after = tankLevel(st, fid, si, now);
+        g.emit('pumped', { facility: fid, station: si, level: after, full: after >= 1 });
+        g.emit('changed');
+        return after;
+      },
+      // A full tank sets the sprinklers off: the station is watered and the tank starts filling again.
+      spray(fid, si, opts = {}) {
+        const st = stationOf(fid, si);
+        if (!st || tankLevel(st, fid, si) < 1) return false;
+        st.tankAt = g.now();
+        st.tankPumped = 0;
+        g.emit('sprayed', { facility: fid, station: si, auto: !!opts.auto });
+        return this.service(fid, si, { auto: !!opts.auto });
+      },
       waterSecondsLeft: (fid, si) => Math.max(0, waterInterval(stationOf(fid, si), fid, si) - (g.now() - stationOf(fid, si).lastServiceMs) / 1000),
       plantHealth: (fid, si, p, now) => plantHealth(stationOf(fid, si), fid, si, p, now),
       neverWilts: (fid, si) => neverWilts(stationOf(fid, si)),
@@ -471,6 +510,14 @@
       // plants are suffering any more (watered or harvested), the sprinkler carries on.
       tickWater() {
         const now = g.now();
+        // A full tank nobody tapped goes off by itself a few seconds later, while you're playing. One that filled up long
+        // ago (you were away) waits for you instead: the away rules for drying out still hold.
+        eachStation((fid, si, st) => {
+          if (!st.pots.some(Boolean) || st.dryFromAway) return;
+          const full = tankFullAt(st, fid, si);
+          const late = now - full;
+          if (late >= B.water.autoSpraySeconds * 1000 && late < (B.water.autoSpraySeconds + 120) * 1000) this.spray(fid, si, { auto: true });
+        });
         eachStation((fid, si, st) => {
           if (!autoWaters(st)) return;
           if (st.dryFromAway) {

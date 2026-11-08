@@ -94,6 +94,10 @@
       if (s.drain && t.wateredAt === undefined) {
         const left = g.grow.waterSecondsLeft('F01', 0);
         if (left > 0) station(0).lastServiceMs -= (left - 30) * 1000;
+        // The tank's nearly full, so a few pumps fill it (job 18).
+        const st = station(0);
+        st.tankAt = g.now();
+        st.tankPumped = 0.55;
       }
     }
     function finish(skipped) {

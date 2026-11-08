@@ -28,6 +28,9 @@
       const build = PE.BUILD.startsWith('__') ? 'dev' : PE.BUILD;
       return `<h4>Sound</h4>${slider('sound', 'Sound effects')}${slider('music', 'Music')}
         ${toggle('haptics', 'Vibration', 'A gentle buzz on harvest, collect and level up')}
+        <h4>Notifications</h4>
+        ${toggle('notify', 'Notifications', 'A shout from Uncle Haze when something is ready. Never at night, only a few a day.')}
+        ${s.notify ? PE.Notify.KINDS.map((k) => toggle(k.key, k.title, k.text)).join('') : ''}
         <h4>Look and feel</h4>
         ${toggle('reducedMotion', 'Reduced motion', 'Fewer moving effects; celebrations stay still')}
         <div class="item"><div class="grow"><b>Text size</b><small>The writing in menus and pop-ups. Tap to change.</small></div>
@@ -54,7 +57,9 @@
     },
     actions: {
       version() { PE.Tester.tapVersion(); },
-      flip(key) { S()[key] = !S()[key]; changed(); if (key === 'colourBlind') PE.Look.redrawRoom(); },
+      flip(key) {
+        S()[key] = !S()[key]; changed();
+        if (/^notify/.test(key)) { PE.Notify.changed(); if (key === 'notify' && S().notify) PE.Notify.check(true); PE.Dom.renderPanel(); } if (key === 'colourBlind') PE.Look.redrawRoom(); },
       vol(key, v) { S()[key] = Math.max(0, Math.min(1, Number(v) / 100)); changed(); if (key === 'sound') PE.Sound.play('tap'); },
       replayList() { PE.App.router.go('helperReplay', {}); },
       replayIntro() { PE.Intro.show(true); },

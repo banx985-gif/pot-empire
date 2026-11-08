@@ -8,7 +8,7 @@
 //
 // VERSION is stamped by publish.ps1 on every publish. A new version makes the phone install this
 // worker fresh and throw away old copies.
-const VERSION = '20261108-201934';
+const VERSION = '20261108-221129';
 const PREFIX = 'pot-empire-';   // other Banx games share this web address: only ever touch our own copies
 const CACHE = PREFIX + VERSION;
 
@@ -68,4 +68,15 @@ self.addEventListener('fetch', (event) => {
       .catch(() => caches.match(req, { ignoreSearch: true })
         .then((hit) => hit || (req.mode === 'navigate' ? caches.match('./index.html') : Response.error())))
   );
+});
+
+// Job 18: a notification tapped in the browser opens the game (or brings it to the front) on the right screen.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const route = event.notification.data && event.notification.data.route;
+  event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+    const open = list[0];
+    if (open) { open.postMessage({ notifyRoute: route }); return open.focus(); }
+    return self.clients.openWindow('./');
+  }));
 });

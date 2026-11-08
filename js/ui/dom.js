@@ -119,7 +119,18 @@
     // ---- Panels --------------------------------------------------------------------------------
     panelDef() { return PE.Panels[this.panelRoute.name]; },
     showPanel(route) { this.panelRoute = route; this.renderPanel(true); },
-    closePanel() { this.panelRoute = null; $('panel').hidden = true; $('panel').innerHTML = ''; },
+    // Scrolls a menu row into view and makes it flash, so the thing you tapped is right there (job 18).
+    spotlight(selector) {
+      this.spotSel = selector;
+      const el = document.querySelector(selector);
+      const row = el && (el.closest('.item') || el);
+      if (!row) return;
+      row.scrollIntoView({ block: 'center', behavior: 'instant' });
+      row.classList.remove('spot');
+      void row.offsetWidth;
+      row.classList.add('spot');
+    },
+    closePanel() { this.spotSel = null; this.panelRoute = null; $('panel').hidden = true; $('panel').innerHTML = ''; },
 
     renderPanel(fresh) {
       if (!this.panelRoute) return;
@@ -134,6 +145,8 @@
       el.hidden = false;
       const nowScroll = el.querySelector('.scroll');
       if (nowScroll) nowScroll.scrollTop = top;
+      // Keeps the row you came for lit up when the menu redraws itself.
+      if (this.spotSel && !fresh) { const sp = el.querySelector(this.spotSel); const row = sp && (sp.closest('.item') || sp); if (row) row.classList.add('spot'); } else if (fresh) this.spotSel = null;
     },
 
     runAction(act) {

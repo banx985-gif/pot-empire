@@ -27,7 +27,11 @@
     // Sharpness is capped at 2x: a 3x phone would have to draw more than twice the pixels for very
     // little visible gain, and a mid-range phone can't keep up.
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const cssW = Math.min(vw, Math.round(vh * 0.62));
+    // Job 18: a phone or tablet (anything with a touch screen, or any screen taller than it is wide) uses the whole
+    // screen, edge to edge: backgrounds and rooms cover it and the bars pin to its edges. Only a wide PC window keeps
+    // the centred portrait box.
+    const touch = (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) || (navigator.maxTouchPoints || 0) > 0;
+    const cssW = vw <= vh || touch ? vw : Math.min(vw, Math.round(vh * 0.62));
     document.documentElement.style.setProperty('--game-w', cssW + 'px');
     return { dpr, cssW, cssH: vh, W: Math.round(cssW * dpr), H: Math.round(vh * dpr) };
   }
@@ -87,6 +91,7 @@
     PE.Juice.init();
 
     PE.Native.init();
+    PE.Notify.init();
 
     // A picture or sound the game's loader couldn't fetch goes in the log.
     const baseNext = Phaser.Loader.LoaderPlugin.prototype.nextFile;
@@ -96,9 +101,15 @@
     };
 
     const fromFile = location.protocol === 'file:';
+    // Job 18: WebGL 2 when the phone has it, so every picture gets smooth in-between sizes (js/ui/smooth.js).
+    const gl2 = fromFile ? null : PE.Smooth.context();
     const game = new Phaser.Game({
       // A page opened straight from a file on the PC can't use the graphics-card mode with its art.
-      type: fromFile ? Phaser.CANVAS : Phaser.AUTO,
+      type: fromFile ? Phaser.CANVAS : gl2 ? Phaser.WEBGL : Phaser.AUTO,
+      canvas: gl2 ? gl2.canvas : undefined,
+      context: gl2 ? gl2.gl : undefined,
+      // Smooth, not pixel art: shrunk pictures blend, nothing snaps to whole pixels.
+      render: { antialias: true, pixelArt: false, roundPixels: false, mipmapFilter: 'LINEAR_MIPMAP_LINEAR' },
       parent: 'game',
       backgroundColor: '#1d0f33',
       banner: false,
@@ -112,6 +123,7 @@
       input: { windowEvents: false },
     });
     app.game = game;
+    PE.Smooth.attach(game);
 
     // ---- Speed: full frame rate while a finger is on the screen or something was just tapped, and a
     // calmer rate when nobody has touched it for a few seconds. Growing, timers and animations still
@@ -278,6 +290,17 @@
       else { g.tick(); saves.save(app.state); PE.Hud.refresh(); }
     });
     window.addEventListener('pagehide', () => { saves.save(app.state); });
+
+    // Job 18: in a phone's browser, the first tap asks for full screen so the address bar hides, the way an app fills
+    // the screen. The app itself is full screen already. If the browser says no, the game carries on as it is.
+    const goFull = () => {
+      window.removeEventListener('pointerup', goFull, true);
+      const el = document.documentElement;
+      const touch = (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) || (navigator.maxTouchPoints || 0) > 0;
+      if (!touch || PE.Native.isApp() || document.fullscreenElement || !el.requestFullscreen) return;
+      try { const r = el.requestFullscreen({ navigationUI: 'hide' }); if (r && r.catch) r.catch(() => {}); } catch (e) { /* refused: carry on */ }
+    };
+    window.addEventListener('pointerup', goFull, true);
 
     // Rotating or resizing: redraw the current screen at the new size.
     let timer = null;

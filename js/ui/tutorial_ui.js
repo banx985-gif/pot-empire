@@ -20,7 +20,7 @@
   const uiRect = () => $('ui').getBoundingClientRect();
   const around = (x, y, w, h) => { const u = uiRect(); return { x: x - w / 2 - u.left, y: y - h / 2 - u.top, w, h }; };
   const relative = (b) => { if (!b) return null; const u = uiRect(); return { ...b, x: b.x - u.left, y: b.y - u.top }; };
-  const potBox = (si, pi) => { const s = garage(); if (!s || pi < 0) return null; s.showStation(si); const p = s.potPagePoint(si, pi); return around(p.x, p.y - 20, 96, 110); };
+  const potBox = (si, pi) => { const s = garage(); if (!s || pi < 0) return null; s.showStation(si); s.showPot(si, pi); const p = s.potPagePoint(si, pi); return around(p.x, p.y - 20, 96, 110); };
   const ripePot = () => {
     const s = garage();
     if (!s) return null;
@@ -36,7 +36,18 @@
     firstEmptyPot: () => potBox(0, PE.App.g.tutorial.emptyPot(0)),
     secondEmptyPot: () => potBox(1, PE.App.g.tutorial.emptyPot(1)),
     // The pot, or if they tapped it and the strain list came up, the strain.
-    seedTarget: () => (document.querySelector('#panel [data-act^="plant:"]') ? relative(domBox('#panel [data-act^="plant:"]')) : potBox(0, PE.App.g.tutorial.emptyPot(0))),
+    // Once the seed stash is open (job 18), the stash and the pot together, so both can be touched.
+    seedTarget: () => {
+      if (document.querySelector('#panel [data-act^="plant:"]')) return relative(domBox('#panel [data-act^="plant:"]'));
+      const pot = potBox(0, PE.App.g.tutorial.emptyPot(0));
+      const stash = document.getElementById('seed-stash');
+      if (!stash || !pot) return pot;
+      const r = relative(stash.getBoundingClientRect());
+      const x = Math.min(pot.x, r.x), y = Math.min(pot.y, r.y);
+      return { x, y, w: Math.max(pot.x + pot.w, r.x + r.width) - x, h: Math.max(pot.y + pot.h, r.y + r.height) - y };
+    },
+    // The pump, then its Spray! button once the tank's full (job 18).
+    pump: () => { const s = garage(); if (!s) return null; s.showPump(0); const p = s.pumpPagePoint(0); if (!p) return null; return p.spray ? around(p.x, p.y, 190, 90) : around(p.x, p.y, 150, 200); },
     firstPlant: () => { const s = garage(); if (!s) return null; const pi = PE.App.g.grow.stationOf('F01', 0).pots.findIndex(Boolean); return pi < 0 ? null : potBox(0, pi); },
     ripePot,
     firstBench: () => { const s = garage(); if (!s) return null; const p = s.benchPagePoint(0); return around(p.x, p.y, 170, 74); },
@@ -164,10 +175,22 @@
       const hand = $('tutor').querySelector('.tut-hand');
       if (!hand) return;
       if (!s.drag || !b || document.querySelector('#panel [data-act^="plant:"]')) { hand.hidden = true; Tutorial.stopHand(); return; }
-      const from = PE.GrowTools.point(s.drag);
-      if (!from) return;
       const u = uiRect();
-      const a = { x: from.x - u.left - 18, y: from.y - u.top - 10 }, z = { x: b.x + b.w / 2 - 18, y: b.y + b.h / 2 - 10 };
+      let a, z;
+      if (s.drag === 'flick') {
+        // A swipe right across the ripe plant (job 18).
+        a = { x: b.x - 90, y: b.y + b.h / 2 - 10 }; z = { x: b.x + b.w + 60, y: b.y + b.h / 2 - 30 };
+      } else {
+        // The seed: from the first packet in the stash onto the pot, once the stash is open.
+        const from = PE.GrowTools.point(s.drag);
+        if (!from) { hand.hidden = true; Tutorial.stopHand(); return; }
+        const S = PE.GrowTools.stashAt, to = S && PE.GrowTools.potOnPage(S.si, S.pi);
+        a = { x: from.x - u.left - 18, y: from.y - u.top - 10 };
+        z = to ? { x: to.x - u.left - 18, y: to.y - u.top - 30 } : { x: b.x + b.w / 2 - 18, y: b.y + b.h / 2 - 10 };
+      }
+      const key = `${s.drag}|${Math.round(a.x)}|${Math.round(a.y)}|${Math.round(z.x)}|${Math.round(z.y)}`;
+      if (Tutorial.handKey === key && Tutorial.handAnim) return;
+      Tutorial.handKey = key;
       hand.hidden = false;
       Tutorial.stopHand();
       if (Tutorial.still()) { hand.style.transform = `translate(${z.x}px, ${z.y}px)`; return; }
