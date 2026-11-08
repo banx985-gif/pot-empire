@@ -63,7 +63,12 @@
       for (let i = (spec.from || 1) - 1; i <= (spec.to || n) - 1; i++) order.push(i);
     }
     order = order.filter((f) => f < n);
-    return { name, set, order, fps: spec.fps || 6, loop: !!spec.loop, hold: !!spec.hold, times: spec.times || 1, random: !!spec.random, then: spec.then || null, bob: !!spec.bob, look: lookOf(id, set) };
+    // Aaron's own timing for these frames (job 17): seq = [frame, ms] steps in order, or ms = how long each frame shows.
+    let ms = null;
+    const fr = frames[set];
+    if (!spec.frames && !spec.from && !spec.to && fr.seq) { order = fr.seq.map((s) => s[0]); ms = fr.seq.map((s) => s[1]); }
+    else if (fr.ms && !spec.fps) ms = order.map((f) => fr.ms[f] || 120);
+    return { name, set, order, ms, fps: spec.fps || 6, loop: !!spec.loop, hold: !!spec.hold, times: spec.times || 1, random: !!spec.random, then: spec.then || null, bob: !!spec.bob, look: lookOf(id, set) };
   }
   const hasFrames = (id) => !!art(id);
 

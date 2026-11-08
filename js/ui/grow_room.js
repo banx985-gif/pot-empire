@@ -97,21 +97,15 @@
           G.fillStyle(0xfff4c0, 0.035).fillTriangle(200, 0, 200 - 190 * k, 600, 200 + 190 * k, 600);
         }
       });
-      once('room-glow', 256, 256, (G) => { for (let r = 124; r > 0; r -= 8) G.fillStyle(0xa6ff3d, 0.055).fillCircle(128, 128, r); });
-      // STAND-INS for MOOD-01..03: a plain face.
-      [0, 1, 2].forEach((m) => once('room-mood-' + m, 72, 72, (G) => {
-        G.fillStyle(0x1d0f33, 1).fillCircle(36, 36, 35);
-        G.fillStyle([0xff6a5a, 0xffd84d, 0xa6ff3d][m], 1).fillCircle(36, 36, 31);
-        G.fillStyle(0x1d0f33, 1).fillCircle(25, 29, 5).fillCircle(47, 29, 5);
-        G.lineStyle(5, 0x1d0f33, 1);
-        if (m === 1) G.lineBetween(23, 49, 49, 49);
-        else {
-          const dir = m === 2 ? 1 : -1;
-          let last = null;
-          for (let i = 0; i <= 8; i++) { const t = i / 8, x = 21 + 30 * t, y = 47 + dir * (6 - 24 * (t - 0.5) ** 2 * 1.5); if (last) G.lineBetween(last[0], last[1], x, y); last = [x, y]; }
-        }
-      }));
+      // Aaron's art (job 17): the mood faces (MOOD-01 happy, 02 okay, 03 sad), the ripe ring (ACT-11) and the loose bud
+      // that flies to the stash jar when the strain's own bud pieces aren't ready (BUD-01).
+      PE.UI.loadIcons(this, ['MOOD-01', 'MOOD-02', 'MOOD-03', 'ACT-11', 'BUD-01'], () => {
+        // A ripe plant shown before the ring arrived gets its ring now.
+        this.stationViews.forEach((v) => v.pots.forEach((pv) => { if (pv && pv.glow && !pv.glow.ripeRing) pv.key = undefined; }));
+      });
     }
+    // The mood face's picture for the game's mood number (0 sad, 1 okay, 2 happy).
+    moodKey(mood) { return 'ui-MOOD-0' + (3 - mood); }
 
     // ---- The room itself ----------------------------------------------------------
     drawRoom() {
@@ -121,9 +115,14 @@
       this.glows = [];
       this.ghostSig = null;
       if (this.roomArt) {
-        // Bought decorations go on the back wall, which in the picture is just above the open floor.
-        const wall = Math.min(...this.room.floor.map((q) => q[1]));
-        if (!this.testOverride) PE.DecorArt.attach(this, this.fid, { w, wall });
+        // Bought decorations go in the room's fixed sockets (job 17).
+        if (!this.testOverride) PE.DecorArt.attach(this, this.fid, { room: this.room });
+        // A bought room theme: a soft colour tint over the room's light. Faint, so the art always shows through.
+        const theme = PE.App.g.purchases ? PE.App.g.purchases.theme() : null;
+        if (theme && theme.tint) {
+          this.themeTint = this.add.rectangle(0, 0, w, h, theme.tint, 0.13).setOrigin(0, 0).setDepth(-994).setBlendMode(Phaser.BlendModes.ADD);
+          this.themeTint.themeName = theme.name;
+        }
         return;
       }
       const wall = WORLD.wallHeight;
@@ -194,7 +193,8 @@
       const { w, h } = this.view;
       const fitRoom = Math.min(W / w, H / h);
       const fitSetup = W / (box.halfW * 2 + 24);
-      return { min: Math.min(fitRoom, fitSetup) * 0.96, fitSetup, max: 1.7 * dpr };
+      // cover: as close as needed for the room picture to fill the whole screen, with no dark bands (job 17).
+      return { min: Math.min(fitRoom, fitSetup) * 0.96, fitSetup, cover: Math.max(W / w, H / h), max: 1.7 * dpr };
     }
 
     // Default: as close as the pots you own allow, so early plants aren't tiny and are easy to tap.
@@ -204,7 +204,8 @@
       this.g.grow.eachStation((f, si, st) => { if (f === this.fid) cap = Math.max(cap, st.pots.length); });
       if (this.testOverride) cap = 7;
       const width = cap >= 7 ? this.room.box.halfW * 2 + 24 : Math.max(1050, (cap + 2) * WORLD.potSpacing + 260);
-      return Phaser.Math.Clamp(this.scale.width / width, lim.fitSetup, lim.max);
+      // Never so far back that the room leaves dark bands on a tall phone: the room fills the screen and you pan round it.
+      return Phaser.Math.Clamp(Math.max(this.scale.width / width, lim.cover), lim.fitSetup, lim.max);
     }
 
     setUpCamera() {
@@ -226,7 +227,8 @@
         const s0 = this.room.stations[0];
         cam.centerOn(s0.x - (this.testOverride ? 0 : WORLD.potSpacing / 2), s0.y - WORLD.railHeight * 0.3);
       }
-      this.clampCamera();
+      cam.preRender();
+      this.clampCamera(!saved && !this.stageOn);
     }
 
     wantsStage() {
@@ -274,13 +276,14 @@
       return true;
     }
 
-    clampCamera() {
+    // strict: no extra travel past the picture's edges (how a room opens: filling the screen, job 17).
+    clampCamera(strict = false) {
       const cam = this.cameras.main;
       const { w, h } = this.view;
       const vw = cam.width / cam.zoom, vh = cam.height / cam.zoom;
       const mid = cam.midPoint;
       // Room stays reachable behind the top bar and bottom tabs: allow some extra travel.
-      const extraY = 130 * PE.App.dpr / cam.zoom;
+      const extraY = strict ? 0 : 130 * PE.App.dpr / cam.zoom;
       const clamp = (v, lo, hi) => (lo > hi ? (lo + hi) / 2 : Math.min(hi, Math.max(lo, v)));
       cam.centerOn(clamp(mid.x, vw / 2, w - vw / 2), clamp(mid.y, vh / 2 - extraY, h - vh / 2 + extraY));
       (PE.App.cameraMemory = PE.App.cameraMemory || {})[this.fid] = { zoom: cam.zoom, x: cam.midPoint.x, y: cam.midPoint.y, size: this.roomSize };
@@ -539,7 +542,9 @@
       const x = img.x, base = img.y, tall = f.h * WORLD.plantScale;
       img.setTint(0xffffff);
       let finished = false;
-      const anim = { finish: () => { if (finished) return; finished = true; tweens.forEach((t) => t.stop()); parts.forEach((o) => { if (o.scene) o.destroy(); }); } };
+      let toJar = false, landed = false;   // buds heading for the stash jar, and whether one has reached it
+      // Ended early (a touch skips it, or a slow frame ran its clock out): the jar still gets its bump if buds were on their way.
+      const anim = { finish: () => { if (finished) return; finished = true; tweens.forEach((t) => t.stop()); parts.forEach((o) => { if (o.scene) o.destroy(); }); if (toJar && !landed && PE.GrowTools) PE.GrowTools.jarLanded(); } };
       this.harvestAnims.push(anim);
       const done = () => { anim.finish(); this.harvestAnims = this.harvestAnims.filter((a) => a !== anim); };
 
@@ -558,16 +563,22 @@
       tweens.push(this.tweens.add({ targets: img, alpha: calm ? 0.5 : 0, duration: calm ? 200 : 700 }));
       if (calm) { tweens.push(this.tweens.addCounter({ from: 0, to: 1, duration: 450, onComplete: done })); return; }
 
-      // 4 to 8 bud pieces pop off and arc to the top bar.
-      const key = this.budPieces(e.strainId, f);
+      // 4 to 8 bud pieces pop off and arc into the stash jar in the corner (or the top bar's cash if the jar isn't showing).
+      // They're cut from the strain's own picture; BUD-01 stands in for them if that isn't ready.
+      const key = this.budPieces(e.strainId, f) || (this.textures.exists('ui-BUD-01') ? 'ui-BUD-01' : null);
+      const jarAt = PE.GrowTools && PE.GrowTools.jarPoint();
+      toJar = !!jarAt;
       const cash = document.querySelector('.cash');
       const r = this.game.canvas.getBoundingClientRect();
-      const box = cash ? cash.getBoundingClientRect() : { left: r.left + 60, top: r.top + 20, width: 0, height: 0 };
+      const box = jarAt ? { left: jarAt.x, top: jarAt.y, width: 0, height: 0 } : cash ? cash.getBoundingClientRect() : { left: r.left + 60, top: r.top + 20, width: 0, height: 0 };
       const target = cam.getWorldPoint(((box.left + box.width / 2 - r.left) * this.scale.width) / r.width, ((box.top + box.height / 2 - r.top) * this.scale.height) / r.height);
       const n = Math.min(8, 4 + e.grade + (this.harvestAnims.length > 3 ? -2 : 1));
+      // About 30 screen pixels across whatever the zoom, so they read as buds on a phone.
+      const budSize = Math.max(40, (30 * this.scale.width) / (r.width * cam.zoom));
       if (key) for (let i = 0; i < n; i++) {
         const sx = x + (i - (n - 1) / 2) * (width / n) * 0.8, sy = base - tall * (0.45 + 0.4 * ((i * 0.618) % 1));
-        const bud = this.add.image(sx, sy, key, 'b' + (i % 8)).setDepth(100000 + i).setDisplaySize(40, 40);
+        const bud = key === 'ui-BUD-01' ? this.add.image(sx, sy, key) : this.add.image(sx, sy, key, 'b' + (i % 8));
+        bud.setDepth(100000 + i).setDisplaySize(budSize, budSize);
         parts.push(bud);
         const apexX = sx + (i - n / 2) * 30, apexY = sy - 110 - (i % 3) * 30;
         tweens.push(this.tweens.addCounter({
@@ -575,9 +586,9 @@
           onUpdate: (tw) => {
             const t = tw.getValue(), a = (1 - t) ** 2, b = 2 * t * (1 - t), c = t * t;
             bud.setPosition(a * sx + b * apexX + c * target.x, a * sy + b * apexY + c * target.y);
-            bud.setDisplaySize(40 - t * 18, 40 - t * 18);
+            bud.setDisplaySize(budSize * (1 - t * 0.35), budSize * (1 - t * 0.35));
           },
-          onComplete: () => bud.setVisible(false),
+          onComplete: () => { bud.setVisible(false); if (jarAt && PE.GrowTools) { landed = true; PE.GrowTools.jarLanded(); } },
         }));
       }
       // The +N counter at the plant.
@@ -774,9 +785,11 @@
       }
       if (v.moodImg) {
         const mood = this.g.grow.mood(this.fid, si, now);
-        if (mood === null) { v.moodImg.wantVisible = false; v.moodImg.setVisible(false); } else {
+        const key = mood === null ? null : this.moodKey(mood);
+        if (!key || !this.textures.exists(key)) { v.moodImg.wantVisible = false; v.moodImg.setVisible(false); } else {
           v.moodImg.wantVisible = true;
-          v.moodImg.setTexture('room-mood-' + mood).setDisplaySize(72, 72).setVisible(v.shown !== false);
+          if (v.moodImg.texture.key !== key) v.moodImg.setTexture(key);
+          v.moodImg.setDisplaySize(76, 76).setVisible(v.shown !== false);
         }
       }
     }
@@ -936,7 +949,7 @@
         v.timer = this.add.text(cx, top + cmp.h * 0.42, '', { fontFamily: 'monospace', fontStyle: 'bold', fontSize: '26px', color: '#7fe9ff', stroke: '#05050a', strokeThickness: 6 }).setOrigin(0.5).setDepth(pos.y + 212);
         v.texts.push(v.timer);
         v.meterAt = { x: cx, y: top - 22 };
-        v.moodImg = this.add.image(cx, top - 66, 'room-mood-2').setDisplaySize(72, 72).setDepth(pos.y + 212).setVisible(false);
+        v.moodImg = this.add.image(cx, top - 66, '__WHITE').setDisplaySize(72, 72).setDepth(pos.y + 212).setVisible(false);
         v.moodImg.wantVisible = false;
         v.parts.push(v.moodImg);
       }
@@ -1052,8 +1065,18 @@
     // A mature plant gently pulses so it reads as "tap me". Quality effects come from the Fx helper.
     onStageShown(pv, p, stage, x, pos, had, spot, depth) {
       if (stage !== 5 || !pv.img) return;
-      // The ripe glow: green and pulsing, no reading needed.
-      if (!this.testOverride && this.textures.exists('room-glow')) {
+      // The ripe ring (ACT-11): a glowing green ring round the pot, gently pulsing, no reading needed.
+      if (!this.testOverride && this.textures.exists('ui-ACT-11')) {
+        const w = Math.max(150, pv.img.displayWidth * 0.95);
+        pv.glow = this.add.image(x, pos.y + spot.rim + 6, 'ui-ACT-11').setDepth(depth - 1).setBlendMode(Phaser.BlendModes.ADD)
+          .setDisplaySize(w, w * 0.42).setAlpha(0.95);
+        pv.glow.ripeRing = true;
+        if (!this.calm()) {
+          const sx = pv.glow.scaleX, sy = pv.glow.scaleY;
+          pv.glowTween = this.tweens.add({ targets: pv.glow, alpha: { from: 0.6, to: 1 }, scaleX: { from: sx * 0.94, to: sx * 1.06 }, scaleY: { from: sy * 0.94, to: sy * 1.06 }, yoyo: true, repeat: -1, duration: 700, ease: 'Sine.easeInOut' });
+        }
+      } else if (!this.testOverride && this.textures.exists('room-glow')) {
+        // Only if the ring picture couldn't be fetched.
         pv.glow = this.add.image(x, pos.y + spot.rim - pv.img.displayHeight * 0.55, 'room-glow').setDepth(depth).setBlendMode(Phaser.BlendModes.ADD)
           .setDisplaySize(pv.img.displayWidth * 1.5, pv.img.displayHeight * 1.3).setAlpha(0.75);
         if (!this.calm()) pv.glowTween = this.tweens.add({ targets: pv.glow, alpha: { from: 0.45, to: 0.95 }, yoyo: true, repeat: -1, duration: 700, ease: 'Sine.easeInOut' });

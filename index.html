@@ -14,18 +14,41 @@
   <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
-  <div id="loading"><img class="load-logo" src="assets/ui/LOGO-01.webp" alt="Pot Empire Tycoon" draggable="false"><div class="load-road"><img id="load-van" src="assets/map/VEH-01.webp" alt="" draggable="false"><i id="load-bar"></i></div><p id="load-text">Rolling up to the garage...</p></div>
+  <div id="loading"><div class="load-scene"><img class="load-bg" src="assets/intro/LOAD-01.webp" alt="" draggable="false"><img class="load-logo" src="assets/ui/LOGO-01.webp" alt="Pot Empire Tycoon" draggable="false"><div id="load-van"><img class="load-dust" src="assets/ui/LOAD-03.webp" alt="" draggable="false"><img class="load-bus" src="assets/ui/LOAD-02.webp" alt="" draggable="false"></div></div><div class="load-foot"><div class="load-road"><i id="load-bar"></i></div><p id="load-text">Rolling up to the garage...</p></div></div>
   <script>
-    // The loading screen: the van rolls along the road as each part of the game arrives.
+    // The loading screen (LOAD-01): Budz's van (LOAD-02) drives up the winding road towards town as the game arrives,
+    // with a dust puff (LOAD-03) behind it. ROAD is the middle of the road, in percent of the picture, from the front
+    // to the town; the van shrinks as it goes further away.
     (function () {
-      var total = 3, got = 0;
-      document.addEventListener('load', function (e) {
-        if (!e.target || e.target.tagName !== 'SCRIPT') return;
-        got++;
-        var t = Math.min(1, got / total), bar = document.getElementById('load-bar'), van = document.getElementById('load-van');
+      var ROAD = [[46, 99], [40, 84.5], [51, 77], [64.5, 72.5], [62.5, 69.3], [55, 67.7], [60, 65.2], [68.5, 63.5], [63, 61.5], [58, 60], [60, 57.8], [63, 56.4]];
+      var total = 94, got = 0, shown = 0, start = Date.now(), lens = [], all = 0, i;
+      for (i = 1; i < ROAD.length; i++) { var l = Math.hypot(ROAD[i][0] - ROAD[i - 1][0], (ROAD[i][1] - ROAD[i - 1][1]) * 16 / 9); lens.push(l); all += l; }
+      function place(t) {
+        var van = document.getElementById('load-van'), bar = document.getElementById('load-bar');
         if (bar) bar.style.width = (t * 100) + '%';
-        if (van) van.style.left = 'calc(' + (t * 100) + '% - 28px)';
-      }, true);
+        if (!van) return;
+        var d = t * all * 0.97, k = 0;
+        while (k < lens.length - 1 && d > lens[k]) { d -= lens[k]; k++; }
+        var f = Math.min(1, d / lens[k]), a = ROAD[k], b = ROAD[k + 1];
+        var x = a[0] + (b[0] - a[0]) * f, y = a[1] + (b[1] - a[1]) * f;
+        var w = 8 + ((y - 56) / 43) * 30;
+        van.style.left = x + '%';
+        van.style.top = y + '%';
+        van.style.width = w + '%';
+        // The van is drawn facing left: it turns round when the road bends right.
+        van.className = b[0] > a[0] ? 'right' : '';
+      }
+      // Each script that arrives moves it on; between them it creeps, so it never sits still (the published game is one big script).
+      function tick() {
+        if (!document.getElementById('load-van')) return;
+        var creep = 0.8 * (1 - Math.exp(-(Date.now() - start) / 7000));
+        var want = Math.max(Math.min(1, got / total), creep);
+        if (want > shown) { shown += (want - shown) * 0.2; place(shown); }
+        requestAnimationFrame(tick);
+      }
+      document.addEventListener('load', function (e) { if (e.target && e.target.tagName === 'SCRIPT') got++; }, true);
+      place(0);
+      requestAnimationFrame(tick);
     })();
   </script>
   <script src="js/ui/log.js"></script>

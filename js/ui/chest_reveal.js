@@ -11,7 +11,8 @@
   function face(c) {
     const pic = c.category === 'manager'
       ? PE.Dom.portrait(c.id, c.name, 'reveal-pic')
-      : `<span class="reveal-ph">${esc(c.id)}</span>`;
+      : PE.Dom.hasItemArt && PE.Dom.hasItemArt(c.id) ? `<span class="reveal-ph has-art">${PE.Dom.itemPic(c.id, 96, 'reveal-art')}</span>`
+        : `<span class="reveal-ph">${esc(c.id)}</span>`;
     let note = '<em class="new">NEW!</em>';
     if (c.duplicate) {
       note = `<em>+${c.tokens} tokens</em>`;

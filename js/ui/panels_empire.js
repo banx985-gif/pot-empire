@@ -183,13 +183,22 @@
     const recipes = uses.filter((u) => u.startsWith('recipe:')).map((u) => game.stock.skuName(u.slice(7)));
     return ['Shop shelves', ...(uses.includes('vip') ? ['VIP orders'] : []), ...(uses.includes('contracts') ? ['delivery contracts'] : []), ...recipes].join(', ');
   }
+  // A product's picture (art/shop/products). With packaging chosen for it (Collections), the package with the product on it.
+  function productPic(game, id, size = 44) {
+    const pack = (game.state.collections.packagingBySku || {})[id];
+    if (!PE.Dom.itemPic || !PE.Dom.hasItemArt(id)) return `<span class="card-ph small">${esc(id)}</span>`;
+    if (!pack || !PE.Dom.hasItemArt(pack)) return `<span class="prod-pic">${PE.Dom.itemPic(id, size)}</span>`;
+    return `<span class="prod-pic packed" title="${esc(pack)}">${PE.Dom.itemPic(pack, size)}${PE.Dom.itemPic(id, Math.round(size * 0.55), 'on-pack')}</span>`;
+  }
+  PE.Dom.productPic = productPic;
+
   function recipeCard(game, fid, i, p) {
     const r = game.business.recipe(fid, i, p.id);
     return `<div class="recipe ${r.ok ? 'ready' : ''}">
       <div class="r-top"><b>${esc(p.name)}</b><small>${esc(p.family)}</small></div>
       <div class="r-body"><div class="r-in">${r.inputs.map(inputRow).join('')}</div>
         <div class="r-arrow">${PE.Dom.icon('SYS-03', 22, 'flip')}</div>
-        <div class="r-out"><span class="card-ph small">${esc(p.id)}</span><b>${worth(r.output)}</b><small>${PE.Dom.icon('STA-02', 14)}${duration(r.seconds)}</small></div></div>
+        <div class="r-out">${productPic(game, p.id, 44)}<b>${worth(r.output)}</b><small>${PE.Dom.icon('STA-02', 14)}${duration(r.seconds)}</small></div></div>
       <small class="r-uses">Used for: ${esc(usesText(game, p.id))}</small>
       <button class="btn wide ${r.ok ? 'go' : 'cant'}" data-act="set:${p.id}">${r.ok ? 'Make it' : 'Missing something'}</button></div>`;
   }
@@ -230,13 +239,13 @@
       if (r.job) {
         const ready = now >= r.job.endMs;
         const t = Math.min(1, (now - r.job.startMs) / (r.job.endMs - r.job.startMs));
-        return `<div class="item"><div class="grow"><b>Route ${i + 1}: ${esc(r.job.offer.name)}</b>
+        return `<div class="item">${PE.Dom.itemPic ? PE.Dom.itemPic(r.vehicle, 44, 'veh-pic') : ''}<div class="grow"><b>Route ${i + 1}: ${esc(r.job.offer.name)}</b>
           <small>${esc(game.collections.item(r.vehicle).name)} · pays ${worth(r.job.reward)}${ready ? '' : ` · ${duration((r.job.endMs - now) / 1000)} left`}</small>
           <div class="bar thin"><i style="width:${(t * 100).toFixed(0)}%"></i></div></div>
           ${ready ? `<button class="btn small go" data-act="claim:${i}">Claim</button>` : `<button class="btn small plain" data-act="cancel:${i}">Cancel</button>`}</div>`;
       }
       const auto = game.research.hasFlag('deliveryAuto') ? `<button class="btn small ${r.auto ? 'go' : 'cant'}" data-act="auto:${i}:${r.auto ? 0 : 1}">Auto ${r.auto ? 'on' : 'off'}</button>` : '';
-      return `<div class="item"><div class="grow"><b>Route ${i + 1}</b><small>${r.vehicle ? esc(game.collections.item(r.vehicle).name) : 'No vehicle'}. Idle.</small></div>${auto}
+      return `<div class="item">${r.vehicle && PE.Dom.itemPic ? PE.Dom.itemPic(r.vehicle, 44, 'veh-pic') : ''}<div class="grow"><b>Route ${i + 1}</b><small>${r.vehicle ? esc(game.collections.item(r.vehicle).name) : 'No vehicle'}. Idle.</small></div>${auto}
         <button class="btn small buy" data-act="dispatch:${i}">Dispatch</button></div>`;
     }).join('');
     return `<p class="muted">${owned.length} vehicles owned. ${game.state.depot.offers.length} contracts on offer.</p>${routes}${expansionBlock(fid)}${bizAssign(fid)}`;
@@ -367,7 +376,7 @@
           const on = game.state.collections.productsUnlocked[p.id];
           const open = lvl >= p.levelGate;
           const c = game.business.productCost(p.id);
-          return `<div class="item ${on ? '' : 'locked'}"><span class="card-ph small">${esc(p.id)}</span><div class="grow"><b>${esc(p.name)}</b><small>Crop x${p.magnitude} · batch ${duration(p.batchSeconds)}${on ? ` · stock ${worth(game.stock.getStock(p.id))}` : ''}</small><small>${esc(needsText(game, p.id))}</small></div>
+          return `<div class="item ${on ? '' : 'locked'}">${productPic(game, p.id, 48)}<div class="grow"><b>${esc(p.name)}</b><small>Crop x${p.magnitude} · batch ${duration(p.batchSeconds)}${on ? ` · stock ${worth(game.stock.getStock(p.id))}` : ''}</small><small>${esc(needsText(game, p.id))}</small></div>
             ${on ? '<span class="tag go">Owned</span>' : open ? `<button class="btn small ${game.canAfford('cash', c) ? 'buy' : 'cant'}" data-act="unlock:${p.id}">${money(c)}</button>` : `<span class="tag">Level ${p.levelGate}</span>`}</div>`;
         }).join('');
       }
@@ -390,7 +399,7 @@
       const busy = new Set(b.slots(fid).filter((r) => r.job).map((r) => r.vehicle));
       const free = owned.filter((v) => !busy.has(v.id));
       const vehicleId = route.vehicle && free.some((v) => v.id === route.vehicle) ? route.vehicle : (free[0] && free[0].id);
-      const chips = owned.map((v) => `<button class="chip ${v.id === vehicleId ? 'on' : ''} ${busy.has(v.id) ? 'off-state' : ''}" data-act="veh:${v.id}">${esc(v.name)}</button>`).join('');
+      const chips = owned.map((v) => `<button class="chip ${v.id === vehicleId ? 'on' : ''} ${busy.has(v.id) ? 'off-state' : ''}" data-act="veh:${v.id}">${PE.Dom.itemPic ? PE.Dom.itemPic(v.id, 28, 'chip-pic') : ''}${esc(v.name)}</button>`).join('');
       const offers = game.state.depot.offers.map((o) => {
         const q = vehicleId ? b.quote(fid, o, vehicleId) : null;
         return `<div class="item" ${q && q.amount >= 1 ? `data-act="go:${o.id}:${vehicleId}"` : ''}><div class="grow"><b>${esc(o.name)}: ${esc(game.stock.skuName(o.sku))}</b>

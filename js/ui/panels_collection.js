@@ -1,5 +1,6 @@
 // Collection screens (UI19-27): managers, relics, stickers, vehicles, packaging, decorations, avatars,
-// loadouts and the token shop. Managers show their real portraits. Other cards are PLACEHOLDERS: id + name on a plain card.
+// loadouts and the token shop. Managers show their real portraits; relics, stickers, vehicles, decorations, products and
+// packaging show Aaron's art (assets/ui/<id>.webp, imported by tools/import_job17_art.js).
 (function (PE) {
   const { esc, strainThumb } = PE.Dom;
   const { Money } = PE;
@@ -8,7 +9,15 @@
   const toast = (t) => PE.Dom.toast(t);
   const C = () => PE.Data.collectibles;
 
-  const card = (it) => (it.category === 'manager' ? `<span class="card-ph r-bg-${it.rarity} has-portrait">${PE.Dom.portrait(it.id, it.name)}</span>` : `<span class="card-ph r-bg-${it.rarity}">${esc(it.id)}</span>`);
+  // A collection item's picture, fitted inside a square. Any item with art in data/item_art.js. Empty text if it has none.
+  const hasArt = (id) => !!(PE.Data.itemArt && PE.Data.itemArt[id]);
+  PE.Dom.itemPic = (id, size = 54, cls = '') => (hasArt(id) ? `<img class="item-pic ${cls}" src="assets/ui/${id}.webp" width="${size}" height="${size}" alt="" draggable="false" data-item="${id}">` : '');
+  PE.Dom.hasItemArt = hasArt;
+  const card = (it) => {
+    if (it.category === 'manager') return `<span class="card-ph r-bg-${it.rarity} has-portrait">${PE.Dom.portrait(it.id, it.name)}</span>`;
+    if (hasArt(it.id)) return `<span class="card-ph has-art r-bg-${it.rarity}">${PE.Dom.itemPic(it.id, 50)}</span>`;
+    return `<span class="card-ph r-bg-${it.rarity}">${esc(it.id)}</span>`;
+  };
   const percent = (v) => `${Math.round(v * 1000) / 10}%`;
   const NICE = {
     growSpeed: 'grow speed', saleBonus: 'sale value', yieldBonus: 'yield', masteryXp: 'mastery XP', extraHarvestChance: 'double-sale chance',
@@ -50,7 +59,7 @@
       return `<p><b>${total} of 378</b> collected · ${Money.format(game.state.currencies.collectionTokens)} Collection Tokens</p>
         <div class="hub">${SECTIONS.map((s) => `<button class="hub-btn" data-act="go:${s.id}"><span>${PE.Dom.icon(s.icon, 48)}</span><b>${s.label}</b><small>${c[s.key].have}/${c[s.key].total}</small></button>`).join('')}
         <button class="hub-btn" data-act="go:loadouts"><span>${PE.Dom.icon('UPG-05', 48)}</span><b>Loadouts</b><small>Saved setups</small></button></div>
-        <p class="muted">Duplicates turn into Collection Tokens. Spend tokens on any item you've reached the level for. Manager cards level up with duplicates. Relic, sticker, vehicle, product, packaging and decoration pictures are still to come.</p>`;
+        <p class="muted">Duplicates turn into Collection Tokens. Spend tokens on any item you've reached the level for. Manager cards level up with duplicates.</p>`;
     },
     actions: { go(id) { PE.App.router.go(id, {}); } },
   };
@@ -261,7 +270,7 @@
       const where = {};
       for (const [f, sockets] of Object.entries(by)) Object.values(sockets).forEach((id) => { where[id] = f; });
       const sets = [...new Set(C().decorations.map((d) => d.set))];
-      let html = '<p class="muted">Each piece goes in its own fixed socket in a facility. Three of one set in one facility adds +3% sale value there. Placed pieces are not drawn in the rooms yet: the art doesn\'t exist.</p>';
+      let html = '<p class="muted">Each piece goes in its own fixed socket in a facility. Three of one set in one facility adds +3% sale value there.</p>';
       for (const set of sets) {
         html += `<h4>${esc(set)}</h4>` + C().decorations.filter((d) => d.set === set).map((d) => {
           const chips = owned.map((r) => `<button class="chip ${where[d.id] === r.id ? 'on' : ''}" data-act="put:${r.id}:${d.id}">${esc(r.id)}</button>`).join('');

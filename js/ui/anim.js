@@ -207,7 +207,15 @@
       } else if (this.lift) { this.lift = 0; this.image.setPosition(this.x, this.y); }
       if (c.fps <= 0) return;
       c.at += dt;
-      const i = Math.floor(c.at * c.fps);
+      let i = Math.floor(c.at * c.fps);
+      if (c.ms) {
+        // Each frame shows for its own time.
+        const total = c.ms.reduce((a, b) => a + b, 0) / 1000;
+        const lap = Math.floor(c.at / total);
+        let t = c.at - lap * total, k = 0;
+        while (k < c.ms.length - 1 && t >= c.ms[k] / 1000) { t -= c.ms[k] / 1000; k++; }
+        i = lap * c.order.length + k;
+      }
       if (c.loop) { this.show(c.order[i % c.order.length]); return; }
       if (i < c.order.length * c.times) { this.show(c.order[i % c.order.length]); return; }
       this.finish(c);

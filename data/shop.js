@@ -47,12 +47,14 @@ globalThis.PE.Data.shop = {
     { id: 'ticket_theme_disco', name: 'Facility theme: Disco Floor', cost: 400, currency: 'festivalTickets', grants: { theme: 'disco' } },
   ],
 
-  // Facility themes: wall and floor colours for the grow rooms (stand-in until themed art exists).
+  // Facility themes for the grow rooms. Job 17 (Cowork): with Aaron's room pictures a theme no longer recolours the floor;
+  // it gives the room's lighting a soft colour tint (tint, never hiding the art). wall and floor are only for a room
+  // whose picture is missing (the plain stand-in floor).
   themes: {
     default: { name: 'Classic', wall: 0x2b1d45, floor: 0x3a3048 },
-    neon: { name: 'Neon Nights', wall: 0x12062e, floor: 0x241a4a },
-    sunset: { name: 'Sunset Haze', wall: 0x4a1f3a, floor: 0x4a3434 },
-    disco: { name: 'Disco Floor', wall: 0x2a0f45, floor: 0x3d2a5c },
+    neon: { name: 'Neon Nights', wall: 0x12062e, floor: 0x241a4a, tint: 0x6a3cff },
+    sunset: { name: 'Sunset Haze', wall: 0x4a1f3a, floor: 0x4a3434, tint: 0xff8a3d },
+    disco: { name: 'Disco Floor', wall: 0x2a0f45, floor: 0x3d2a5c, tint: 0xff4fa3 },
   },
 
   // Rewarded ads (bible section 11): opt-in only, daily limits in balance.rewardedAdLimitsPerDay.

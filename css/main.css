@@ -606,3 +606,84 @@ html.fast-time #hud::after { content: 'FAST TIME: NOT SAVING'; display: block; t
 .room-preview figure { flex: 1; margin: 0; text-align: center; }
 .room-preview img { width: 100%; aspect-ratio: 3 / 2; object-fit: contain; background: #140a24; border-radius: 10px; }
 .room-preview figcaption { font-size: 0.85em; margin-top: 4px; }
+
+/* Job 17: collection item pictures (relics, stickers, vehicles, decorations, products, packaging). */
+.card-ph.has-art { padding: 2px; border-style: solid; border-color: #ffffff33; background: radial-gradient(circle at 50% 40%, #6a4a9c, #24143d); }
+.item-pic { display: block; object-fit: contain; flex: none; }
+.card-ph.has-art .item-pic { width: 100%; height: 100%; }
+.reveal-ph.has-art { border-style: solid; background: radial-gradient(circle at 50% 40%, #ffffff22, #0005); }
+.reveal-ph.has-art .item-pic { width: 86%; height: 86%; }
+.item > .veh-pic { margin-right: 8px; }
+.chip .chip-pic { display: inline-block; width: 28px; height: 22px; vertical-align: middle; margin: -4px 4px -4px -4px; }
+
+/* ---- Job 17: loading screen, intro comic, tools, stash jar, speech bubbles (art/intro, art/ui/feel, art/tools) ---- */
+#loading { padding: 0; gap: 0; display: block; overflow: hidden; background: #2bb6ef; }
+.load-scene { position: absolute; left: 50%; top: 50%; width: max(100vw, 56.25vh); height: max(100vh, 177.78vw); transform: translate(-50%, -50%); }
+@media (min-aspect-ratio: 3/4) { .load-scene { width: 56.25vh; height: 100vh; } #loading { background: radial-gradient(circle at 50% 40%, #5a2a8c, #1d0f33 70%); } }
+.load-bg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#loading .load-logo { position: absolute; left: 50%; top: calc(env(safe-area-inset-top) + 9%); width: min(76%, 400px); transform: translateX(-50%); filter: drop-shadow(0 6px 10px #0006); }
+#load-van { position: absolute; left: 46%; top: 99%; width: 38%; transform: translate(-50%, -86%); transition: none; bottom: auto; }
+#load-van.right { transform: translate(-50%, -86%) scaleX(-1); }
+.load-bus { position: relative; display: block; width: 100%; animation: load-bump .32s ease-in-out infinite alternate; }
+.load-dust { position: absolute; left: 66%; bottom: 0; width: 80%; opacity: .85; transform-origin: 0 100%; animation: load-puff .5s ease-in-out infinite alternate; }
+@keyframes load-bump { from { transform: translateY(0); } to { transform: translateY(-2.5%); } }
+@keyframes load-puff { from { transform: scale(.88); opacity: .65; } to { transform: scale(1.05); opacity: .9; } }
+@media (prefers-reduced-motion: reduce) { .load-bus, .load-dust { animation: none; } }
+.load-foot { position: absolute; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom) + 22px); display: flex; flex-direction: column; align-items: center; gap: 8px; }
+#loading .load-road { margin: 0; height: 12px; width: min(70vw, 320px); background: #1d0f33aa; box-shadow: 0 0 0 2px #fff8; }
+#load-text { margin: 0; color: #fff; text-shadow: 0 2px 3px #000, 0 0 8px #000a; }
+
+.comic-page img.full { object-position: center top; }
+.comic-head { position: absolute; left: 6%; right: 6%; top: 5%; margin: 0; text-align: center; color: #fff; font: 900 clamp(26px, 8.5vw, 44px)/1.02 'Arial Black', system-ui, sans-serif; letter-spacing: .5px; text-transform: uppercase; -webkit-text-stroke: 2px #1d0f33; paint-order: stroke fill; text-shadow: 0 4px 0 #1d0f33, 0 0 18px #ff4fa3aa; transform: rotate(-3deg); }
+.comic-head span { display: block; color: #ffe84d; font-size: .62em; margin-top: 4px; }
+
+#ui .tool { background: radial-gradient(circle at 50% 40%, #4a2a7af2, #2c1a4df2); }
+.tool img.tool-art { width: 46px; height: 46px; object-fit: contain; pointer-events: none; }
+.seed-pack { position: relative; display: inline-block; width: 46px; height: 46px; pointer-events: none; }
+.seed-pack .seed-window { position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%); line-height: 0; }
+.seed-pack .seed-window .logo-badge { border-radius: 4px; }
+#tool-ghost .seed-pack { width: 100%; height: 100%; }
+#tool-ghost .seed-pack .seed-window { transform: translate(-50%, -50%) scale(1.5); }
+#tool-ghost.swing { width: 84px; height: 84px; transform-origin: 50% 70%; }
+#tool-ghost img.tool-art { width: 100%; height: 100%; object-fit: contain; }
+.tool-trail { position: absolute; width: 170px; height: 130px; object-fit: contain; pointer-events: none; z-index: 7; filter: drop-shadow(0 0 6px #fff8); animation: trail-fade .42s ease-out forwards; }
+@keyframes trail-fade { from { opacity: .95; } to { opacity: 0; } }
+.tool-pop { position: absolute; width: 90px; height: 76px; margin: -38px 0 0 -45px; pointer-events: none; z-index: 7; animation: tool-pop .46s ease-out forwards; }
+@keyframes tool-pop { from { transform: scale(.4); opacity: 1; } to { transform: scale(1.35); opacity: 0; } }
+.tut-hand img { width: 100%; height: 100%; object-fit: contain; }
+
+#stash-jar { position: absolute; right: 8px; bottom: calc(env(safe-area-inset-bottom) + 138px); z-index: 3; width: 64px; height: 80px; pointer-events: auto; }
+#ui #stash-jar .jar-btn { position: relative; width: 100%; height: 100%; padding: 0; display: block; }
+#stash-jar img.jar { width: 100%; height: 100%; object-fit: contain; object-position: center bottom; filter: drop-shadow(0 3px 6px #000a); pointer-events: none; }
+#stash-jar .jar-n { position: absolute; left: 50%; bottom: -6px; transform: translateX(-50%); font: 800 11px system-ui, sans-serif; background: #1d0f33; color: #c6ff3d; border-radius: 7px; padding: 0 6px; pointer-events: none; white-space: nowrap; }
+#stash-jar.bump img.jar { animation: jar-bump .3s ease-out; }
+@keyframes jar-bump { 40% { transform: scale(1.1, .92); } 100% { transform: none; } }
+#stash-jar .jar-lid { position: absolute; left: 14%; top: 2%; width: 72%; pointer-events: none; animation: jar-lid .5s ease-out forwards; }
+@keyframes jar-lid { 0% { transform: translateY(0) rotate(0); opacity: 1; } 45% { transform: translateY(-26px) rotate(-14deg); opacity: 1; } 100% { transform: translateY(0) rotate(0); opacity: 0; } }
+#stash-jar .jar-spark { position: absolute; right: -10px; top: -8px; width: 34px; pointer-events: none; animation: tool-pop .5s ease-out forwards; }
+.stash-card .stash-line { display: flex; gap: 12px; align-items: center; }
+.stash-card .stash-pic { width: 64px; height: 80px; object-fit: contain; flex: none; }
+.stash-card h4 { margin: 10px 0 6px; }
+.tool-list { display: flex; flex-direction: column; gap: 6px; }
+.tool-row { display: flex; gap: 10px; align-items: center; padding: 6px 8px; border-radius: 10px; background: #ffffff10; }
+.tool-row.on { background: #c6ff3d26; box-shadow: inset 0 0 0 2px #c6ff3d; }
+.tool-row img { width: 46px; height: 46px; object-fit: contain; flex: none; }
+.tool-row span { display: flex; flex-direction: column; }
+.tool-row small { color: #c9b8e6; }
+
+/* Speech bubbles: Aaron's BUB-01 (round) and BUB-02 (spiky), stretched with fixed corners (9-slice). The picture is
+   drawn behind the text by ::before, so it can be turned to point its tail up without turning the words. */
+.talk-bubble, .talk-bubble-line, .helper-pop .bubble { background: none; border: 0; border-radius: 0; box-shadow: none; isolation: isolate; }
+.talk-bubble-line, .helper-pop .bubble { position: relative; }
+.talk-bubble::before, .talk-bubble-line::before, .helper-pop .bubble::before { content: ''; position: absolute; left: 0; right: 0; top: 0; bottom: -21px; z-index: -1; margin: 0; border: 0 solid transparent; border-width: 26px 26px 48px 48px; border-image: url(../assets/ui/BUB-01.webp) 70 70 130 130 fill / 26px 26px 48px 48px stretch; filter: drop-shadow(0 4px 0 #1d0f3355); }
+.talk-bubble::after { display: none; }
+.talk-bubble-line::before, .helper-pop .bubble::before { top: -21px; bottom: 0; transform: scaleY(-1); }
+.talk-bubble-line { margin-top: 20px; }
+.helper-pop .bubble { margin-top: 30px; }
+.tut-tip { background: none; clip-path: none; filter: none; isolation: isolate; padding: 18px 26px; }
+.tut-tip::before { content: ''; position: absolute; left: -6px; right: -6px; top: -12px; bottom: -12px; z-index: -1; border: 0 solid transparent; border-width: 40px; border-image: url(../assets/ui/BUB-02.webp) 110 fill / 40px round; filter: drop-shadow(0 3px 0 #1d0f33); }
+
+/* Job 17: a product's picture in the catalogue and recipes; with packaging, the package with the product on it. */
+.prod-pic { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; flex: none; }
+.prod-pic img { object-fit: contain; }
+.prod-pic.packed img.on-pack { position: absolute; right: -4px; bottom: -2px; filter: drop-shadow(0 1px 2px rgba(0,0,0,.6)); }

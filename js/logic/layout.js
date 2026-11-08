@@ -197,9 +197,12 @@
     const moved = Object.assign({}, (data.roomSpotOverrides || {})[id], local && local[id]);
     const spots = r.spots.map((p, i) => (moved[i] ? { ...p, x: Math.round(moved[i][0]), y: Math.round(moved[i][1]) } : { ...p }));
     const box = r.kind === 'grow' ? setupBox(data) : FURNITURE;
+    // Decoration sockets moved by hand are saved under "s:<socket>" beside the numbered spots.
+    const sockets = {};
+    for (const [name, s] of Object.entries(r.sockets || {})) sockets[name] = moved['s:' + name] ? { ...s, x: Math.round(moved['s:' + name][0]), y: Math.round(moved['s:' + name][1]) } : { ...s };
     return {
       id, fid, size, kind: r.kind, w: r.w, h: r.h, scale: r.scale, picture: `ROOM-${id}`, pictureSize: r.picture,
-      floor: r.floor, counter: r.counter, door: r.door, keepClear: r.keepClear || [],
+      floor: r.floor, counter: r.counter, door: r.door, keepClear: r.keepClear || [], sockets,
       spots, stations: spots.map((p) => ({ x: p.x, y: p.y })), box, foot: FOOT[spots[0] ? spots[0].type : 'setup'],
     };
   }

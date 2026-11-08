@@ -48,12 +48,13 @@ globalThis.PE.Data.tutorial = {
     { id: 'district', move: 'cheer', rule: 'secondDistrict', who: 'BUDZ', face: 'BUDZ-37', text: 'A new district! Tap the district button at the bottom of the map to go and look.' },
   ],
 
-  // The intro comic: it plays once, before the very first go. Settings can replay it. art: INTRO-01..04 once drawn.
+  // The intro comic: it plays once, before the very first go. Settings can replay it. art: Aaron's INTRO-01..04 pictures.
+  // head and sub: the headline the game writes in each picture's sky (the art has no words).
   intro: [
-    { art: 'INTRO-01', stand: 'town', text: 'Once, this town was the friendliest place on Earth. Every garden had a garden gnome. And some of them were smiling for a reason.' },
-    { art: 'INTRO-02', stand: 'velvet', text: "Then came The Velvet Investor. Shop by shop, street by street, he's buying up the whole town." },
-    { art: 'INTRO-03', stand: 'haze', text: 'Only Uncle Haze held out. "They can have my shop, kid. They can\'t have my garage."' },
-    { art: 'INTRO-04', stand: 'garage', text: 'So he left you the keys. One garage. One bulb. One seed. Time to take this town back.' },
+    { art: 'INTRO-01', head: 'Once upon a time', sub: 'the friendliest town on Earth', text: 'Once, this town was the friendliest place on Earth. Every garden had a garden gnome. And some of them were smiling for a reason.' },
+    { art: 'INTRO-02', head: 'The Velvet Investor', sub: 'is buying the town', text: "Then came The Velvet Investor. Shop by shop, street by street, he's buying up the whole town." },
+    { art: 'INTRO-03', head: 'Uncle Haze', sub: 'holds out', text: 'Only Uncle Haze held out. "They can have my shop, kid. They can\'t have my garage."' },
+    { art: 'INTRO-04', head: 'Your turn', sub: 'Take the town back', text: 'So he left you the keys. One garage. One bulb. One seed. Time to take this town back.' },
   ],
 
   ageGate: {

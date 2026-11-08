@@ -239,6 +239,7 @@
           v.shown = shown;
           this.showLook(v, own, open, tier);
         }
+        this.showStickers(v, own);
         if (own) v.sign.setText('');
         else v.sign.setText(open ? `FOR SALE\n$${PE.Money.format(g.facilities.econ(v.fid).cost)}` : `Level ${row.playerLevel}`);
         const showBubble = st.kind !== 'none';
@@ -252,6 +253,31 @@
       // An event started or ended while the map's open: redraw it with the new look.
       const f = g.meta.festivalNow();
       if ((f.active ? f.theme : '') !== this.eventSig) this.scene.restart();
+    }
+    // The brand stickers a shop or factory has on (two at most), stuck small on the front of its building.
+    showStickers(v, own) {
+      const ids = own ? (this.g.state.collections.stickersByBusiness[v.fid] || []).filter((id) => PE.Data.itemArt && PE.Data.itemArt[id]) : [];
+      const sig = ids.join(',') + '|' + Math.round(v.artTop || 0);
+      if (sig === v.stickerSig) return;
+      v.stickerSig = sig;
+      for (const im of v.stickers || []) im.destroy();
+      v.stickers = [];
+      if (!ids.length) return;
+      PE.UI.loadIcons(this, ids, () => {
+        if (v.stickerSig !== sig || !v.image.scene) return;
+        const top = v.artTop || 220, w = v.artW || v.s.w;
+        const size = Math.max(34, w * 0.15);
+        ids.forEach((id, i) => {
+          const key = 'ui-' + id;
+          if (!this.textures.exists(key)) return;
+          const src = this.textures.get(key).getSourceImage();
+          const k = size / Math.max(src.width, src.height);
+          const im = this.add.image(v.s.x + w * 0.3 - i * size * 1.1, v.s.y - top * 0.24, key)
+            .setScale(k).setAngle(i ? -9 : 7).setDepth(v.s.y + 0.5);
+          im.stickerId = id;
+          v.stickers.push(im);
+        });
+      });
     }
     showLook(v, own, open, tier) {
       const id = !own ? PE.Data.map.lockedLotArt : `BLD-${v.fid}-${PE.Data.map.lookForRenovation[Math.min(3, tier)]}`;

@@ -217,10 +217,14 @@
       try { localStorage.setItem(KEY, JSON.stringify(all)); } catch (e) { /* nothing to do */ }
     },
     // The text "copy spots" puts on the clipboard: every spot of the room, ready to paste into data/room_spot_overrides.js.
+    // Decoration sockets (job 17) come after the spots, as 's:<socket>': [x, y].
     text(room) {
       const lines = room.spots.map((p, i) => `${i}: [${p.x}, ${p.y}]`);
+      for (const [name, q] of Object.entries(room.sockets || {})) lines.push(`'s:${name}': [${q.x}, ${q.y}]`);
       return `'${room.id}': { ${lines.join(', ')} },`;
     },
+    // What each socket's marker says while moving spots.
+    SOCKET_LABEL: { 'wall-wall': 'Poster', 'neon-wall': 'Neon', 'hanging-ceiling': 'Mobile', 'shelf-shelf': 'Ornament', 'counter-counter': 'Figurine', 'floor-floor': 'Rug' },
     editing: false,   // the tester panel's "move spots" switch
 
     // While moving spots: every spot of the room gets a big numbered marker (spots not open yet too).
@@ -232,8 +236,17 @@
         const c = scene.add.container(p.x, p.y).setDepth(300000);
         c.add(scene.add.circle(0, 0, 70 * k, 0xff2d55, 0.85).setStrokeStyle(8 * k, 0xffffff));
         c.add(scene.add.text(0, 0, String(i), { fontFamily: 'system-ui, sans-serif', fontStyle: '900', fontSize: `${Math.round(70 * k)}px`, color: '#ffffff' }).setOrigin(0.5));
+        c.key = i;
         return c;
       });
+      // The decoration sockets: a purple marker with the piece's name.
+      for (const [name, q] of Object.entries(room.sockets || {})) {
+        const c = scene.add.container(q.x, q.y).setDepth(300000);
+        c.add(scene.add.circle(0, 0, 60 * k, 0x8a3cff, 0.85).setStrokeStyle(8 * k, 0xffffff));
+        c.add(scene.add.text(0, 0, RoomSpots.SOCKET_LABEL[name] || name, { fontFamily: 'system-ui, sans-serif', fontStyle: '900', fontSize: `${Math.round(30 * k)}px`, color: '#ffffff' }).setOrigin(0.5));
+        c.key = 's:' + name;
+        scene.spotMarks.push(c);
+      }
     },
     // The room's touch handlers ask these first. Each returns true when the touch was for moving a spot.
     down(scene, p) {
@@ -257,8 +270,8 @@
       if (!d) return false;
       scene.spotDrag = null;
       const m = scene.spotMarks[d.i];
-      RoomSpots.move(scene.room.id, d.i, m.x, m.y);
-      PE.Dom.toast(`Spot ${d.i} moved. Tester panel: "Copy spots" to send it.`);
+      RoomSpots.move(scene.room.id, m.key, m.x, m.y);
+      PE.Dom.toast(`${typeof m.key === 'number' ? 'Spot ' + m.key : RoomSpots.SOCKET_LABEL[m.key.slice(2)] + ' socket'} moved. Tester panel: "Copy spots" to send it.`);
       scene.scene.restart(scene.sys.settings.data);
       return true;
     },

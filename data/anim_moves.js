@@ -26,9 +26,13 @@ globalThis.PE.Data.animMoves = {
     idle: { set: ['IDLE', 'TALKFRONT'], from: 1, to: 1, hold: true, bob: true },
     chat: { set: ['TALK', 'TALKFRONT'], fps: 7, loop: true },
     talk: { set: ['TALK', 'TALKFRONT'], fps: 7, loop: true },
-    // At the counter: their back to us, talking to whoever's serving.
-    order: { set: ['TALKAWAY', 'TALK'], fps: 7, loop: true },
-    happy: { set: ['HAPPY', 'REACT'], fps: 8, hold: true },
+    // At the counter, waiting to be served: the reach-out's first frame (hand at rest) with a gentle bob.
+    order: { set: ['TALKAWAY', 'TALK'], from: 1, to: 1, hold: true, bob: true },
+    happy: { set: ['HAPPY', 'REACT', 'FULL'], fps: 8, hold: true },
+    // Job 17: the files called TALK<facing> are a reach-out (paying, taking the bag), not talking. Played once at the
+    // counter, for the way the customer is facing (js/ui/biz_room.js picks reachUP, reachDOWNLEFT...), then back to rest.
+    reachDOWN: { set: 'TALKFRONT' }, reachUP: { set: 'TALKAWAY' }, reachLEFT: { set: 'TALKLEFT' }, reachRIGHT: { set: 'TALKRIGHT' },
+    reachDOWNLEFT: { set: 'TALKDOWNLEFT' }, reachDOWNRIGHT: { set: 'TALKDOWNRIGHT' }, reachUPLEFT: { set: 'TALKUPLEFT' }, reachUPRIGHT: { set: 'TALKUPRIGHT' },
     give: { set: 'GIVE', fps: 8 },
   },
   walk: {

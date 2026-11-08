@@ -8,13 +8,7 @@
     done() { const el = $('loading'); if (el) el.remove(); },
   };
 
-  // ---- The intro comic: skippable, and Settings can replay it ---------------------------------------------------------
-  const STAND = {
-    town: () => '<img src="assets/map/BLD-F03-1.webp" alt="" draggable="false">',
-    velvet: () => '<img src="assets/characters/RIVAL-12.webp" alt="The Velvet Investor" draggable="false" onerror="this.style.visibility=\'hidden\'">',
-    haze: () => PE.AnimDom.html('HAZE', Math.min(window.innerHeight * 0.5, 420)),
-    garage: () => '<img src="assets/map/BLD-F01-1.webp" alt="" draggable="false">',
-  };
+  // ---- The intro comic: Aaron's INTRO-01..04 pictures, the headline written live in each sky. Skippable; Settings replays it.
   const Intro = {
     at: 0,
     open: false,
@@ -42,15 +36,13 @@
       if (i >= list.length) { Intro.close(); return; }
       Intro.at = i;
       const p = list[i];
-      const url = PE.MapArt && PE.MapArt.url(p.art);
-      const pic = url ? `<img class="full" src="${url}" alt="" draggable="false">` : `<div class="comic-stand ${p.stand}">${STAND[p.stand]()}</div>`;
+      const pic = `<img class="full" src="assets/intro/${p.art}.webp" alt="" draggable="false"><h2 class="comic-head">${esc(p.head)}${p.sub ? `<span>${esc(p.sub)}</span>` : ''}</h2>`;
       const el = $('intro');
       el.innerHTML = `<div class="comic-page comic-pop">${pic}</div>
         <p class="comic-cap">${esc(p.text)}</p>
         <div class="comic-row"><button class="comic-skip" data-act="skip">Skip</button><span class="comic-dots">${list.map((_, k) => (k === i ? '●' : '○')).join('')}</span>
         <button class="btn go" data-act="next">${i === list.length - 1 ? "Let's go!" : 'Next'}</button></div>`;
       el.hidden = false;
-      PE.AnimDom.play(el.querySelector('.anim-box'), 'chat');
     },
     close() {
       Intro.open = false;

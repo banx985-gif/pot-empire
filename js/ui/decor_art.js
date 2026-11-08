@@ -1,71 +1,90 @@
-// Placed decorations, drawn where they sit in a room. These are stand-ins made in code until the DECOR art arrives:
-// the shape says which piece it is, and the colour says which set.
+// Placed decorations, drawn where they sit in a room, from Aaron's art (art/collections/decor, D01-D72; job 17).
+// Every room has one fixed socket for each of the six pieces (game/data/room_spots.js, worked out by
+// tools/build_room_spots.js, moved by hand with the tester panel's "Move spots"):
+//   wall-wall        wall poster            neon-wall        neon sign (glows a little)
+//   hanging-ceiling  mobile, from the top   shelf-shelf      ornament, on a little ledge on the back wall
+//   counter-counter  figurine, on the shop counter or a floor corner          floor-floor      rug
+// A room with no picture (stand-in floor) uses the old places along its wall.
 (function (PE) {
-  const COLOURS = [0xff4fa3, 0x52e6ff, 0xc6ff3d, 0xffd84d, 0xff8a3d, 0xb47cff, 0x62d04b, 0xff5f5f, 0x4fd8c4, 0xf2a6ff, 0x9fb7ff, 0xe8c07a];
-  const setColour = (name) => { let h = 0; for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0; return COLOURS[h % COLOURS.length]; };
-
-  // Each piece: where in the room, and how it's drawn. x is a share of the room's width; u scales with the wall's height.
-  const PIECES = {
-    'wall-wall': { x: 0.14, y: (r) => r.wall * 0.46, draw(G, c, u) {   // a poster
-      G.fillStyle(0x000000, 0.3).fillRect(-46 * u + 4, -62 * u + 4, 92 * u, 124 * u);
-      G.fillStyle(0xf6efe0, 1).fillRect(-46 * u, -62 * u, 92 * u, 124 * u);
-      G.fillStyle(c, 1).fillRect(-38 * u, -54 * u, 76 * u, 72 * u);
-      G.fillStyle(0xffffff, 0.8).fillTriangle(-30 * u, 10 * u, 0, -40 * u, 30 * u, 10 * u);
-      G.fillStyle(c, 1).fillRect(-38 * u, 28 * u, 76 * u, 8 * u).fillRect(-38 * u, 42 * u, 50 * u, 8 * u);
-    } },
-    'neon-wall': { x: 0.86, y: (r) => r.wall * 0.42, draw(G, c, u) {   // a neon sign: a glowing outline
-      G.lineStyle(14 * u, c, 0.25).strokeRoundedRect(-58 * u, -34 * u, 116 * u, 68 * u, 22 * u);
-      G.lineStyle(5 * u, c, 1).strokeRoundedRect(-58 * u, -34 * u, 116 * u, 68 * u, 22 * u);
-      G.lineStyle(5 * u, 0xffffff, 0.9).lineBetween(-30 * u, 10 * u, -10 * u, -14 * u);
-      G.lineBetween(-10 * u, -14 * u, 10 * u, 10 * u);
-      G.lineBetween(10 * u, 10 * u, 30 * u, -14 * u);
-    } },
-    'hanging-ceiling': { x: 0.3, y: () => 0, draw(G, c, u) {   // something hanging on a cord
-      G.lineStyle(3 * u, 0xd8d0c0, 1).lineBetween(0, 0, 0, 56 * u);
-      G.fillStyle(c, 1).fillTriangle(-34 * u, 92 * u, 34 * u, 92 * u, 0, 56 * u);
-      G.fillStyle(0xffffff, 0.45).fillCircle(0, 102 * u, 12 * u);
-    } },
-    'shelf-shelf': { x: 0.7, y: (r) => r.wall * 0.74, draw(G, c, u) {   // a small shelf with an ornament
-      G.fillStyle(0x6a4628, 1).fillRect(-54 * u, 0, 108 * u, 9 * u);
-      G.fillStyle(c, 1).fillRoundedRect(-36 * u, -38 * u, 24 * u, 38 * u, 6 * u);
-      G.fillStyle(0xffffff, 0.8).fillCircle(14 * u, -14 * u, 14 * u);
-      G.fillStyle(c, 1).fillCircle(14 * u, -14 * u, 8 * u);
-    } },
-    'counter-counter': { x: 0.08, y: (r) => r.wall + 40, draw(G, c, u) {   // a stand with a display piece on it
-      G.fillStyle(0x000000, 0.25).fillEllipse(0, 50 * u, 110 * u, 26 * u);
-      G.fillStyle(0x6a4628, 1).fillRoundedRect(-44 * u, 0, 88 * u, 50 * u, 6 * u);
-      G.fillStyle(0x8c6238, 1).fillRoundedRect(-48 * u, -6 * u, 96 * u, 14 * u, 5 * u);
-      G.fillStyle(c, 1).fillCircle(0, -28 * u, 22 * u);
-      G.fillStyle(0xffffff, 0.6).fillCircle(-7 * u, -35 * u, 6 * u);
-    } },
-    'floor-floor': { x: 0.5, y: (r) => r.wall + 66, draw(G, c, u) {   // a rug
-      G.fillStyle(c, 0.85).fillEllipse(0, 0, 330 * u, 88 * u);
-      G.fillStyle(0xffffff, 0.3).fillEllipse(0, 0, 260 * u, 62 * u);
-      G.fillStyle(c, 0.9).fillEllipse(0, 0, 190 * u, 40 * u);
-    } },
+  // Where each piece goes in a stand-in room: x is a share of the room's width, y from the wall's height.
+  const PLAIN = {
+    'wall-wall': { x: 0.14, y: (wall) => wall * 0.46, w: 0.5, h: 0.62 },
+    'neon-wall': { x: 0.86, y: (wall) => wall * 0.42, w: 0.7, h: 0.45 },
+    'hanging-ceiling': { x: 0.3, y: () => 0, w: 0.4, h: 0.55 },
+    'shelf-shelf': { x: 0.7, y: (wall) => wall * 0.78, w: 0.35, h: 0.35 },
+    'counter-counter': { x: 0.08, y: (wall) => wall + 90, w: 0.4, h: 0.5 },
+    'floor-floor': { x: 0.5, y: (wall) => wall + 66, w: 1.8, h: 0.5 },
   };
+  const ANCHOR = { 'hanging-ceiling': [0.5, 0], 'shelf-shelf': [0.5, 1], 'counter-counter': [0.5, 1] };
+
+  // A socket's place and room, in game units.
+  function socketOf(name, opts) {
+    const r = opts.room && opts.room.sockets && opts.room.sockets[name];
+    if (r) return r;
+    if (opts.room && opts.room.sockets) return null;   // this room has no place for it
+    const p = PLAIN[name];
+    if (!p) return null;
+    return { x: opts.w * p.x, y: p.y(opts.wall), w: opts.wall * p.w * 1.6, h: opts.wall * p.h * 1.6 };
+  }
+
+  // Depth: wall pieces and rugs behind everything standing in the room; figurines sort with people and furniture.
+  const depthOf = (name, s) => (name === 'counter-counter' ? s.y : name === 'floor-floor' ? -986 : -985);
+
+  function draw(scene, name, id, s) {
+    const key = 'ui-' + id;
+    const art = PE.Data.itemArt[id] || [400, 400];
+    const k = Math.min(s.w / art[0], s.h / art[1]);
+    const [ox, oy] = ANCHOR[name] || [0.5, 0.5];
+    const parts = [];
+    if (name === 'shelf-shelf') {
+      // The little ledge it stands on.
+      const G = scene.add.graphics().setDepth(-985.5);
+      const lw = Math.max(art[0] * k * 1.25, 120);
+      G.fillStyle(0x000000, 0.28).fillRect(s.x - lw / 2 + 6, s.y + 6, lw, 18);
+      G.fillStyle(0x6a4628, 1).fillRect(s.x - lw / 2, s.y, lw, 16);
+      G.fillStyle(0x8c6238, 1).fillRect(s.x - lw / 2, s.y, lw, 5);
+      parts.push(G);
+    }
+    if (name === 'hanging-ceiling') {
+      // The cord it hangs from, up to the top edge.
+      const G = scene.add.graphics().setDepth(-985.5);
+      G.lineStyle(4, 0xd8d0c0, 0.9).lineBetween(s.x, 0, s.x, s.y + 4);
+      parts.push(G);
+    }
+    const im = scene.add.image(s.x, s.y, '__WHITE').setVisible(false).setDepth(depthOf(name, s));
+    parts.push(im);
+    const put = () => {
+      if (!im.scene) return;
+      im.setTexture(key).setOrigin(ox, oy).setScale(k).setVisible(true);
+      if (name === 'neon-wall' && !(PE.App && PE.App.state.settings.reducedMotion)) {
+        scene.tweens.add({ targets: im, alpha: 0.82, duration: 1100, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      }
+    };
+    if (scene.textures.exists(key)) put();
+    else PE.UI.loadIcons(scene, [id], () => { if (scene.textures.exists(key)) put(); });
+    return { destroy: () => parts.forEach((o) => o.destroy()), image: im };
+  }
 
   const DecorArt = {
-    // Puts what's placed in this room on its walls and floor, and keeps it up to date.
-    attach(scene, fid, room) {
-      const shown = new Map();   // socket -> { id, g }
+    // Puts what's placed in this room in its sockets, and keeps it up to date.
+    // opts: { room (the room from PE.Layout.roomAt, with its sockets), or for a stand-in room: w, wall }
+    attach(scene, fid, opts) {
+      const shown = new Map();   // socket -> { id, piece }
       const all = new Map(PE.Data.collectibles.decorations.map((d) => [d.id, d]));
-      const u = (room.wall / 180) * 1.1;
       const sync = () => {
         if (scene.sys.settings.status >= Phaser.Scenes.SHUTDOWN) return;
         const placed = PE.App.state.collections.decorByFacility[fid] || {};
         for (const [socket, s] of shown) {
-          if (placed[socket] !== s.id) { s.g.destroy(); shown.delete(socket); }
+          if (placed[socket] !== s.id) { s.piece.destroy(); shown.delete(socket); }
         }
         for (const [socket, id] of Object.entries(placed)) {
-          const d = all.get(id);
-          const piece = PIECES[socket];
-          if (!d || !piece || shown.has(socket)) continue;
-          const G = scene.add.graphics({ x: room.w * piece.x, y: piece.y(room) }).setDepth(-985);
-          piece.draw(G, setColour(d.set), u);
-          shown.set(socket, { id, g: G });
+          if (!all.get(id) || shown.has(socket)) continue;
+          const s = socketOf(socket, opts);
+          if (!s) continue;
+          shown.set(socket, { id, piece: draw(scene, socket, id, s), at: s });
         }
         scene.decorShown = [...shown.values()].map((s) => s.id);
+        scene.decorPieces = [...shown.entries()].map(([socket, s]) => ({ socket, id: s.id, at: s.at, image: s.piece.image }));
       };
       sync();
       const off = scene.g.on((type) => { if (type === 'changed') sync(); });
