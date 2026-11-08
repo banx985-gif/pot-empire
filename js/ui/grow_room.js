@@ -80,7 +80,7 @@
       if (!PE.App.state.settings.reducedMotion && !this.testOverride) this.cameras.main.fadeIn(170, 20, 10, 36);
     }
 
-    calm() { return PE.App.state.settings.reducedMotion || this.testOverride || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
+    calm() { return PE.App.state.settings.reducedMotion || this.testOverride; }
 
     makeRoomTextures() {
       const once = (key, w, h, draw) => {

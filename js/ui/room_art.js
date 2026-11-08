@@ -103,7 +103,7 @@
 
     // The room grew: a quick dust puff across the screen, then the bigger room comes in.
     knockThrough(scene, then) {
-      const calm = PE.App.state.settings.reducedMotion || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+      const calm = PE.App.state.settings.reducedMotion;
       if (calm) { then(); return; }
       const cam = scene.cameras.main;
       const v = cam.worldView;

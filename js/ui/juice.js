@@ -3,7 +3,7 @@
 // next to nothing. Nothing here changes any numbers in the game. Reduced motion switches all of it off.
 (function (PE) {
   const $ = (id) => document.getElementById(id);
-  const calm = () => PE.App.state.settings.reducedMotion || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const calm = () => PE.App.state.settings.reducedMotion;
   const MAX_LIVE = 24;   // never more than this many flying bits at once
   let live = 0;
 

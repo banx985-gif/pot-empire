@@ -344,7 +344,7 @@
       if (!cam) return;
       this.g.map.saveView(this.district, { zoom: Math.round(cam.zoom * 1000) / 1000, x: Math.round(cam.midPoint.x), y: Math.round(cam.midPoint.y), painted: true });
     }
-    calm() { return PE.App.state.settings.reducedMotion || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
+    calm() { return PE.App.state.settings.reducedMotion; }
     setZoomAround(zoom, sx, sy) {
       const cam = this.cameras.main;
       const lim = this.zoomLimits();

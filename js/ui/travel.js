@@ -6,7 +6,7 @@
 // Tap to skip. Reduced motion: a plain fade and the title. All on one layer above the game, so nothing inside the map changes.
 (function (PE) {
   const DIR = 'assets/fx/transition/';
-  const calm = () => PE.App.state.settings.reducedMotion || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const calm = () => PE.App.state.settings.reducedMotion;
   const url = (id) => `${DIR}${id}.webp`;
   const hasArt = (id) => { const e = PE.Data.assetRegistry.entries.find((x) => x.id === id); return !!e && e.status === 'imported'; };
   const el = (cls, parent, tag = 'div') => { const d = document.createElement(tag); d.className = cls; parent.appendChild(d); return d; };

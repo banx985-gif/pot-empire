@@ -5,7 +5,7 @@
 (function (PE) {
   const { esc } = PE.Dom;
   const $ = (id) => document.getElementById(id);
-  const still = () => PE.App.state.settings.reducedMotion || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const still = () => PE.App.state.settings.reducedMotion;
   const FLIP_GAP_MS = 320, FIRST_FLIP_MS = 520, STAY_MS = 6000;
 
   function face(c) {

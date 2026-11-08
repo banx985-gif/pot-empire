@@ -70,7 +70,7 @@
       return !top || top.name === 'title' || !!PE.Dom.modalNow || !!PE.ChestReveal.now || !PE.AgeGate.answered();
     },
     active() { return !!(PE.App && PE.App.g.tutorial.active()); },
-    still() { return PE.App.state.settings.reducedMotion || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); },
+    still() { return PE.App.state.settings.reducedMotion; },
     tick() {
       const g = PE.App.g;
       if (!g.tutorial.active()) { if (!$('tutor').hidden) Tutorial.hide(); return; }

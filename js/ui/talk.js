@@ -2,7 +2,7 @@
 // in data (who speaks, the line, which move): data/scenes.js and data/rival_story.js. Text types out while the mouth
 // moves, then they settle. Any button skips ahead. With reduced motion everyone stands still and the text just shows.
 (function (PE) {
-  const calm = () => (PE.App && PE.App.state.settings.reducedMotion) || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const calm = () => (PE.App && PE.App.state.settings.reducedMotion);
   const esc = (t) => PE.Dom.esc(t);
   const names = () => Object.fromEntries(PE.Data.helpers.map((h) => [h.id, h.name]));
 

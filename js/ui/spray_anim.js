@@ -5,7 +5,7 @@
 // any more is let go. A model with no animation for its level keeps its still HY-Mn-FX-L picture (js/ui/grow_room.js).
 (function (PE) {
   const D = () => PE.Data.sprayAnim;
-  const calm = () => (PE.App && PE.App.state.settings.reducedMotion) || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const calm = () => (PE.App && PE.App.state.settings.reducedMotion);
   const keyOf = (set) => 'spray-' + set;
 
   // The versions this model plays at this sprinkler level ([] = none, keep the still).

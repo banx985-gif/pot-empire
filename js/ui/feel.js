@@ -2,7 +2,7 @@
 (function (PE) {
   const $ = (id) => document.getElementById(id);
   const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const calm = () => (PE.App && PE.App.state.settings.reducedMotion) || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const calm = () => (PE.App && PE.App.state.settings.reducedMotion);
 
   PE.Loading = {
     done() { const el = $('loading'); if (el) el.remove(); },
