@@ -89,7 +89,8 @@
       const c = cap();
       if (c) {
         c.nativePromise('LocalNotifications', 'schedule', { notifications: Notify.booked.map((n) => ({
-          id: n.id, title: n.title, body: n.text, schedule: { at: new Date(n.at).toISOString(), allowWhileIdle: true }, extra: { route: n.route },
+          // Not to the second: so the phone never has to ask for exact-alarm rights (it would open a settings page).
+          id: n.id, title: n.title, body: n.text, isExactNotification: false, schedule: { at: new Date(n.at).toISOString(), allowWhileIdle: true }, extra: { route: n.route },
         })) }).catch(() => {});
         return;
       }
