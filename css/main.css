@@ -710,3 +710,5 @@ html.fast-time #hud::after { content: 'FAST TIME: NOT SAVING'; display: block; t
 .item.spot { animation: spot-flash 1.2s ease-out 2; box-shadow: 0 0 0 3px var(--lime) inset; }
 @keyframes spot-flash { 0% { background: #c6ff3d55; } 100% { background: transparent; } }
 .calm .item.spot { animation: none; }
+/* The packet picture fills its packet (job 18: the old size rule only covered the tool buttons). */
+.seed-pack img.tool-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }

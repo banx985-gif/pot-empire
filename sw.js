@@ -8,7 +8,7 @@
 //
 // VERSION is stamped by publish.ps1 on every publish. A new version makes the phone install this
 // worker fresh and throw away old copies.
-const VERSION = '20261108-222530';
+const VERSION = '20261108-223203';
 const PREFIX = 'pot-empire-';   // other Banx games share this web address: only ever touch our own copies
 const CACHE = PREFIX + VERSION;
 
