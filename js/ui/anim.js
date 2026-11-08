@@ -15,6 +15,7 @@
   function stillUrl(id) {
     if (/^(M\d\d|VIP-\d\d|RIVAL-\d\d)$/.test(id)) return `assets/characters/${id}.webp`;
     if (/^WLK-/.test(id)) return `assets/map/${id}.webp`;
+    if (/^V\d\d$/.test(id)) return `assets/ui/${id}.webp`;
     return null;
   }
 
@@ -71,14 +72,16 @@
     }
     showStill() {
       const url = stillUrl(this.id);
-      this.bob = true;
+      // Vehicles with no driving frames yet slide their still picture (no bob), drawn about as big as a driving one.
+      const vehicle = /^V\d\d$/.test(this.id);
+      this.bob = !vehicle;
       if (!url) return;
       const key = 'still-' + this.id;
       const put = () => {
         if (this.gone) return;
         const src = this.scene.textures.get(key).getSourceImage();
-        this.stillK = this.height / src.height;
-        this.image.setTexture(key).setOrigin(0.5, 0.97).setScale(this.stillK).setVisible(true);
+        this.stillK = ((vehicle ? 0.6 : 1) * this.height) / src.height;
+        this.image.setTexture(key).setOrigin(0.5, vehicle ? 0.9 : 0.97).setScale(this.stillK).setVisible(true);
       };
       if (this.scene.textures.exists(key)) { put(); return; }
       const img = new Image();
@@ -134,13 +137,15 @@
       if (done) this.scene.time.delayedCall(calm() ? 0 : 500, () => { if (!this.gone) done(); });
     }
     // Walking this way. Keeps the same frames going if they're already walking in that direction.
-    heading(dx, dy) {
-      const w = Pick().walkFor(this.id, dx, dy, this.walkRoll);
+    // style 'skate': the skater kid rides his board instead.
+    heading(dx, dy, style = 'walk') {
+      const w = Pick().walkFor(this.id, dx, dy, this.walkRoll, style);
       if (!w) { if (!this.hasFrames) this.image.setFlipX(dx > 0); return; }
       if (this.cur && this.cur.walk && this.cur.set === w.set) { this.image.setFlipX(w.flip); return; }
       if (this.wanted === w.set) return;   // on its way
-      const n = Art().chars[this.id][w.set].n;
-      this.start({ name: 'walk', walk: true, set: w.set, order: Array.from({ length: n }, (_, i) => i), fps: 8, loop: true, times: 1, flip: w.flip, look: Pick().lookOf(this.id, w.set) });
+      const fr = Art().chars[this.id][w.set];
+      // Aaron's own timing where the notes give it (170 ms walks, the skater's push, 100 ms driving), otherwise 8 a second.
+      this.start({ name: 'walk', walk: true, set: w.set, order: Array.from({ length: fr.n }, (_, i) => i), fps: 8, ms: fr.ms || null, loop: true, times: 1, flip: w.flip, look: Pick().lookOf(this.id, w.set) });
     }
     start(play) {
       const token = ++this.token;
@@ -189,7 +194,9 @@
     }
     // Every frame. "may" says whether this one may change pictures now (at most two per screen).
     step(dt, may) {
-      if (calm() || !may) return;
+      if (calm()) return;
+      // Not its turn to change pictures: its clock still runs, so it keeps its speed and catches up next turn.
+      if (!may) { if (this.cur && this.cur.fps > 0) this.cur.at += dt; return; }
       if (!this.cur) {
         if (this.bob && this.image.visible && this.stillK) {
           this.t += dt;
@@ -241,8 +248,13 @@
   // Everything in a scene, once a frame: off-screen ones are paused, and at most two change pictures per screen.
   function stepAll(scene, dt) {
     if (!scene.animActors) return;
-    let free = 2;
-    for (const a of scene.animActors) {
+    // Job 17B: with the vans and more customers moving too, they take turns: each frame starts one further along the
+    // list, so nobody (like a helper made after the vans) waits forever for a turn. Changing frames is cheap, so 4 a screen.
+    let free = 4;
+    const list = scene.animActors;
+    const start = (scene.animTurn = ((scene.animTurn || 0) + 1) % Math.max(1, list.length));
+    for (let k = 0; k < list.length; k++) {
+      const a = list[(start + k) % list.length];
       a.paused = !a.onScreen();
       if (a.paused) continue;
       const moving = !!(a.cur && a.cur.fps > 0 && a.hasFrames);
@@ -265,7 +277,15 @@
       if (!a.el.isConnected) { live.delete(a); continue; }
       if (a.fps <= 0) { live.delete(a); continue; }
       a.at += 0.066;
-      const i = Math.floor(a.at * a.fps);
+      let i = Math.floor(a.at * a.fps);
+      if (a.ms) {
+        // Each frame shows for its own time (job 17B: the skater's jar show-off in pop-ups).
+        const total = a.ms.reduce((x, y) => x + y, 0) / 1000;
+        const lap = Math.floor(a.at / total);
+        let t = a.at - lap * total, k = 0;
+        while (k < a.ms.length - 1 && t >= a.ms[k] / 1000) { t -= a.ms[k] / 1000; k++; }
+        i = lap * a.order.length + k;
+      }
       if (a.loop) { paint(a, a.order[i % a.order.length]); continue; }
       if (i < a.order.length * a.times) { paint(a, a.order[i % a.order.length]); continue; }
       a.fps = 0;
@@ -306,7 +326,7 @@
         const still = calm();
         const order = spec.random ? shuffled(spec.order, 40) : spec.order;
         const a = el._anim || (el._anim = { el, inner });
-        Object.assign(a, { order, fps: still || order.length < 2 ? 0 : spec.fps, loop: spec.loop, hold: spec.hold, times: spec.times, then: still ? null : spec.then, done: opts.done || null, at: 0, frame: -1, cols: f.cols, rows });
+        Object.assign(a, { order, ms: spec.random ? null : spec.ms, fps: still || order.length < 2 ? 0 : spec.fps, loop: spec.loop, hold: spec.hold, times: spec.times, then: still ? null : spec.then, done: opts.done || null, at: 0, frame: -1, cols: f.cols, rows });
         paint(a, order[0]);
         if (a.fps > 0) { live.add(a); if (!ticking) ticking = setInterval(tick, 66); } else if (a.done) { const d = a.done; a.done = null; d(); }
       };

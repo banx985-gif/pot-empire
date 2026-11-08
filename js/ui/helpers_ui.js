@@ -114,6 +114,11 @@
       if (who !== 'LEAFY') return PE.AnimDom.html(who, size, 'cheer').replace('data-char', `data-face="${id}" data-char`);
       return `<img class="cheer" src="${HelperArt.url(id)}" alt="" width="${size}" height="${size}" data-face="${id}" draggable="false" onerror="this.style.visibility='hidden'">`;
     },
+    // A sale pop-up: the skater kid pushes a jar of buds at you and winks (WLK-01-JAR, job 17B).
+    jar() {
+      if (!PE.AnimPick.resolve('WLK-01', 'jar')) return '';
+      return PE.AnimDom.html('WLK-01', B().helpers.celebrateHelperSize, 'jar');
+    },
     pump() {
       if (this.now || !this.waiting.length || !PE.App || !PE.App.game) return;
       const e = this.now = this.waiting.shift();
@@ -122,9 +127,10 @@
       const el = $('celebrate');
       el.className = `${calm ? 'still' : ''} ${small ? 'small' : ''}`;
       const bits = calm || small ? '' : Array.from({ length: CONFETTI }, (_, i) => `<i style="--i:${i}"></i>`).join('');
-      el.innerHTML = `<div class="confetti">${bits}</div><div class="banner" data-act="skip"><span class="stars">${PE.Dom.icon(e.kind === 'level' ? 'RWD-06' : 'RWD-05', 40)}</span><b>${esc(e.text)}</b>${this.cheer(e.kind)}</div>`;
+      el.innerHTML = `<div class="confetti">${bits}</div><div class="banner" data-act="skip"><span class="stars">${PE.Dom.icon(e.kind === 'level' ? 'RWD-06' : 'RWD-05', 40)}</span><b>${esc(e.text)}</b>${e.jar ? this.jar() : this.cheer(e.kind)}</div>`;
       el.hidden = false;
-      PE.AnimDom.play(el.querySelector('.cheer.anim-box'), 'cheer');
+      if (e.jar) PE.AnimDom.play(el.querySelector('.jar.anim-box'), 'jar');
+      else PE.AnimDom.play(el.querySelector('.cheer.anim-box'), 'cheer');
       clearTimeout(this.timer);
       const C = B().celebrations;
       this.timer = setTimeout(() => this.timedClose(), (calm ? C.reducedMotionSeconds : C.seconds) * 1000);

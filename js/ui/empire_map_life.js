@@ -33,6 +33,9 @@
     return s;
   }
   const VAN_ART = ['VEH-01', 'VEH-02', 'VEH-04', 'VEH-05', 'VEH-03'];
+  const VEHICLE_H = 100;     // a vehicle's 512 pixel frame, in map units (the vehicle itself is about 60 of that)
+  const TRIP_SPEED = 70;     // map units a second, out on a delivery
+  const SKATE_FROM = 600;    // a walk longer than this, and the skater kid rides his board
   function lengths(pts) {
     const seg = [];
     let total = 0;
@@ -120,7 +123,68 @@
   };
   proto.addMover = function addMover(pts, sprite, speed, i, opts = {}) {
     const { seg, total } = lengths(pts);
-    this.life.movers.push({ sprite, pts, seg, total, d: total * (0.2 + 0.3 * i), dir: i % 2 ? -1 : 1, speed, lane: opts.lane === undefined ? 9 : opts.lane, artFaces: opts.artFaces || -1 });
+    this.life.movers.push({ sprite, actor: opts.actor || null, pts, seg, total, d: total * (0.2 + 0.3 * i), dir: i % 2 ? -1 : 1, speed, lane: opts.lane === undefined ? 9 : opts.lane, artFaces: opts.artFaces || -1 });
+  };
+  // Vehicles that have driving frames: the ones you own first, then the rest, so the town always has some about.
+  proto.vehicleLineup = function vehicleLineup() {
+    const all = (PE.Data.collectibles.vehicles || []).map((v) => v.id).filter((id) => PE.AnimPick.hasFrames(id));
+    const owned = all.filter((id) => this.g.state.collections.owned[id]);
+    return [...owned, ...all.filter((id) => !owned.includes(id))];
+  };
+
+  // ---- Delivery trips (job 17B): a vehicle on a depot route drives out along the roads, off to the far side of the
+  // district, and comes back in time for the delivery to finish. Driving frames for the way the road goes; a vehicle
+  // with no frames yet slides its still picture.
+  proto.tripEnd = function tripEnd(fid) {
+    const L = this.layout;
+    const s = L.spots[fid];
+    const door = PE.MapPaths.doorId(s);
+    let best = null;
+    for (const n of Object.keys(L.nodes)) {
+      const far = Math.hypot(L.nodes[n][0] - s.x, L.nodes[n][1] - s.y);
+      if (best && far <= best.far) continue;
+      const way = PE.MapPaths.route(L, door, n);
+      if (way && way.length > 1) best = { far, way };
+    }
+    return best ? best.way : null;
+  };
+  proto.syncTrips = function syncTrips() {
+    const L = this.life;
+    if (!L.trips) return;
+    const want = new Map();
+    for (const fid of this.def.facilities) {
+      if (!this.g.facilities.isOwned(fid) || this.g.facilities.row(fid).mode !== 'Logistics') continue;
+      this.g.business.slots(fid).forEach((r, i) => { if (r.job && r.vehicle) want.set(`${fid}:${i}:${r.job.startMs}`, { fid, r }); });
+    }
+    for (const [k, t] of L.trips) if (!want.has(k)) { t.actor.destroy(); L.trips.delete(k); }
+    for (const [k, { fid, r }] of want) {
+      if (L.trips.has(k)) continue;
+      const way = this.tripEnd(fid);
+      if (!way) continue;
+      const { seg, total } = lengths(way);
+      const actor = new PE.Anim.Actor(this, r.vehicle, { x: way[0][0], y: way[0][1], height: VEHICLE_H });
+      L.trips.set(k, { actor, sprite: actor.image, job: r.job, pts: way, seg, total, vid: r.vehicle });
+    }
+  };
+  // Where a trip's vehicle is now: out along the way, away (hidden), or on its way back.
+  proto.stepTrip = function stepTrip(t) {
+    const now = this.g.now();
+    const span = Math.max(1, t.job.endMs - t.job.startMs);
+    const drive = Math.min((t.total / TRIP_SPEED) * 1000, span / 2);
+    const gone = now - t.job.startMs, left = t.job.endMs - now;
+    let d = null, dir = 1;
+    if (gone >= 0 && gone < drive) d = (gone / drive) * t.total;
+    else if (left > 0 && left < drive) { d = (left / drive) * t.total; dir = -1; }
+    t.away = d === null;
+    if (t.away) { t.sprite.setVisible(false); return; }
+    const p = along(t.pts, t.seg, d);
+    const len = Math.hypot(p.dx, p.dy) || 1;
+    t.actor.moveTo(p.x + (p.dy / len) * 9 * dir, p.y - (p.dx / len) * 9 * dir);
+    t.actor.heading(p.dx * dir, p.dy * dir);
+    if (!t.actor.hasFrames) t.sprite.setFlipX(p.dx * dir > 0);
+    // Fades away at the far end of the district, and back in from there.
+    t.sprite.setAlpha(Math.min(1, (t.total - d) / 60));
+    if (t.actor.cur || (!t.actor.hasFrames && t.actor.stillK)) t.sprite.setVisible(true);
   };
   proto.buildVans = function buildVans() {
     const L = this.layout;
@@ -128,7 +192,17 @@
     const paths = [...this.deliveryRoutes()];
     (L.vans || []).slice(0, Math.min(2, owned)).forEach(([a, b]) => { const way = PE.MapPaths.route(L, a, b); if (way && way.length > 1) paths.push(way); });
     const first = Number(this.district.slice(1)) - 1;
-    paths.forEach((pts, i) => this.addMover(pts, piece(this, pts[0][0], pts[0][1], VAN_ART[(first + i) % VAN_ART.length], 58).setOrigin(0.5, 0.85), 62 + i * 10, i));
+    // Job 17B: the vans about town are vehicles with driving frames (yours first), facing the way the road goes.
+    const drivers = this.vehicleLineup();
+    paths.forEach((pts, i) => {
+      const vid = drivers.length ? drivers[(first + i) % drivers.length] : null;
+      if (vid) {
+        const actor = new PE.Anim.Actor(this, vid, { x: pts[0][0], y: pts[0][1], height: VEHICLE_H });
+        this.addMover(pts, actor.image, 62 + i * 10, i, { actor });
+      } else this.addMover(pts, piece(this, pts[0][0], pts[0][1], VAN_ART[(first + i) % VAN_ART.length], 58).setOrigin(0.5, 0.85), 62 + i * 10, i);
+    });
+    this.life.trips = new Map();
+    this.syncTrips();
     // Boats and trains are there whether or not you own anything: it's their town too.
     PE.MapPaths.linesOf(L, (k) => k.boat).slice(0, 2).forEach((l, i) => this.addMover(l.pts, this.add.image(l.pts[0][0], l.pts[0][1], 'map-boat').setDisplaySize(90, 49), 26, i, { lane: 0, artFaces: 1 }));
     PE.MapPaths.linesOf(L, (k) => k.train).slice(0, 1).forEach((l, i) => this.addMover(l.pts, this.add.image(l.pts[0][0], l.pts[0][1], 'map-train').setDisplaySize(130, 43), 110, i, { lane: 0 }));
@@ -161,7 +235,9 @@
       // A walker with drawn frames walks for real. The others keep their still picture with a bob until theirs arrive.
       const actor = PE.AnimPick.hasFrames(artId) ? new PE.Anim.Actor(this, artId, { x: way[0][0], y: way[0][1], height: 46 }) : null;
       const sprite = actor ? actor.image : piece(this, way[0][0], way[0][1], artId, 44).setOrigin(0.5, 0.95);
-      this.life.walkers.push({ actor, sprite, pts: way, seg, total, d: total * ((i * 0.37) % 1), dir: entering || i % 2 === 0 ? 1 : -1, speed: 17 + i * 2, entering, side: i % 2 ? 6 : -6 });
+      // The skater kid rides his board on the longer trips, faster than walking (job 17B).
+      const skate = !!actor && PE.AnimPick.canSkate(artId) && total > SKATE_FROM;
+      this.life.walkers.push({ actor, sprite, pts: way, seg, total, d: total * ((i * 0.37) % 1), dir: entering || i % 2 === 0 ? 1 : -1, speed: (17 + i * 2) * (skate ? 2.4 : 1), entering, skate, side: i % 2 ? 6 : -6 });
     }
   };
 
@@ -379,10 +455,17 @@
       const p = along(m.pts, m.seg, m.d);
       const len = Math.hypot(p.dx, p.dy) || 1;
       const lane = m.lane * m.dir;
+      if (m.actor) {
+        m.actor.moveTo(p.x + (p.dy / len) * lane, p.y - (p.dx / len) * lane);
+        m.actor.heading(p.dx * m.dir, p.dy * m.dir);
+        if (!m.actor.hasFrames) m.sprite.setFlipX(p.dx * m.dir > 0);
+        continue;
+      }
       m.sprite.setPosition(p.x + (p.dy / len) * lane, p.y - (p.dx / len) * lane);
       m.sprite.setFlipX((p.dx * m.dir * m.artFaces) < -4);
       m.sprite.setDepth(m.sprite.y);
     }
+    if (L.trips) for (const t of L.trips.values()) this.stepTrip(t);
     for (const w of L.walkers) {
       w.d += w.dir * w.speed * dt;
       if (w.entering) {
@@ -397,7 +480,7 @@
       const len = Math.hypot(p.dx, p.dy) || 1;
       if (w.actor) {
         w.actor.moveTo(p.x + (p.dy / len) * w.side, p.y - (p.dx / len) * w.side);
-        w.actor.heading(p.dx * w.dir, p.dy * w.dir);
+        w.actor.heading(p.dx * w.dir, p.dy * w.dir, w.skate ? 'skate' : 'walk');
         continue;
       }
       w.sprite.setPosition(p.x + (p.dy / len) * w.side, p.y - (p.dx / len) * w.side - Math.abs(Math.sin(T * 7 + w.d)) * 3);
@@ -441,6 +524,7 @@
       }
     }
     if (L.helperLife) L.helperLife.setVisible(PE.App.state.settings.helpers);
+    this.syncTrips();
   };
   // Reduced motion: everything stops somewhere sensible and stays tappable.
   proto.settleLife = function settleLife() {

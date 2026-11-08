@@ -22,6 +22,9 @@
 globalThis.PE.Data.animMoves = {
   // Everyone else (customers, managers): frames named like this will be picked up by themselves when they're filed.
   defaultWalk: { down: 'WALKFRONT', up: 'WALKAWAY', left: 'WALKLEFT', right: ['WALKRIGHT', 'WALKSIDE'], downright: 'WALKDOWNRIGHT', downleft: 'WALKDOWNLEFT', upright: 'WALKUPRIGHT', upleft: 'WALKUPLEFT' },
+  // Job 17B: the skater kid riding his board (longer trips on the map), and the delivery vehicles driving the roads.
+  defaultSkate: { down: 'SKATEFRONT', up: 'SKATEAWAY', left: 'SKATELEFT', right: 'SKATERIGHT', downright: 'SKATEDOWNRIGHT', downleft: 'SKATEDOWNLEFT', upright: 'SKATEUPRIGHT', upleft: 'SKATEUPLEFT' },
+  defaultDrive: { down: 'DRIVEFRONT', up: 'DRIVEAWAY', left: 'DRIVELEFT', right: 'DRIVERIGHT', downright: 'DRIVEDOWNRIGHT', downleft: 'DRIVEDOWNLEFT', upright: 'DRIVEUPRIGHT', upleft: 'DRIVEUPLEFT' },
   defaultMoves: {
     idle: { set: ['IDLE', 'TALKFRONT'], from: 1, to: 1, hold: true, bob: true },
     chat: { set: ['TALK', 'TALKFRONT'], fps: 7, loop: true },
@@ -34,6 +37,8 @@ globalThis.PE.Data.animMoves = {
     reachDOWN: { set: 'TALKFRONT' }, reachUP: { set: 'TALKAWAY' }, reachLEFT: { set: 'TALKLEFT' }, reachRIGHT: { set: 'TALKRIGHT' },
     reachDOWNLEFT: { set: 'TALKDOWNLEFT' }, reachDOWNRIGHT: { set: 'TALKDOWNRIGHT' }, reachUPLEFT: { set: 'TALKUPLEFT' }, reachUPRIGHT: { set: 'TALKUPRIGHT' },
     give: { set: 'GIVE', fps: 8 },
+    // The skater kid pushes a jar of buds at the screen and winks (a close-up, for pop-ups). Played once, Aaron's timing.
+    jar: { set: 'JAR', hold: false },
   },
   walk: {
     HAZE: { down: ['WALKFRONT2', 'WALKFRONT2', 'WALKFRONT'], right: 'WALKSIDE', downleft: 'WALKDOWNLEFT', upright: 'WALKUPRIGHT', upleft: 'WALKUPLEFT', up: 'WALKUPLEFT' },

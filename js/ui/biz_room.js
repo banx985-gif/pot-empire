@@ -382,7 +382,10 @@
           const happy = PE.AnimPick.resolve(A.id, 'happy');
           // As long as their happy reaction lasts (Pixel Pete's breakdance is 4.3 s), at least 1.3 s.
           w.left = happy && happy.ms ? Math.max(1.3, happy.ms.reduce((t, m) => t + m, 0) / 1000 + 0.2) : 1.3;
-          A.play('happy');
+          // The skater kid's board trick is drawn facing right: flipped when the door is to his left (job 17B).
+          // The businesswoman's lipstick kiss grows big and fades, so it draws over everything near her.
+          A.play('happy', A.id === 'WLK-01' ? { flip: w.door.x < A.x } : {});
+          if (A.id === 'WLK-03') A.setBehind(1e6);
           w.happySet = happy ? happy.set : null;
           this.customersHappy = (this.customersHappy || 0) + 1;
           (this.customerLog = this.customerLog || []).push({ id: A.id, reach: w.reached, happy: w.happySet });
@@ -391,6 +394,8 @@
           if (!A.hasFrames || !happy || happy.set === 'FULL') this.tweens.add({ targets: A.image, y: A.image.y - A.height * 0.1, yoyo: true, repeat: 1, duration: 170, ease: 'Sine.easeOut' });
         } else if (w.state === 'happy' && w.left <= 0) {
           w.state = 'out';
+          A.setBehind(null);
+          A.image.setFlipX(false);
           w.way = this.wayTo({ x: A.x, y: A.y }, w.door);
         }
       }

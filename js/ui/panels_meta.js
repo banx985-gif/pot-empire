@@ -166,7 +166,7 @@
   };
   Object.assign(PE.Panels.contracts.actions, {
     vipTake(id) { const r = g().meta.acceptVip(id); if (!r.ok) toast(r.why === 'stock' ? 'Not enough of that stock yet' : 'Not available'); PE.App.saveGame(); },
-    vipClaim(id) { const r = g().meta.claimVip(id); if (r.ok) toast(`VIP paid ${money(r.cash)}`); PE.App.saveGame(); },
+    vipClaim(id) { const r = g().meta.claimVip(id); if (r.ok) PE.Celebrate.add({ kind: 'sale', text: `VIP paid ${money(r.cash)}`, jar: true }); PE.App.saveGame(); },
     vipCancel(id) { g().meta.cancelVip(id); PE.App.saveGame(); },
   });
 })(globalThis.PE = globalThis.PE || {});

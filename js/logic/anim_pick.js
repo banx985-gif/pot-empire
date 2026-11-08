@@ -25,10 +25,12 @@
 
   // Which frames walk this way: { set, flip, dir }, or null if this character has no walk at all.
   // A direction can list several sets for variety; roll (0 to 1, kept for the whole walk) picks one.
-  function walkFor(id, dx, dy, roll = 0) {
+  // style 'skate': the skater kid on his board. Vehicles (V01 to V24) always drive.
+  function walkFor(id, dx, dy, roll = 0, style = 'walk') {
     const frames = art(id);
     if (!frames) return null;
-    const map = Data().animMoves.walk[id] || Data().animMoves.defaultWalk;
+    const A = Data().animMoves;
+    const map = /^V\d\d$/.test(id) ? A.defaultDrive : style === 'skate' && frames.SKATEFRONT ? A.defaultSkate : A.walk[id] || A.defaultWalk;
     const a = DIRS[dirOf(dx, dy)];
     const order = Object.keys(DIRS).sort((p, q) => gap(a, DIRS[p]) - gap(a, DIRS[q]));
     for (const d of order) {
@@ -71,6 +73,7 @@
     return { name, set, order, ms, fps: spec.fps || 6, loop: !!spec.loop, hold: !!spec.hold, times: spec.times || 1, random: !!spec.random, then: spec.then || null, bob: !!spec.bob, look: lookOf(id, set) };
   }
   const hasFrames = (id) => !!art(id);
+  const canSkate = (id) => !!(art(id) && art(id).SKATEFRONT);
 
-  PE.AnimPick = { DIRS, dirOf, walkFor, lookOf, resolve, hasFrames };
+  PE.AnimPick = { DIRS, dirOf, walkFor, lookOf, resolve, hasFrames, canSkate };
 })(globalThis.PE = globalThis.PE || {});

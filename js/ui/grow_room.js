@@ -486,7 +486,7 @@
       this.tweens.add({ targets: t, y: still ? t.y : t.y - 60, alpha: 0, duration: still ? 700 : 950, onComplete: () => t.destroy() });
       if (v && v.spray && !still) {
         v.spray.setVisible(v.shown !== false).setAlpha(1);
-        this.tweens.add({ targets: v.spray, alpha: 0.5, duration: 700 });
+        this.tweens.add({ targets: v.spray, alpha: v.sprayAnim ? 0.92 : 0.5, duration: 700 });
       }
     }
 
@@ -683,6 +683,7 @@
     }
     update(time, delta) {
       if (!this.ready) return;
+      PE.SprayAnim.stepAll(this, Math.min(0.1, (delta || 16) / 1000));
       if (!this.testOverride && this.helperLife === null && !this.g.tutorial.active()) this.buildLife();
       if (this.helperLife) {
         const dt = Math.min(0.1, (delta || 16) / 1000);
@@ -815,7 +816,10 @@
       const fx = view.spray;
       if (!fx) return;
       fx.wantVisible = watering;
-      if (view.shown !== false) fx.setVisible(watering);
+      if (view.shown !== false) fx.setVisible(watering && (!view.sprayAnim || view.sprayAnim.ready));
+      view.sprayOn = watering;
+      // The animated spray moves by itself: no pulse needed.
+      if (view.sprayAnim) { view.sprayAnim.on = watering; return; }
       const calm = PE.App.state.settings.reducedMotion || this.testOverride;
       if (watering && !calm && !view.sprayTween) {
         fx.setAlpha(0.45);
@@ -835,6 +839,7 @@
       if (v) {
         v.gone = true;
         if (v.sprayTween) v.sprayTween.stop();
+        if (v.sprayAnim) v.sprayAnim.destroy();
         if (v.water) v.water.destroy();
         v.parts.forEach((o) => o.destroy());
         v.texts.forEach((t) => t.destroy());
@@ -907,8 +912,16 @@
       const [fw, fh] = D.hydroArt[fxId] || [100, 100];
       const sprayH = Math.max(120, -70 - O.sprBottom);
       const sprayW = Math.min(1000, (sprayH * fw) / fh);
-      v.spray = this.part(v, fxId, pos.x + O.x, pos.y + O.sprBottom - 12, sprayW, sprayH, pos.y + 205, 0.5, 0);
-      v.spray.setAlpha(0.55).setVisible(false);
+      if (PE.SprayAnim && PE.SprayAnim.setsFor(m, L.sprinkler).length) {
+        // Aaron's animated spray (job 17B): loops under the head, a version at random after each loop.
+        v.sprayAnim = new PE.SprayAnim.Spray(this, { model: m, level: L.sprinkler, x: pos.x + O.x, y: pos.y + O.sprBottom - 12, gap: sprayH, depth: pos.y + 205 });
+        v.spray = v.sprayAnim.image;
+        v.parts.push(v.spray);
+        v.spray.setAlpha(0.92).setVisible(false);
+      } else {
+        v.spray = this.part(v, fxId, pos.x + O.x, pos.y + O.sprBottom - 12, sprayW, sprayH, pos.y + 205, 0.5, 0);
+        v.spray.setAlpha(0.55).setVisible(false);
+      }
       v.spray.wantVisible = false;
 
       // Pots: each on a tray in its hole. The plant goes between the pot's back and a copy of its front, so it
