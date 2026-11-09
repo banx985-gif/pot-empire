@@ -12,7 +12,7 @@
 
   // All the times, in seconds. Easy to tune.
   const T = {
-    idle: [2.5, 6],
+    idle: [2, 5],
     meetEvery: [22, 40],      // how often one goes looking for the other
     chatLine: 2.4,            // one small bubble
     chatGap: 45,              // the shortest time between two chats
@@ -20,8 +20,10 @@
     napEvery: [70, 150],      // random naps, not too often
     napFor: [12, 26],
     playerIdle: 45,           // nobody has touched the screen: time for Leafy's nap
-    liveEvery: [45, 110],     // a random move (Haze inspects or rolls, Budz daydreams): not too often
-    plantEvery: [70, 170],    // Budz wanders over to chat to a plant
+    liveEvery: [14, 30],      // a random move from their mix (job 19B: more often, so they don't just stand and smoke)
+    plantEvery: [22, 45],     // Budz wanders over to chat to a plant
+    hazeLookAt: 0.4,          // after a rest, how often Haze strolls over to look a plant over (job 19B)
+    commentGap: 25,           // the least time between two comments from the same helper (job 19B: 20 to 30 s)
     rivalEvery: [120, 260],   // Budz goes and yells at a rival's building, if one's near
     plantChat: 3,
   };
@@ -47,6 +49,8 @@
       this.chatNow = null;
       this.chats = 0;     // how many so far (the tests read this)
       this.reactions = [];
+      this.comments = [];   // job 19B: every comment said, with when (the tests read this)
+      this.visits = [];     // and every plant Haze stopped at
       Life.turn = (Life.turn || 0) + 1;
       if (!PE.App.state.settings.helpers) return;
       // Uncle Haze and one other: two per screen at most, and they take turns.
@@ -98,6 +102,8 @@
       }
     }
     afterIdle(e) {
+      // Job 19B: Haze strolls over to a plant and looks it over.
+      if (e.id === 'HAZE' && this.world.plantLook && Math.random() < T.hazeLookAt && this.hazeToPlant(e)) return;
       if (Math.random() < 0.22) {
         e.state = 'react';
         e.actor.play('look', { done: () => this.backToIdle(e) });
@@ -144,7 +150,8 @@
       e.actor.setBehind(null);
       e.state = 'idle';
       e.wait = rand(...T.idle);
-      e.actor.play('idle');
+      // Job 19B: smoking is one of their idles, not the only one. Otherwise they stand easy (a gentle bob).
+      e.actor.play(Math.random() < 0.45 ? 'idle' : 'stand');
     }
 
     // ---- Meeting and chatting ----------------------------------------------------------------------------------------
@@ -243,7 +250,8 @@
       if (this.t < this.nextLive) return;
       this.nextLive = this.t + rand(...T.liveEvery);
       const free = this.list.filter((e) => e.state === 'idle' && !e.actor.paused && (PE.Data.scenes.liveMoves[e.id] || []).length);
-      if (free.length) this.liveMove(pick(free));
+      // Whoever has gone longest without one gets the next (job 19B), so both of them keep busy.
+      if (free.length) this.liveMove(free.sort((x, y) => (x.lastLive || 0) - (y.lastLive || 0))[0]);
     }
     // Plays one of this helper's random moves, or a given one.
     liveMove(e, name) {
@@ -255,6 +263,7 @@
       }
       if (!m) return;
       this.live.push(`${e.id}:${m.move}`);
+      e.lastLive = this.t;
       e.state = 'react';
       e.path = null;
       e.actor.play(m.move, { done: () => { if (m.pop) this.popBubble(e); this.backToIdle(e); } });
@@ -289,12 +298,14 @@
       e.arrive = () => {
         e.state = 'react';
         this.plantVisits = (this.plantVisits || 0) + 1;
+        this.visits.push({ id: e.id, kind: wilted ? 'thirsty' : P.kind || 'growing', t: this.t });
         const off = () => { const back = this.walkAlong(e, P.way.slice().reverse(), P.backDepths); if (!back) this.backToIdle(e); };
         if (wilted) {
-          this.say(e, pick(PE.Data.scenes.budzTellOff), 2.4);
+          this.comment(e, 'thirsty', 2.4) || this.say(e, pick(PE.Data.scenes.budzTellOff), 2.4);
           e.actor.play('angry', { done: off });
         } else {
-          this.say(e, pick(PE.Data.scenes.budzPlant), T.plantChat);
+          // A tiny bubble as he talks to it, but only now and then (job 19B: comments stay rare).
+          this.comment(e, P.kind || 'growing', T.plantChat);
           e.actor.play('chat');
           e.state = 'busy';
           e.busyLeft = T.plantChat;
@@ -303,6 +314,34 @@
       };
       return true;
     }
+    // ---- Job 19B: Haze looks the plants over, and a comment here and there ---------------------------------------------
+    // Walks up to the front of a plant, looks it over (his INSPECT frames now and then), says something if it's been a
+    // while, and moves on.
+    hazeToPlant(e) {
+      const P = this.world.plantLook && this.world.plantLook(e);
+      if (!P || !this.walkAlong(e, P.way)) return false;
+      e.arrive = () => {
+        e.state = 'react';
+        this.plantLooks = (this.plantLooks || 0) + 1;
+        this.visits.push({ id: e.id, kind: P.kind, t: this.t });
+        if (P.flip !== undefined) e.actor.image.setFlipX(P.flip);
+        this.comment(e, P.kind, 2.6);
+        e.actor.play(Math.random() < 0.5 ? 'inspect' : 'mutter', { done: () => this.backToIdle(e) });
+      };
+      return true;
+    }
+    // A short line in their voice about what they've stopped at, if they haven't said something for a while.
+    // Returns true if they said it.
+    comment(e, kind, seconds = 2.4) {
+      const lines = ((PE.Data.scenes.comments || {})[e.id] || {})[kind];
+      if (!lines || !lines.length) return false;
+      if (e.lastComment !== undefined && this.t - e.lastComment < T.commentGap) return false;
+      e.lastComment = this.t;
+      this.comments.push({ id: e.id, kind, t: this.t });
+      this.say(e, pick(lines), seconds);
+      return true;
+    }
+
     // Walks to a rival's building and gives it what for.
     budzToRival(e) {
       const R = this.world.rivalFor && this.world.rivalFor(e);

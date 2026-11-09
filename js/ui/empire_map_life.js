@@ -35,7 +35,8 @@
   const VAN_ART = ['VEH-01', 'VEH-02', 'VEH-04', 'VEH-05', 'VEH-03'];
   const VEHICLE_H = 100;     // a vehicle's 512 pixel frame, in map units (the vehicle itself is about 60 of that)
   const TRIP_SPEED = 70;     // map units a second, out on a delivery
-  const MAX_VEHICLES = 4;    // on a map at once, traffic and deliveries together (job 19)
+  const MAX_VEHICLES = 4;
+  const FLYERS = new Set(['VEH-06']);    // on a map at once, traffic and deliveries together (job 19)
   const SKATE_FROM = 600;    // a walk longer than this, and the skater kid rides his board
   function lengths(pts) {
     const seg = [];
@@ -131,7 +132,8 @@
   // Budz's van (LOAD-02). Found from the imported frames, so a new one Cowork files joins in with no code change.
   proto.vehicleLineup = function vehicleLineup() {
     const chars = PE.Data.animArt.chars;
-    const all = Object.keys(chars).filter((id) => PE.AnimPick.isVehicle(id) && chars[id].DRIVEFRONT).sort();
+    // Terpz's balloon (VEH-06) flies over the roofs with the gift, it doesn't drive the roads.
+    const all = Object.keys(chars).filter((id) => PE.AnimPick.isVehicle(id) && chars[id].DRIVEFRONT && !FLYERS.has(id)).sort();
     const owned = all.filter((id) => this.g.state.collections.owned[id]);
     return [...owned, ...all.filter((id) => !owned.includes(id))];
   };
@@ -508,6 +510,7 @@
     const dt = Math.min(0.1, (time - (L.last || time)) / 1000);
     L.last = time;
     this.updateGift(time, dt);
+    if (L.leaving) this.stepBalloon(L.leaving, time, dt);
     PE.Anim.stepAll(this, dt);
     if (L.helperLife) L.helperLife.update(dt);
     if (this.calmNow) return;
@@ -625,6 +628,7 @@
       return;
     }
     const f = L.gift;
+    if (f.actor) { this.stepBalloon(f, time, dt); return; }
     f.left -= dt;
     if (!this.calmNow) {
       f.x += f.vx * dt;
@@ -636,6 +640,69 @@
       this.g.map.giftMissed();
     }
   };
+  // ---- Job 19B: Terpz (Budz's cousin) brings the gift in his balloon (VEH-06) ---------------------------------------
+  // It fills up on the ground at the edge of the screen (VEH-06-INFLATE), rises on its DRIVEFRONT frames, then floats
+  // across well above the rooftops with a soft shadow on the ground below. Tap it for the gift: Terpz says ta and
+  // floats off up and away. Terpz is one person: one balloon, and he never walks (no walking art yet).
+  const BALLOON_H = 190, LIFT = 300;
+  proto.spawnBalloon = function spawnBalloon(x, y, vx, seconds) {
+    const actor = new PE.Anim.Actor(this, 'VEH-06', { x, y: y + LIFT, height: BALLOON_H, depth: 80000 });
+    const shadow = this.add.ellipse(x, y + LIFT, 90, 26, 0x000000, 0.28).setDepth(y + LIFT - 1);
+    const f = { actor, sprite: actor.image, shadow, x, y, vx, left: seconds, phase: 'inflate', t: 0, lift: LIFT };
+    this.life.gift = f;
+    (this.life.balloonLog = this.life.balloonLog || []).push('spawn');
+    if (this.calmNow || !PE.AnimPick.resolve('VEH-06', 'inflate')) { f.phase = 'fly'; f.lift = 0; actor.moveTo(x, y); this.terpzSays(f, 'arrive'); return; }
+    actor.play('inflate', { done: () => { if (f.phase === 'inflate') { f.phase = 'rise'; f.t = 0; (this.life.balloonLog || []).push('rise'); } } });
+  };
+  proto.terpzSays = function terpzSays(f, when) {
+    const lines = PE.Data.scenes[when === 'arrive' ? 'terpzArrive' : 'terpzThanks'] || [];
+    if (!lines.length) return;
+    const text = lines[Math.floor(Math.random() * lines.length)];
+    if (f.bubble) f.bubble.destroy();
+    const k = PE.App.dpr / this.cameras.main.zoom;
+    f.bubble = this.add.text(f.actor.x, f.actor.y - BALLOON_H, text, { fontFamily: 'system-ui, sans-serif', fontStyle: 'bold', fontSize: '26px', color: '#1d0f33', backgroundColor: '#ffffff', padding: { x: 14, y: 8 } })
+      .setOrigin(0.5, 1).setDepth(95000).setScale(k * 0.5);
+    f.bubbleLeft = 2.6;
+    (this.life.terpzLines = this.life.terpzLines || []).push(text);
+  };
+  proto.stepBalloon = function stepBalloon(f, time, dt) {
+    const L = this.life;
+    f.t += dt;
+    if (f.phase === 'rise') {
+      // Up off the ground, a little smaller as it goes.
+      const k = Math.min(1, f.t / 1.6);
+      f.lift = LIFT * (1 - k * k * (3 - 2 * k));
+      f.actor.heading(0, 1);
+      if (k >= 1) { f.phase = 'fly'; this.terpzSays(f, 'arrive'); }
+    } else if (f.phase === 'fly') {
+      f.left -= dt;
+      if (!this.calmNow) { f.x += f.vx * dt; f.actor.heading(f.vx, 0); }
+      if (f.left <= 0) { this.endBalloon(f); this.g.map.giftMissed(); return; }
+    } else if (f.phase === 'away') {
+      f.x += f.vx * 2 * dt;
+      f.y -= 120 * dt;
+      f.actor.heading(f.vx, -0.3);
+      f.actor.image.setAlpha(Math.max(0, 1 - f.t / 2));
+      if (f.t > 2) { this.endBalloon(f); return; }
+    }
+    const bob = f.phase === 'inflate' ? 0 : Math.sin(time / 600) * 8;
+    f.actor.moveTo(f.x, f.y + f.lift + bob);
+    // The shadow stays on the ground, smaller and fainter the higher it flies.
+    const up = 1 - f.lift / LIFT;
+    f.shadow.setPosition(f.x, f.y + LIFT).setScale(1 - up * 0.35).setAlpha(f.phase === 'away' ? f.actor.image.alpha * 0.6 : 1 - up * 0.45);
+    if (f.bubble) {
+      f.bubbleLeft -= dt;
+      if (f.bubbleLeft <= 0) { f.bubble.destroy(); f.bubble = null; } else f.bubble.setPosition(f.actor.x, f.actor.y - BALLOON_H * 0.95);
+    }
+    if (L.gift !== f && f.phase !== 'away') this.endBalloon(f);
+  };
+  proto.endBalloon = function endBalloon(f) {
+    f.actor.destroy();
+    f.shadow.destroy();
+    if (f.bubble) f.bubble.destroy();
+    if (this.life.gift === f) this.life.gift = null;
+    if (this.life.leaving === f) this.life.leaving = null;
+  };
   proto.spawnGift = function spawnGift() {
     const cam = this.cameras.main;
     const seconds = this.g.B.map.gift.flySeconds;
@@ -645,6 +712,13 @@
     const margin = 70;
     const x = this.calmNow ? cam.midPoint.x : (fromLeft ? cam.midPoint.x - vw / 2 - margin : cam.midPoint.x + vw / 2 + margin);
     const dist = vw + margin * 2;
+    // Job 19B: Terpz flies it in, if his balloon's frames are in and he isn't already out (one of each).
+    if (PE.AnimPick.hasFrames('VEH-06') && PE.Cast.isFree('VEH-06')) {
+      // He takes off from just inside the edge of the screen, so the take-off is seen.
+      const startX = this.calmNow ? x : (fromLeft ? cam.midPoint.x - vw * 0.25 : cam.midPoint.x + vw * 0.25);   // clear of the buttons down the sides
+      this.spawnBalloon(startX, y, (fromLeft ? 1 : -1) * (vw * 0.75 + margin) / seconds, seconds);
+      return;
+    }
     const sprite = piece(this, x, y, 'VEH-06', 150).setDepth(80000);
     this.life.gift = { sprite, x, y, vx: (fromLeft ? 1 : -1) * dist / seconds, left: seconds };
   };
@@ -654,13 +728,25 @@
     const L = this.life;
     if (L.gift) {
       const s = L.gift.sprite;
-      if (Math.abs(x - s.x) < Math.max(80, 44 * k) && Math.abs(y - s.y) < Math.max(100, 54 * k)) {
+      // The balloon's picture stands on its basket: the middle of it is well above its feet.
+      const cy = L.gift.actor ? s.y - BALLOON_H * 0.45 : s.y;
+      if (Math.abs(x - s.x) < Math.max(80, 44 * k) && Math.abs(y - cy) < Math.max(L.gift.actor ? 110 : 100, 54 * k)) {
         const r = this.g.map.claimGift();
         if (r.ok) {
           this.floatText(s.x, s.y - 40, r.text);
           PE.Dom.toast(`Free gift: ${r.text}`, '', 'RWD-04');
           { const p = this.worldToPage(s.x, s.y); PE.Juice.sparkle(p.x, p.y, 7); }
           PE.App.saveGame();
+        }
+        if (L.gift.actor) {
+          // Terpz says ta and floats off up and away.
+          const f = L.gift;
+          L.gift = null;
+          L.leaving = f;
+          f.phase = 'away'; f.t = 0; f.lift = 0;
+          this.terpzSays(f, 'thanks');
+          (this.life.balloonLog = this.life.balloonLog || []).push('claimed');
+          return true;
         }
         s.destroy();
         L.gift = null;

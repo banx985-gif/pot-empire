@@ -484,7 +484,7 @@ globalThis.PE.Data.assetRegistry = {"summary":{"planned":30,"have":11,"imported"
 {"id":"BTN-05","category":"ui-art","path":"art/ui/buttons/BTN-05.png","status":"imported","gamePath":"game/assets/ui/BTN-05.webp"},
 {"id":"BTN-06","category":"ui-art","path":"art/ui/buttons/BTN-06.png","status":"imported","gamePath":"game/assets/ui/BTN-06.webp"},
 {"id":"LOGO-01","category":"ui-art","path":"art/brand/LOGO-01.png","status":"imported","gamePath":"game/assets/ui/LOGO-01.webp","note":"Title screen logo."},
-{"id":"APP-01","category":"ui-art","path":"art/brand/APP-01.png","status":"imported","gamePath":"game/assets/icons/icon-512.png","note":"Phone install icon: 192, 512, maskable and apple-touch sizes."},
+{"id":"APP-02","category":"ui-art","path":"art/brand/APP-02.png","status":"imported","gamePath":"game/assets/icons/icon-512.png","note":"Phone install icon: 192, 512, maskable and apple-touch sizes."},
 {"id":"HY-M1-FRAME","category":"hydro-frame","path":"art/hydro/M1/HY-M1-FRAME.png","status":"imported","gamePath":"game/assets/hydro/M1/HY-M1-FRAME.webp"},
 {"id":"HY-M1-TRAY","category":"hydro-part","path":"art/hydro/M1/HY-M1-TRAY.png","status":"imported","gamePath":"game/assets/hydro/M1/HY-M1-TRAY.webp"},
 {"id":"HY-M1-BASE","category":"hydro-part","path":"art/hydro/M1/HY-M1-BASE.png","status":"imported","gamePath":"game/assets/hydro/M1/HY-M1-BASE.webp"},

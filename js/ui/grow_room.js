@@ -693,6 +693,7 @@
       const world = this.walkWorld;
       if (!world || !world.spots.length) { this.helperLife = false; return; }
       world.plantFor = (e, wilted) => this.plantForBudz(e, wilted);
+      world.plantLook = (e) => this.plantForHaze(e);
       this.helperLife = new PE.HelperLife.Life(this, world);
     }
     // For Budz: the way to a spot just behind a plant, a little further up the screen than its pot, and how deep to draw him
@@ -705,7 +706,7 @@
         this.stationData(si).pots.forEach((p, pi) => {
           if (!p || !v || !v.pots || !v.pots[pi] || !v.pots[pi].spot) return;
           const health = this.g.grow.plantHealth(this.fid, si, p, now);
-          if (wilted ? health.wilted : (now < p.readyMs && !health.wilted)) found.push({ si, pi, spot: v.pots[pi].spot });
+          if (wilted ? health.wilted : !health.wilted) found.push({ si, pi, spot: v.pots[pi].spot, kind: this.plantKind(si, p, now) });
         });
       }
       if (!found.length) return null;
@@ -717,16 +718,58 @@
       const backY = pos.y - this.room.box.up - 20;      // the gap behind the whole setup
       const here = [e.actor.x, e.actor.y];
       const front = e.actor.fixedDepth;
-      this.budzAt = { si: t.si, pi: t.pi, x, y, potDepth };
+      this.budzAt = { si: t.si, pi: t.pi, x, y, potDepth, kind: t.kind };
       // Along the open floor to the gap behind that setup, then in behind the plant.
       const floor = this.walkWorld && this.walkWorld.route(here, [x, Math.max(backY, pos.y - 600)]);
       if (floor && floor.length > 1) {
         const way = [here, ...floor.slice(1), [x, backY], [x, y]];
         const n = way.length - 1;
-        return { way, depths: [...Array(n - 1).fill(front), potDepth - 1], backDepths: [potDepth - 1, ...Array(n - 1).fill(front)] };
+        return { way, kind: t.kind, depths: [...Array(n - 1).fill(front), potDepth - 1], backDepths: [potDepth - 1, ...Array(n - 1).fill(front)] };
       }
       const way = [here, [here[0], backY], [x, backY], [x, y]];
-      return { way, depths: [front, front, potDepth - 1], backDepths: [potDepth - 1, front, front] };
+      return { way, kind: t.kind, depths: [front, front, potDepth - 1], backDepths: [potDepth - 1, front, front] };
+    }
+    // Job 19B: what a helper would say about a plant: ripe (a top grade is "nice"), thirsty, or still growing.
+    plantKind(si, p, now = this.g.now()) {
+      const health = this.g.grow.plantHealth(this.fid, si, p, now);
+      if (health.wilted || health.lost > 0) return 'thirsty';
+      if (now >= p.readyMs) return p.q >= 3 ? 'nice' : 'ripe';
+      return 'growing';
+    }
+    // For Haze (job 19B): the open floor just in front of a planted pot, to stand and look it over. A full water tank on
+    // that station gets a word too, now and then.
+    plantForHaze(e) {
+      const W = this.walkWorld;
+      if (!W) return null;
+      const now = this.g.now();
+      const found = [];
+      for (let si = 0; si < this.stationCount(); si++) {
+        const v = this.stationViews.get(si);
+        this.stationData(si).pots.forEach((p, pi) => { if (p && v && v.pots && v.pots[pi] && v.pots[pi].spot) found.push({ si, pi, p, spot: v.pots[pi].spot }); });
+      }
+      if (!found.length) return null;
+      const t = found[Math.floor(Math.random() * found.length)];
+      const pos = this.room.stations[t.si];
+      const x = pos.x + t.spot.x;
+      // In front of it if that's open floor, otherwise the nearest open floor to the plant (often beside the setup).
+      let at = null;
+      for (let y = pos.y + this.room.box.down + 60, k = 0; k < 4 && !at; k++, y += 80) if (W.isOpen(x, y)) at = [x, y];
+      if (!at) {
+        const py = pos.y + t.spot.y;
+        let best = Infinity;
+        for (const p of W.spots) { const d = Math.hypot(p[0] - x, (p[1] - py) * 1.4); if (d < best) { best = d; at = [p[0], p[1]]; } }
+        if (!at || best > 1400) return null;
+      }
+      const here = [e.actor.x, e.actor.y];
+      const r = W.route(here, at);
+      if (!r || r.length < 1) return null;
+      const way = [here, ...r.slice(1), at];
+      if (way.length < 2) return null;
+      let kind = this.plantKind(t.si, t.p, now);
+      if (kind === 'growing' && Math.random() < 0.5 && this.g.grow.tankLevel(this.fid, t.si, now) >= 1) kind = 'tank';
+      this.hazeAt = { si: t.si, pi: t.pi, x: at[0], y: at[1], kind };
+      // He faces the plant: his pictures face left, so he's mirrored when it's to his right.
+      return { way, kind, flip: x > at[0] + 40 };
     }
     // Every so often: is anything newly ripe, or newly wilted?
     watchPlants() {

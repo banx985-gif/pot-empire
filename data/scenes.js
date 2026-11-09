@@ -69,10 +69,33 @@ globalThis.PE.Data.scenes = {
   budzPlant: ['Grow big, little buddy.', 'Looking good, mate.', "Who's a tall boy?", 'Roots down, leaves up.', 'You and me, pal.'],
   budzTellOff: ['Drink your water!', 'Oi! Drink up!', 'What did I tell you?!'],
   budzRival: ['Oi! Beat it!', 'This is OUR town!', 'Take a hike!'],
+  // Job 19B: a short comment when they stop at something in a grow room. Rare: one every 25 s at most, each
+  // (js/ui/helper_life.js). ripe: ready to pick; nice: ripe and a top grade; thirsty: needs water; growing; tank: a full
+  // water tank waiting for a Spray!
+  comments: {
+    HAZE: {
+      ripe: ['This one\'s ready, kid.', 'Pick me, says this one.', 'Ripe. Go on then.'],
+      nice: ['Now THAT is a bud.', 'Top shelf. I taught you well.', 'Look at the frost on that.'],
+      thirsty: ['Bit dry, this one.', 'Somebody water this poor thing.'],
+      growing: ['Coming along nicely.', 'Slow and steady, little one.', 'Good roots on this.'],
+      tank: ['Tank\'s full. Hit Spray!', 'Water\'s ready when you are.'],
+    },
+    BUDZ: {
+      ripe: ['You did it, buddy!', 'Harvest time, mate!'],
+      nice: ['WOW. Look at you!', 'Best in show, pal!'],
+      thirsty: ['Drink your water!', 'Oi! Drink up!'],
+      growing: ['Grow big, little buddy.', "Who's a tall boy?", 'Roots down, leaves up.'],
+      tank: ['Tank\'s full! Spray time!'],
+    },
+  },
+  // Terpz, Budz's cousin, in his gift balloon (VEH-06, job 19B). He has no walking art yet, so he only ever flies.
+  terpzArrive: ['Special delivery!', 'Catch, cuz!', 'Gift from the sky!', 'Tap me, I\'m loaded!'],
+  terpzThanks: ['Enjoy, cuz!', 'Laters!', 'Peace out!'],
   // Now and then, at random, when someone's standing about. weight: how likely. pop: a thought bubble that bursts at the end.
   liveMoves: {
-    HAZE: [{ move: 'inspect', weight: 3 }, { move: 'roll', weight: 3 }, { move: 'rofl', weight: 1 }],
-    BUDZ: [{ move: 'daydream', weight: 1, pop: true }, { move: 'crush', weight: 1, pop: true }],
+    // Job 19B: a proper mix, so smoking is just one of the things they do. ROFL and CRUSH are rare.
+    HAZE: [{ move: 'inspect', weight: 3 }, { move: 'roll', weight: 3 }, { move: 'peace', weight: 3 }, { move: 'mutter', weight: 2 }, { move: 'wave', weight: 2 }, { move: 'rofl', weight: 0.6 }],
+    BUDZ: [{ move: 'giggle', weight: 3 }, { move: 'rub', weight: 2 }, { move: 'whoop', weight: 2 }, { move: 'mutter', weight: 2 }, { move: 'daydream', weight: 1.5, pop: true }, { move: 'crush', weight: 0.5, pop: true }],
     LEAFY: [{ move: 'drowsy', weight: 1 }],
   },
 };

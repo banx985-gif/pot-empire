@@ -49,7 +49,8 @@ globalThis.PE.Data.animArt = {"small":190,"large":340,"base":520,"chars":{
 "WALKSIDE":{"n":6,"cols":6,"w":190,"h":190,"ox":0.522,"oy":0.977,"big":false},
 "WALKUPLEFT":{"n":6,"cols":6,"w":190,"h":190,"ox":0.497,"oy":0.977,"big":false},
 "WALKUPRIGHT":{"n":6,"cols":6,"w":190,"h":190,"ox":0.457,"oy":0.977,"big":false},
-"IDLE":{"n":11,"cols":8,"w":126,"h":184,"ox":0.484,"oy":0.983,"big":true}},
+"PUFF":{"n":13,"cols":8,"w":126,"h":184,"ox":0.484,"oy":0.983,"big":true,"ms":[83,83,83,83,83,83,83,83,83,83,83,83,83]},
+"PEACE":{"n":8,"cols":8,"w":126,"h":184,"ox":0.484,"oy":0.983,"big":true,"ms":[83,83,83,83,83,83,83,83]}},
 "LEAFY":{"CHAT1":{"n":6,"cols":6,"w":190,"h":190,"ox":0.499,"oy":0.977,"big":true},
 "CHAT2":{"n":6,"cols":6,"w":190,"h":190,"ox":0.5,"oy":0.977,"big":true},
 "CHAT3":{"n":6,"cols":6,"w":190,"h":190,"ox":0.499,"oy":0.977,"big":true},
@@ -582,4 +583,13 @@ globalThis.PE.Data.animArt = {"small":190,"large":340,"base":520,"chars":{
 "DRIVELEFT":{"n":6,"cols":6,"w":187,"h":187,"ox":0.5,"oy":0.891,"big":false,"ms":[100,100,100,100,100,100]},
 "DRIVERIGHT":{"n":6,"cols":6,"w":187,"h":187,"ox":0.5,"oy":0.891,"big":false,"ms":[100,100,100,100,100,100]},
 "DRIVEUPLEFT":{"n":6,"cols":6,"w":187,"h":187,"ox":0.5,"oy":0.891,"big":false,"ms":[100,100,100,100,100,100]},
-"DRIVEUPRIGHT":{"n":6,"cols":6,"w":187,"h":187,"ox":0.5,"oy":0.891,"big":false,"ms":[100,100,100,100,100,100]}}}};
+"DRIVEUPRIGHT":{"n":6,"cols":6,"w":187,"h":187,"ox":0.5,"oy":0.891,"big":false,"ms":[100,100,100,100,100,100]}},"VEH-06":{
+"DRIVEAWAY":{"n":6,"cols":6,"w":187,"h":187,"ox":0.5,"oy":0.891,"big":false,"ms":[100,100,100,100,100,100]},
+"DRIVEDOWNLEFT":{"n":6,"cols":6,"w":187,"h":187,"ox":0.5,"oy":0.891,"big":false,"ms":[100,100,100,100,100,100]},
+"DRIVEDOWNRIGHT":{"n":6,"cols":6,"w":187,"h":187,"ox":0.5,"oy":0.891,"big":false,"ms":[100,100,100,100,100,100]},
+"DRIVEFRONT":{"n":6,"cols":6,"w":187,"h":187,"ox":0.5,"oy":0.891,"big":false,"ms":[100,100,100,100,100,100]},
+"DRIVELEFT":{"n":6,"cols":6,"w":187,"h":187,"ox":0.5,"oy":0.891,"big":false,"ms":[100,100,100,100,100,100]},
+"DRIVERIGHT":{"n":6,"cols":6,"w":187,"h":187,"ox":0.5,"oy":0.891,"big":false,"ms":[100,100,100,100,100,100]},
+"DRIVEUPLEFT":{"n":6,"cols":6,"w":187,"h":187,"ox":0.5,"oy":0.891,"big":false,"ms":[100,100,100,100,100,100]},
+"DRIVEUPRIGHT":{"n":6,"cols":6,"w":187,"h":187,"ox":0.5,"oy":0.891,"big":false,"ms":[100,100,100,100,100,100]},
+"INFLATE":{"n":6,"cols":6,"w":187,"h":187,"ox":0.5,"oy":0.891,"big":false,"ms":[560,400,400,400,400,560]}}}};

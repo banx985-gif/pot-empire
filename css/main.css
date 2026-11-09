@@ -730,3 +730,9 @@ html.fast-time #hud::after { content: 'FAST TIME: NOT SAVING'; display: block; t
 .biz-ghost img { width: 64px; height: 64px; object-fit: contain; }
 .row-btns.spot { animation: spot-flash 1.2s ease-out 2; box-shadow: 0 0 0 3px var(--lime); border-radius: 12px; }
 .calm .row-btns.spot { animation: none; }
+
+/* ---- Job 19B: Terpz's balloon floats across the chest reveal (VEH-06 driving right, 6 frames) ---- */
+#reveal .terpz-fly { position: absolute; left: 0; top: calc(env(safe-area-inset-top) + 18px); display: flex; align-items: flex-start; gap: 4px; pointer-events: none; animation: terpz-across 5.5s linear forwards; }
+#reveal .terpz-bal { width: 110px; height: 110px; background: url(../assets/anim/VEH-06/DRIVERIGHT.webp) 0 0 / 600% 100% no-repeat; animation: load-cart .6s steps(6) infinite; }
+#reveal .terpz-fly b { background: #fff; color: #1d0f33; font: 800 13px system-ui, sans-serif; padding: 6px 10px; border-radius: 12px; white-space: nowrap; margin-top: 8px; }
+@keyframes terpz-across { from { transform: translateX(-140px); } to { transform: translateX(110vw); } }

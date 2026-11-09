@@ -25,6 +25,13 @@
     return `${pic}<b class="reveal-name">${esc(c.name)}</b><small class="r-${c.rarity}">${PE.Dom.rarityIcon(c.rarity)}${esc(c.rarity)}</small>${note}`;
   }
 
+  // Job 19B: Terpz brings the chest in his balloon: it floats across the top with a cheeky line. Not with reduced motion.
+  function terpz(calm) {
+    if (calm || !(PE.Data.animArt.chars['VEH-06'] || {}).DRIVERIGHT) return '';
+    const lines = PE.Data.scenes.terpzArrive || ['Special delivery!'];
+    return `<div class="terpz-fly" aria-hidden="true"><span class="terpz-bal"></span><b>${esc(lines[Math.floor(Math.random() * lines.length)])}</b></div>`;
+  }
+
   const Reveal = {
     waiting: [],
     now: null,
@@ -48,7 +55,7 @@
           ${PE.Dom.icon('RWD-02', 96, 'reveal-chest')}<h3>${esc(e.title || 'Chest opened!')}</h3>
           <div class="reveal-cards n${e.cards.length}">${e.cards.map((c, i) => `<div class="reveal-card rare-${c.rarity} ${calm ? 'flip' : ''}" data-i="${i}"><div class="inner"><div class="back">${PE.Dom.icon('RWD-01', 72)}</div><div class="front">${face(c)}</div></div></div>`).join('')}</div>
           <small class="reveal-skip">Tap to ${calm ? 'close' : 'skip'}</small>
-        </div>`;
+        </div>${terpz(calm)}`;
       el.hidden = false;
       this.flipped = calm;
       if (!calm) {

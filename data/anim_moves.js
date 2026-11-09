@@ -53,8 +53,15 @@ globalThis.PE.Data.animMoves = {
   // How tall each one stands next to the others.
   size: { HAZE: 1, BUDZ: 0.86, LEAFY: 0.92 },
   moves: {
+    // Terpz's gift balloon (job 19B): it fills up on the ground before take-off, to Aaron's timing.
+    'VEH-06': { inflate: { set: 'INFLATE', hold: true } },
     HAZE: {
-      idle: { set: 'IDLE', fps: 7, loop: true },
+      // Job 19B: his smoke without the peace sign (PUFF, frames 064-088). The peace sign is its own move, now and then.
+      idle: { set: 'PUFF', loop: true },
+      peace: { set: 'PEACE' },
+      // Muttering to himself over a plant, or just thinking out loud: a couple of goes, then back to idle.
+      mutter: { set: ['CHAT1', 'CHAT2', 'CHAT3'], fps: 7, times: 2 },
+      wave: { set: 'GREET', fps: 8 },
       stand: { set: 'CHAT1', from: 1, to: 1, hold: true, bob: true },
       look: { set: 'CHAT3', frames: [1, 3, 1], fps: 3 },
       greet: { set: 'GREET', fps: 8, hold: true },
@@ -71,7 +78,7 @@ globalThis.PE.Data.animMoves = {
       rub: { set: 'CHAT1', from: 2, to: 3, fps: 6, times: 2 },
       clap: { set: 'CHAT1', from: 2, to: 3, fps: 6, times: 2 },
       flick: { set: 'GREET', from: 4, to: 6, fps: 7, hold: true },
-      sleepy: { set: 'IDLE', fps: 4, loop: true },
+      sleepy: { set: 'PUFF', fps: 4, loop: true },
       inspect: { set: 'INSPECT1', fps: 7, then: 'inspect2' },
       inspect2: { set: 'INSPECT2', fps: 7 },
       roll: { set: 'ROLL1', fps: 7, then: 'roll2' },
@@ -117,6 +124,10 @@ globalThis.PE.Data.animMoves = {
       daydream: { set: 'DAYDREAM1', fps: 7, then: 'daydreaming' },
       daydreaming: { set: 'DAYDREAM2', fps: 7, times: 3, hold: true },
       crush: { set: 'CRUSH', fps: 6, hold: true },
+      // Job 19B: one go, then back to idle (the ones above hold their last frame for reactions).
+      giggle: { set: 'LAUGH', fps: 7 },
+      whoop: { set: 'CHEER', fps: 8 },
+      mutter: { set: ['CHAT1', 'CHAT2', 'CHAT3'], fps: 7, times: 2 },
     },
     LEAFY: {
       idle: { set: 'CHAT1', from: 1, to: 1, hold: true, bob: true },

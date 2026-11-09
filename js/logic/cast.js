@@ -4,7 +4,7 @@
 // (free). A ridden vehicle claims its rider. No drawing here.
 (function (PE) {
   // Who rides what. Vans, trucks and buses with no visible driver are free to go anywhere.
-  const RIDER = { V02: 'VIP-02', V03: 'VIP-04', 'VEH-03': 'LEAFY', 'VEH-04': 'HAZE', 'LOAD-02': 'BUDZ' };
+  const RIDER = { V02: 'VIP-02', V03: 'VIP-04', 'VEH-03': 'LEAFY', 'VEH-04': 'HAZE', 'LOAD-02': 'BUDZ', 'VEH-06': 'TERPZ' };
   const held = new Map();   // character -> { owner, how }
   let next = 1;
 
