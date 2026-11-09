@@ -13,8 +13,9 @@
     potSpacing: 135,       // sideways, between fixed pot anchors. Each frame is scaled to fit this.
     railHeight: 760,       // the rail's underside above the middle pot hole, on every model
     // Sizes of the pieces on screen, by level 1-6. The other side comes from each picture's own shape.
-    potWidth: [108, 112, 116, 120, 126, 132],
-    trayWidth: 132,
+    // Job 19C: pots 25% bigger than before (108 to 132), so they sit proud of the holes. Their bottoms stay put.
+    potWidth: [135, 140, 145, 150, 158, 165],
+    trayWidth: 165,
     lightHeight: [190, 220, 240, 260, 280, 300],
     lightMaxWidth: 640,
     sprinklerHeight: [110, 120, 130, 140, 150, 160],
@@ -183,7 +184,11 @@
   // Where a pot's parts go, from the station's middle hole. k: smaller for the far holes of a sideways setup.
   function potSpot(data, m, potIndex, potLevel, face) {
     const at = potAt(data, m, potIndex, face);
-    const full = piece(data, m, 'POT', potLevel);
+    let full = piece(data, m, 'POT', potLevel);
+    // On a straight bench the pots stand side by side: never wider than the gap between holes, so they don't touch.
+    // (Turned sideways, the nearest pot is the same size as on the front-facing bench.)
+    const M = model(data, m, 'front');
+    if (M.straight) { const gap = Math.abs(M.slots[1].x - M.slots[0].x) * 0.96; if (full.w > gap) full = { w: gap, h: (full.h * gap) / full.w }; }
     const size = { w: full.w * at.k, h: full.h * at.k };
     const bottom = at.y + WORLD.potSink * at.k;
     return { x: at.x, y: at.y, k: at.k, bottom, top: bottom - size.h, rim: bottom - size.h * (1 - WORLD.rimAt), w: size.w, h: size.h };

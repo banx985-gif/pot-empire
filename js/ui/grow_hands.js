@@ -171,6 +171,8 @@
     scene.textures.addCanvas('pot-halo', c);
   }
 
+  P.haloTexture = function () { haloTexture(this); };
+
   // ---- The planted glow ---------------------------------------------------------------------------------------------
   P.updateHalo = function updateHalo(pv, p, stage, x, pos, spot, depth, v) {
     if (pv.halo) { pv.halo.destroy(); pv.halo = null; }

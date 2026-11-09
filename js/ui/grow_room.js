@@ -4,6 +4,8 @@
 // worked out for that picture (data/room_spots.js). No pads are painted. This file only draws and passes taps along.
 // (An outdoor grow, if Aaron wants one, would be another screen like this: soil plots and water, no lights.)
 (function (PE) {
+  // Job 19C: the soft light round every pot (warm white-lime) and how strong it is on a planted pot.
+  const POT_LIGHT = 0xf2ffc4, POT_LIGHT_ALPHA = 0.2;
   const { WORLD } = PE.Layout;
   const FONT = 'system-ui, sans-serif';
   const { Layout } = PE;
@@ -454,6 +456,7 @@
         return;
       }
       const p = this.stationData(si).pots[pi];
+      this.touchPot(si, pi);
       // An empty pot: your seeds pop up beside it, to drag one on (job 18, js/ui/grow_tools.js).
       if (!p) { PE.GrowTools.openStash(si, pi); return; }
       if (g.now() >= p.readyMs) g.grow.harvest(this.fid, si, pi);
@@ -747,6 +750,7 @@
       if (!this.ready) return;
       PE.SprayAnim.stepAll(this, Math.min(0.1, (delta || 16) / 1000));
       this.stepHalos(time);
+      this.stepPotLights(time);
       if (!this.testOverride && this.helperLife === null && !this.g.tutorial.active()) this.buildLife();
       if (this.helperLife) {
         const dt = Math.min(0.1, (delta || 16) / 1000);
@@ -797,7 +801,7 @@
           if (!p) {
             if (this.textures.exists('ui-ACT-01')) {
               // The real plant icon on an empty pot.
-              if (!pv.seedIcon) pv.seedIcon = this.add.image(x, y + spot.rim - 44 * spot.k, 'ui-ACT-01').setDisplaySize(84 * spot.k, 84 * spot.k).setDepth(y + spot.y + 8);
+              if (!pv.seedIcon) pv.seedIcon = this.add.image(x, y + spot.rim - 30 * spot.k, 'ui-ACT-01').setDisplaySize(84 * spot.k, 84 * spot.k).setDepth(y + spot.y + 8);
             } else {
               B.lineStyle(6, 0xc6ff3d, 0.95);
               B.lineBetween(x - 14, y + spot.rim - 18, x + 14, y + spot.rim - 18);
@@ -871,7 +875,7 @@
         const set = (o) => { if (o) o.setVisible(on && o.wantVisible !== false); };
         view.parts.forEach(set);
         view.texts.forEach(set);
-        view.pots.forEach((pv) => [pv.tray, pv.back, pv.front, pv.img, pv.logo, pv.logoBg, pv.fx, pv.glow, pv.halo].forEach((o) => { if (o) o.setVisible(on && !(o === pv.logo && !pv.logoShown)); }));
+        view.pots.forEach((pv) => [pv.tray, pv.back, pv.shadow, pv.light, pv.img, pv.logo, pv.logoBg, pv.fx, pv.glow, pv.halo].forEach((o) => { if (o) o.setVisible(on && !(o === pv.logo && !pv.logoShown)); }));
       }
     }
 
@@ -909,7 +913,8 @@
         v.parts.forEach((o) => o.destroy());
         v.texts.forEach((t) => t.destroy());
         v.pots.forEach((pv) => {
-          [pv.seedIcon, pv.img, pv.logo, pv.logoBg, pv.fx, pv.tray, pv.back, pv.front, pv.glow, pv.halo].forEach((o) => { if (o) o.destroy(); });
+          [pv.seedIcon, pv.img, pv.logo, pv.logoBg, pv.fx, pv.tray, pv.back, pv.shadow, pv.light, pv.glow, pv.halo].forEach((o) => { if (o) o.destroy(); });
+          if (this.potLights) this.potLights.delete(pv);
           if (this.exoticHalos) this.exoticHalos.delete(pv);
           if (pv.tween) pv.tween.stop();
           if (pv.glowTween) pv.glowTween.stop();
@@ -996,30 +1001,28 @@
       }
       v.spray.wantVisible = false;
 
-      // Pots: each on a tray in its hole. The plant goes between the pot's back and a copy of its front, so it
-      // really sits inside. Capacity adds pots at fixed spots: unopened holes stay empty.
+      // Pots: each on a tray in its hole, drawn ONCE and whole (job 19C: it used to be drawn twice, a whole copy behind
+      // the plant and a cut-off front copy over it, and the two didn't line up). The plant stands in front of the pot and
+      // is trimmed at the pot's rim, so it still grows out of it. Under each pot a soft shadow, and round it a soft light
+      // so it stands out from the bench. Capacity adds pots at fixed spots: unopened holes stay empty.
       const potId = `M${m}-POT-${L.pots}`;
-      const potKey = 'hy-' + potId;
       const tray = Layout.piece(D, m, 'TRAY');
-      if (this.textures.exists(potKey)) {
-        const tex = this.textures.get(potKey);
-        const [pw, ph] = D.hydroArt[potId];
-        if (!tex.has('front')) tex.add('front', 0, 0, Math.round(ph * WORLD.rimAt), pw, ph - Math.round(ph * WORLD.rimAt));
-      }
+      this.haloTexture();
       st.pots.forEach((_, pi) => {
         // The station may have gained a pot while its art was being fetched.
         const pv = v.pots[pi] || (v.pots[pi] = {});
         const spot = Layout.potSpot(D, m, pi, L.pots, face);
         const x = pos.x + spot.x, depth = pos.y + spot.y;
         pv.spot = spot;
-        pv.tray = this.part(v, `M${m}-TRAY`, x, pos.y + spot.bottom + 8 * spot.k, tray.w * spot.k, tray.h * spot.k, depth - 1, 0.5, 1);
+        pv.light = this.add.image(x, pos.y + (spot.top + spot.bottom) / 2, 'pot-halo').setDepth(depth - 3).setBlendMode(Phaser.BlendModes.ADD)
+          .setDisplaySize(spot.w * 1.75, spot.h * 1.75).setTint(POT_LIGHT).setAlpha(POT_LIGHT_ALPHA);
+        (this.potLights = this.potLights || new Set()).add(pv);
+        pv.tray = this.part(v, `M${m}-TRAY`, x, pos.y + spot.bottom + 8 * spot.k, tray.w * spot.k, tray.h * spot.k, depth - 2, 0.5, 1);
         v.parts.pop();
+        pv.shadow = this.add.image(x, pos.y + spot.bottom - 2 * spot.k, 'pot-halo').setDepth(depth - 1).setTint(0x000000).setAlpha(0.55)
+          .setDisplaySize(spot.w * 1.15, spot.w * 0.34);
         pv.back = this.part(v, potId, x, pos.y + spot.top, spot.w, spot.h, depth, 0.5, 0);
         v.parts.pop();
-        if (this.textures.exists(potKey)) {
-          const cut = spot.h * WORLD.rimAt;
-          pv.front = this.add.image(x, pos.y + spot.top + cut, potKey, 'front').setOrigin(0.5, 0).setDisplaySize(spot.w, spot.h - cut).setDepth(depth + 2);
-        }
       });
 
       // The computer, on its stand at the side.
@@ -1064,6 +1067,28 @@
       cross(pos.x + M.hang.x, pos.y + M.hang.y, 0x52e6ff);
       if (M.badge) cross(pos.x + M.badge.x, pos.y + M.badge.y, 0xffd84d);
       cross(pos.x + M.computer.x, pos.y + M.computer.y, 0xffffff);
+    }
+
+    // Job 19C: every pot's soft light, once a frame: a slow pulse, brighter when empty or just touched. Cheap: one
+    // alpha per pot.
+    stepPotLights(time) {
+      if (!this.potLights) return;
+      const calm = this.calm();
+      const wave = calm ? 0.5 : 0.5 + 0.5 * Math.sin(time / 900);
+      const now = performance.now();
+      for (const pv of this.potLights) {
+        if (!pv.light || !pv.light.scene) { this.potLights.delete(pv); continue; }
+        const empty = pv.key === 'empty' || pv.key === undefined;
+        const touched = now < (pv.touchedUntil || 0);
+        const base = touched ? 0.62 : empty ? 0.34 : POT_LIGHT_ALPHA;
+        pv.light.setAlpha(base * (0.8 + 0.2 * wave));
+      }
+    }
+    // A pot's been touched: its light brightens for a moment.
+    touchPot(si, pi) {
+      const v = this.stationViews.get(si);
+      const pv = v && v.pots[pi];
+      if (pv) pv.touchedUntil = performance.now() + 900;
     }
 
     updatePot(v, si, st, pi, p, now, pos) {
@@ -1126,6 +1151,7 @@
         pv.img.setOrigin(f.baseX / f.w, 1).setScale(scale);
         // The stem starts inside the pot: the pot's front is drawn over the bottom of it.
         pv.img.setPosition(x, pos.y + spot.rim + (stage === 0 ? 2 : 14) * (spot.k || 1));
+        this.trimAtRim(pv, spot, pos);
         pv.img.setAlpha(1);
         pv.img.setVisible(v.shown !== false);
         if (wilted) { this.showWilted(pv, p, f); return; }
@@ -1150,7 +1176,20 @@
         if (pv.key !== key || !pv.img || !pv.img.scene) return;
         const k = (f.w * WORLD.plantScale) / art[0];
         pv.img.setTexture(tex).setOrigin(art[2], 1).setDisplaySize(art[0] * k, art[1] * k).clearTint().setRotation(0);
+        if (pv.spot) this.trimAtRim(pv, pv.spot, null);
       });
+    }
+    // The plant's stem goes down into the pot: the bit below the pot's rim line isn't drawn (job 19C), so the pot is
+    // only ever drawn once, whole. pos: the station's middle hole (null: keep the last trim).
+    trimAtRim(pv, spot, pos) {
+      const img = pv.img;
+      if (!img || !img.frame || img.type !== 'Image') return;
+      if (pos) pv.rimY = pos.y + spot.rim;
+      if (pv.rimY === undefined) return;
+      const below = img.y - pv.rimY;   // the image's bottom is at img.y (origin at its bottom)
+      const fh = img.frame.realHeight || img.frame.height;
+      const cut = below > 0 ? below / Math.abs(img.scaleY || 1) : 0;
+      img.setCrop(0, 0, img.frame.realWidth || img.frame.width, Math.max(1, fh - cut));
     }
 
     // A mature plant gently pulses so it reads as "tap me". Quality effects come from the Fx helper.
