@@ -386,20 +386,24 @@
         if (Math.abs(wx - pos.x) > box.halfW) continue;
         if (wy < pos.y - box.up || wy > pos.y + box.down) continue;
         // Front pots are nearest the camera, so they're checked first.
-        const order = st.pots.map((_, pi) => pi).sort((a, b) => Layout.slotY(PE.Data, st.model, b) - Layout.slotY(PE.Data, st.model, a));
+        const face = this.faceOf(si);
+        const order = st.pots.map((_, pi) => pi).sort((a, b) => Layout.slotY(PE.Data, st.model, b, face) - Layout.slotY(PE.Data, st.model, a, face));
         for (const pi of order) {
-          const ax = pos.x + Layout.anchorX(pi), ay = pos.y + Layout.slotY(PE.Data, st.model, pi);
-          if (Math.abs(wx - ax) <= WORLD.potSpacing / 2 && wy <= ay + 56 && wy >= ay - 240) return { si, pi };
+          const at = Layout.potAt(PE.Data, st.model, pi, face);
+          const ax = pos.x + at.x, ay = pos.y + at.y;
+          // A far pot on a sideways bench is smaller and closer to its neighbours, so its touch area is too.
+          const half = at.k < 1 ? 70 * at.k : WORLD.potSpacing / 2;
+          if (Math.abs(wx - ax) <= half && wy <= ay + 56 * at.k && wy >= ay - (at.k < 1 ? 60 : 240) * at.k) return { si, pi };
         }
-        return { si, pi: null, part: this.partAt(st, pos, wx, wy) };
+        return { si, pi: null, part: this.partAt(st, pos, wx, wy, face) };
       }
       return null;
     }
     // Which piece of a station a point is on (job 18: touch the thing to upgrade it): the light, the sprinkler or the
     // computer. Null for the rest of it.
-    partAt(st, pos, wx, wy) {
-      const M = Layout.model(PE.Data, st.model);
-      const O = Layout.overhead(PE.Data, st.model, st.levels.lights, st.levels.sprinkler);
+    partAt(st, pos, wx, wy, face) {
+      const M = Layout.model(PE.Data, st.model, face);
+      const O = Layout.overhead(PE.Data, st.model, st.levels.lights, st.levels.sprinkler, face);
       const x = wx - pos.x, y = wy - pos.y;
       if (Math.abs(x - M.computer.x) < 130 && y > M.computer.y - 380 && y < M.computer.y + 20) return 'computer';
       if (Math.abs(x - O.x) < O.L.w / 2 + 20 && y >= O.lightTop - 20 && y < O.lightBottom) return 'lights';
@@ -465,7 +469,14 @@
     potPagePoint(si, pi) {
       const pos = this.room.stations[si];
       const m = this.stationData(si).model;
-      return this.worldToPage(pos.x + Layout.anchorX(pi), pos.y + Layout.slotY(PE.Data, m, pi) - 30);
+      const at = Layout.potAt(PE.Data, m, pi, this.faceOf(si));
+      return this.worldToPage(pos.x + at.x, pos.y + at.y - 30 * at.k);
+    }
+    // Which way a station faces (job 19): 'front', or 'left' / 'right' where its room spot says so (only models with a
+    // side view of the bench can; the rest face the front).
+    faceOf(si) {
+      const want = this.testOverride && this.testOverride.face ? this.testOverride.face : (this.room.spots && this.room.spots[si] && this.room.spots[si].face) || 'front';
+      return Layout.faceFor(PE.Data, this.stationData(si).model, want);
     }
     benchPagePoint(si) { const pos = this.room.stations[si]; return this.worldToPage(pos.x, pos.y + 150); }
     // Moves the camera, if it has to, so a station's pots can be seen. Used by the first-time guide.
@@ -482,7 +493,8 @@
     // Moves the camera, if it has to, so one pot can be seen, side to side as well as up and down (the guide uses it).
     showPot(si, pi) {
       const pos = this.room.stations[si];
-      const x = pos.x + Layout.anchorX(pi), y = pos.y + Layout.slotY(PE.Data, this.stationData(si).model, pi) - 60;
+      const at = Layout.potAt(PE.Data, this.stationData(si).model, pi, this.faceOf(si));
+      const x = pos.x + at.x, y = pos.y + at.y - 60;
       const cam = this.cameras.main, v = cam.worldView;
       const m = 150 * PE.App.dpr / cam.zoom;
       if (x > v.x + m && x < v.right - m && y > v.y + m && y < v.bottom - m) return;
@@ -515,7 +527,8 @@
 
     floatHarvest(e) {
       const pos = this.room.stations[e.station];
-      const x = pos.x + Layout.anchorX(e.pot), y = pos.y + Layout.slotY(PE.Data, this.stationData(e.station).model, e.pot) - 150;
+      const at = Layout.potAt(PE.Data, this.stationData(e.station).model, e.pot, this.faceOf(e.station));
+      const x = pos.x + at.x, y = pos.y + at.y - 150;
       const grade = this.bal.quality.grades[e.grade];
       const label = `+$${PE.Money.format(e.cash)}${e.grade > 0 ? ' ' + grade.name : ''}${e.doubled ? ' x2!' : ''}${e.wilted ? ' (wilted)' : ''}`;
       const t = this.add.text(x, y, label, {
@@ -777,14 +790,14 @@
         st.pots.forEach((p, pi) => {
           this.updatePot(view, si, st, pi, p, now, pos);
           if (p) growing = true;
-          const spot = Layout.potSpot(PE.Data, st.model, pi, st.levels.pots);
+          const spot = Layout.potSpot(PE.Data, st.model, pi, st.levels.pots, this.faceOf(si));
           const x = pos.x + spot.x, y = pos.y;
           const pv = view.pots[pi];
           if (pv.seedIcon) pv.seedIcon.setVisible(!p);
           if (!p) {
             if (this.textures.exists('ui-ACT-01')) {
               // The real plant icon on an empty pot.
-              if (!pv.seedIcon) pv.seedIcon = this.add.image(x, y + spot.rim - 44, 'ui-ACT-01').setDisplaySize(84, 84).setDepth(y + spot.y + 8);
+              if (!pv.seedIcon) pv.seedIcon = this.add.image(x, y + spot.rim - 44 * spot.k, 'ui-ACT-01').setDisplaySize(84 * spot.k, 84 * spot.k).setDepth(y + spot.y + 8);
             } else {
               B.lineStyle(6, 0xc6ff3d, 0.95);
               B.lineBetween(x - 14, y + spot.rim - 18, x + 14, y + spot.rim - 18);
@@ -884,7 +897,7 @@
     }
 
     viewFor(si, st, pos) {
-      const sig = `${st.model}|${st.levels.lights}|${st.levels.sprinkler}|${st.levels.pots}|${st.levels.computer}|${st.levels.capacity}|${st.pots.length}|${st.auto.harvest}|${st.auto.replant}`;
+      const sig = `${st.model}|${this.faceOf(si)}|${st.levels.lights}|${st.levels.sprinkler}|${st.levels.pots}|${st.levels.computer}|${st.levels.capacity}|${st.pots.length}|${st.auto.harvest}|${st.auto.replant}`;
       let v = this.stationViews.get(si);
       if (v && v.sig === sig) return v;
       if (v) {
@@ -905,7 +918,8 @@
       v = { sig, parts: [], texts: [], pots: st.pots.map(() => ({})), ready: false, si };
       this.stationViews.set(si, v);
       const m = st.model, L = st.levels;
-      const ids = [`M${m}-FRAME`, `M${m}-BADGE`, `M${m}-BASE`, `M${m}-TRAY`, `M${m}-LGT-${L.lights}`, `M${m}-SPR-${L.sprinkler}`, `M${m}-FX-${L.sprinkler}`, `M${m}-CMP-${L.computer}`, `M${m}-POT-${L.pots}`];
+      const face = this.faceOf(si);
+      const ids = [Layout.model(PE.Data, m, face).frameId, Layout.piece(PE.Data, m, 'LGT', L.lights, face).id, `M${m}-BADGE`, `M${m}-BASE`, `M${m}-TRAY`, `M${m}-LGT-${L.lights}`, `M${m}-SPR-${L.sprinkler}`, `M${m}-FX-${L.sprinkler}`, `M${m}-CMP-${L.computer}`, `M${m}-POT-${L.pots}`];
       PE.UI.loadHydro(this, ids, () => { if (!v.gone) { this.drawStation(v, si, st, pos); this.lastRefresh = 0; } });
       return v;
     }
@@ -931,31 +945,36 @@
     drawStation(v, si, st, pos) {
       const D = PE.Data;
       const m = st.model, L = st.levels;
-      const M = Layout.model(D, m);
+      const face = this.faceOf(si);
+      const M = Layout.model(D, m, face);
       const F = M.frame;
       const back = pos.y - 480;   // behind every pot and plant of this station
 
       // The frame, in three slices: the band with only the posts in it stretches, so the rail clears the plants.
-      const key = `hy-M${m}-FRAME`;
+      const key = 'hy-' + M.frameId;
       if (this.textures.exists(key)) {
         const tex = this.textures.get(key);
         const [b0, b1] = F.slices;
         if (!tex.has('T')) { tex.add('T', 0, 0, 0, F.pxW, b0); tex.add('M', 0, 0, b0, F.pxW, b1 - b0); tex.add('B', 0, 0, b1, F.pxW, F.pxH - b1); }
         let y = pos.y + F.y;
         for (const [name, h] of [['T', F.topH], ['M', F.midH], ['B', F.botH]]) {
-          const piece = this.add.image(pos.x + F.x, y, key, name).setOrigin(0, 0).setDisplaySize(F.w, h + 0.5).setDepth(back);
+          const piece = this.add.image(pos.x + F.x, y, key, name).setOrigin(0, 0).setDisplaySize(F.w, h + 0.5).setDepth(back).setFlipX(!!M.flip);
           v.parts.push(piece);
           y += h;
         }
-      } else this.part(v, `M${m}-FRAME`, pos.x, pos.y + F.y, F.w, F.bottom - F.y, back, 0.5, 0);
+      } else this.part(v, M.frameId, pos.x, pos.y + F.y, F.w, F.bottom - F.y, back, 0.5, 0);
 
-      const badge = Layout.piece(D, m, 'BADGE');
-      this.part(v, `M${m}-BADGE`, pos.x + M.badge.x, pos.y + M.badge.y, badge.w, badge.h, pos.y + 200);
+      // The model's emblem on the front of the bench (a bench seen from the side has no front to put it on).
+      if (M.badge) {
+        const badge = Layout.piece(D, m, 'BADGE');
+        this.part(v, `M${m}-BADGE`, pos.x + M.badge.x, pos.y + M.badge.y, badge.w, badge.h, pos.y + 200);
+      }
 
       // Overhead: light from the rail, sprinkler just under it, spray from there down to the pots.
-      const O = Layout.overhead(D, m, L.lights, L.sprinkler);
+      const O = Layout.overhead(D, m, L.lights, L.sprinkler, face);
       this.part(v, `M${m}-SPR-${L.sprinkler}`, pos.x + O.x, pos.y + O.sprTop, O.S.w, O.S.h, back + 1, 0.5, 0);
-      v.light = this.part(v, `M${m}-LGT-${L.lights}`, pos.x + O.x, pos.y + O.lightTop, O.L.w, O.L.h, back + 2, 0.5, 0);
+      v.light = this.part(v, O.L.id, pos.x + O.x, pos.y + O.lightTop, O.L.w, O.L.h, back + 2, 0.5, 0);
+      if (M.flip) v.light.setFlipX(true);
       // The light's cone: on only while something's growing.
       v.cone = this.add.image(pos.x + O.x, pos.y + O.lightBottom - 30, 'room-cone').setOrigin(0.5, 0).setDisplaySize(900, Math.max(200, -O.lightBottom + 10)).setDepth(pos.y + 206).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.4).setVisible(false);
       v.cone.wantVisible = false;
@@ -990,10 +1009,10 @@
       st.pots.forEach((_, pi) => {
         // The station may have gained a pot while its art was being fetched.
         const pv = v.pots[pi] || (v.pots[pi] = {});
-        const spot = Layout.potSpot(D, m, pi, L.pots);
+        const spot = Layout.potSpot(D, m, pi, L.pots, face);
         const x = pos.x + spot.x, depth = pos.y + spot.y;
         pv.spot = spot;
-        pv.tray = this.part(v, `M${m}-TRAY`, x, pos.y + spot.bottom + 8, tray.w, tray.h, depth - 1, 0.5, 1);
+        pv.tray = this.part(v, `M${m}-TRAY`, x, pos.y + spot.bottom + 8 * spot.k, tray.w * spot.k, tray.h * spot.k, depth - 1, 0.5, 1);
         v.parts.pop();
         pv.back = this.part(v, potId, x, pos.y + spot.top, spot.w, spot.h, depth, 0.5, 0);
         v.parts.pop();
@@ -1039,10 +1058,11 @@
       const G = this.add.graphics().setDepth(99000);
       v.parts.push(G);
       const cross = (x, y, c) => { G.lineStyle(5, c, 1).lineBetween(x - 22, y, x + 22, y).lineBetween(x, y - 22, x, y + 22); };
-      const M = Layout.model(PE.Data, st.model);
-      for (let i = 0; i < 7; i++) cross(pos.x + Layout.anchorX(i), pos.y + Layout.slotY(PE.Data, st.model, i), 0xff2d55);
+      const face = this.faceOf(v.si);
+      const M = Layout.model(PE.Data, st.model, face);
+      for (let i = 0; i < 7; i++) { const at = Layout.potAt(PE.Data, st.model, i, face); cross(pos.x + at.x, pos.y + at.y, 0xff2d55); }
       cross(pos.x + M.hang.x, pos.y + M.hang.y, 0x52e6ff);
-      cross(pos.x + M.badge.x, pos.y + M.badge.y, 0xffd84d);
+      if (M.badge) cross(pos.x + M.badge.x, pos.y + M.badge.y, 0xffd84d);
       cross(pos.x + M.computer.x, pos.y + M.computer.y, 0xffffff);
     }
 
@@ -1101,10 +1121,11 @@
           if (pv.img) pv.img.destroy();
           pv.img = this.add.image(x, pos.y, texture, 'stage' + stage).setDepth(depth + 1);
         } else pv.img.setTexture(texture, 'stage' + stage);
-        const scale = (stage === 0 ? WORLD.seedScale : WORLD.plantScale) / PE.UI.SHEET_SCALE;
+        // Smaller in the far holes of a bench turned sideways (spot.k, job 19).
+        const scale = ((stage === 0 ? WORLD.seedScale : WORLD.plantScale) / PE.UI.SHEET_SCALE) * (spot.k || 1);
         pv.img.setOrigin(f.baseX / f.w, 1).setScale(scale);
         // The stem starts inside the pot: the pot's front is drawn over the bottom of it.
-        pv.img.setPosition(x, pos.y + spot.rim + (stage === 0 ? 2 : 14));
+        pv.img.setPosition(x, pos.y + spot.rim + (stage === 0 ? 2 : 14) * (spot.k || 1));
         pv.img.setAlpha(1);
         pv.img.setVisible(v.shown !== false);
         if (wilted) { this.showWilted(pv, p, f); return; }

@@ -52,6 +52,9 @@
       this.paused = false;
       this.hasFrames = Pick().hasFrames(id);
       this.walkRoll = Math.random();
+      // One of each character (js/logic/cast.js): clash is true if this person was already out somewhere else.
+      this.castOwner = PE.Cast ? PE.Cast.token(Pick().isVehicle(id) ? 'drive' : 'walk') : null;
+      this.clash = !!(PE.Cast && !PE.Cast.claim(id, this.castOwner));
       Actor.own(scene, this);
       if (!this.hasFrames) this.showStill();
     }
@@ -61,7 +64,7 @@
         scene.animSheets = new Set();
         scene.animFetches = new Map();
         scene.events.once('shutdown', () => {
-          for (const a of scene.animActors) a.gone = true;
+          for (const a of scene.animActors) { a.gone = true; if (PE.Cast && !a.clash) PE.Cast.free(a.id, a.castOwner); }
           for (const key of scene.animSheets) if (scene.textures.exists(key)) scene.textures.remove(key);
           scene.animActors = null;
           scene.animSheets = null;
@@ -73,7 +76,7 @@
     showStill() {
       const url = stillUrl(this.id);
       // Vehicles with no driving frames yet slide their still picture (no bob), drawn about as big as a driving one.
-      const vehicle = /^V\d\d$/.test(this.id);
+      const vehicle = Pick().isVehicle(this.id);
       this.bob = !vehicle;
       if (!url) return;
       const key = 'still-' + this.id;
@@ -239,6 +242,7 @@
       else if (c.done) c.done();
     }
     destroy() {
+      if (PE.Cast && !this.gone && !this.clash) PE.Cast.free(this.id, this.castOwner);
       this.gone = true;
       this.image.destroy();
       if (this.scene.animActors) this.scene.animActors = this.scene.animActors.filter((a) => a !== this);

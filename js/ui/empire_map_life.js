@@ -35,6 +35,7 @@
   const VAN_ART = ['VEH-01', 'VEH-02', 'VEH-04', 'VEH-05', 'VEH-03'];
   const VEHICLE_H = 100;     // a vehicle's 512 pixel frame, in map units (the vehicle itself is about 60 of that)
   const TRIP_SPEED = 70;     // map units a second, out on a delivery
+  const MAX_VEHICLES = 4;    // on a map at once, traffic and deliveries together (job 19)
   const SKATE_FROM = 600;    // a walk longer than this, and the skater kid rides his board
   function lengths(pts) {
     const seg = [];
@@ -57,11 +58,12 @@
     this.buildProps();
     this.buildRivals();
     this.buildLots();
+    // Helpers first: Haze, Budz and Leafy walking here keeps their own vehicles off the roads (one of each, job 19).
+    this.buildHelpers();
     this.buildVans();
     this.buildWalkers();
     this.buildBuildingLife();
     this.buildFlyers();
-    this.buildHelpers();
     this.buildManagers();
   };
 
@@ -123,13 +125,52 @@
   };
   proto.addMover = function addMover(pts, sprite, speed, i, opts = {}) {
     const { seg, total } = lengths(pts);
-    this.life.movers.push({ sprite, actor: opts.actor || null, pts, seg, total, d: total * (0.2 + 0.3 * i), dir: i % 2 ? -1 : 1, speed, lane: opts.lane === undefined ? 9 : opts.lane, artFaces: opts.artFaces || -1 });
+    this.life.movers.push({ sprite, actor: opts.actor || null, vid: opts.vid || null, pts, seg, total, d: total * (0.2 + 0.3 * i), dir: i % 2 ? -1 : 1, speed, lane: opts.lane === undefined ? 9 : opts.lane, artFaces: opts.artFaces || -1 });
   };
-  // Vehicles that have driving frames: the ones you own first, then the rest, so the town always has some about.
+  // Every vehicle with driving frames (job 19): the depot ones (yours first), the town's own (VEH-01 to VEH-04) and
+  // Budz's van (LOAD-02). Found from the imported frames, so a new one Cowork files joins in with no code change.
   proto.vehicleLineup = function vehicleLineup() {
-    const all = (PE.Data.collectibles.vehicles || []).map((v) => v.id).filter((id) => PE.AnimPick.hasFrames(id));
+    const chars = PE.Data.animArt.chars;
+    const all = Object.keys(chars).filter((id) => PE.AnimPick.isVehicle(id) && chars[id].DRIVEFRONT).sort();
     const owned = all.filter((id) => this.g.state.collections.owned[id]);
     return [...owned, ...all.filter((id) => !owned.includes(id))];
+  };
+  // The vehicles on this map now (traffic and delivery trips).
+  proto.vehiclesOut = function vehiclesOut() {
+    const out = new Set();
+    for (const m of this.life.movers) { if (m.vid && m.actor && !m.actor.gone) out.add(m.vid); if (m.next) out.add(m.next.vid); }
+    if (this.life.trips) for (const t of this.life.trips.values()) out.add(t.vid);
+    return out;
+  };
+  // A vehicle for the town's traffic: not one already out, and not one whose rider is busy elsewhere (one of each).
+  proto.pickTraffic = function pickTraffic(prefer) {
+    const out = this.vehiclesOut();
+    const free = this.vehicleLineup().filter((id) => !out.has(id) && PE.Cast.isFree(id));
+    if (!free.length) return null;
+    if (prefer !== undefined) return free[prefer % free.length];
+    return free[Math.floor(Math.random() * free.length)];
+  };
+  // At the end of its road a traffic vehicle may turn off, and a different one comes back along it, so over a minute
+  // the whole fleet takes turns.
+  // The next one waits, unseen, until its pictures have arrived, so the road is never empty in between (now: at once).
+  proto.swapTraffic = function swapTraffic(m, now) {
+    if (m.next && !now) return;
+    const vid = this.pickTraffic();
+    if (!vid || vid === m.vid) return;
+    const at = { x: m.actor.x, y: m.actor.y };
+    if (m.next) { m.next.actor.destroy(); m.next = null; }
+    const actor = new PE.Anim.Actor(this, vid, { x: at.x, y: at.y, height: VEHICLE_H });
+    if (now) { m.actor.destroy(); this.adoptTraffic(m, actor, vid); return; }
+    actor.image.setAlpha(0);
+    m.next = { actor, vid };
+  };
+  proto.adoptTraffic = function adoptTraffic(m, actor, vid) {
+    actor.image.setAlpha(1);
+    m.actor = actor;
+    m.sprite = actor.image;
+    m.vid = vid;
+    m.next = null;
+    (this.life.trafficSeen = this.life.trafficSeen || new Set()).add(vid);
   };
 
   // ---- Delivery trips (job 17B): a vehicle on a depot route drives out along the roads, off to the far side of the
@@ -159,12 +200,33 @@
     for (const [k, t] of L.trips) if (!want.has(k)) { t.actor.destroy(); L.trips.delete(k); }
     for (const [k, { fid, r }] of want) {
       if (L.trips.has(k)) continue;
+      // One of each (job 19): DJ Dayglow can't stroll the streets while she's out on her scooter, so she goes indoors.
+      if (!PE.Cast.isFree(r.vehicle)) this.freeRider(r.vehicle);
+      if (!PE.Cast.isFree(r.vehicle)) continue;   // out somewhere we can't reach: the trip shows once they're back
       const way = this.tripEnd(fid);
       if (!way) continue;
       const { seg, total } = lengths(way);
       const actor = new PE.Anim.Actor(this, r.vehicle, { x: way[0][0], y: way[0][1], height: VEHICLE_H });
       L.trips.set(k, { actor, sprite: actor.image, job: r.job, pts: way, seg, total, vid: r.vehicle });
+      // The same vehicle can't be traffic too.
+      for (const m of L.movers) { if (m.vid === r.vehicle) this.swapTraffic(m, true); if (m.next && m.next.vid === r.vehicle) { m.next.actor.destroy(); m.next = null; } }
     }
+  };
+  // Sends a walking customer who rides this vehicle off the street, and someone else comes along instead.
+  proto.freeRider = function freeRider(vid) {
+    const who = PE.Cast.riderOf(vid);
+    for (const w of this.life.walkers) {
+      if (!w.actor || w.id !== who) continue;
+      const pool = (PE.BizRoom ? PE.BizRoom.customers() : []).filter((id) => id !== who && PE.Cast.isFree(id) && !this.life.walkers.some((o) => o.id === id));
+      const at = { x: w.actor.x, y: w.actor.y };
+      w.actor.destroy();
+      if (!pool.length) { w.gone = true; continue; }
+      w.id = pool[Math.floor(Math.random() * pool.length)];
+      w.actor = new PE.Anim.Actor(this, w.id, { x: at.x, y: at.y, height: 46 });
+      w.sprite = w.actor.image;
+      w.skate = PE.AnimPick.canSkate(w.id) && w.total > SKATE_FROM;
+    }
+    this.life.walkers = this.life.walkers.filter((w) => !w.gone);
   };
   // Where a trip's vehicle is now: out along the way, away (hidden), or on its way back.
   proto.stepTrip = function stepTrip(t) {
@@ -190,19 +252,20 @@
     const L = this.layout;
     const owned = this.def.facilities.filter((f) => this.g.facilities.isOwned(f)).length;
     const paths = [...this.deliveryRoutes()];
-    (L.vans || []).slice(0, Math.min(2, owned)).forEach(([a, b]) => { const way = PE.MapPaths.route(L, a, b); if (way && way.length > 1) paths.push(way); });
+    (L.vans || []).slice(0, Math.max(1, Math.min(3, owned))).forEach(([a, b]) => { const way = PE.MapPaths.route(L, a, b); if (way && way.length > 1) paths.push(way); });
     const first = Number(this.district.slice(1)) - 1;
-    // Job 17B: the vans about town are vehicles with driving frames (yours first), facing the way the road goes.
-    const drivers = this.vehicleLineup();
-    paths.forEach((pts, i) => {
-      const vid = drivers.length ? drivers[(first + i) % drivers.length] : null;
-      if (vid) {
-        const actor = new PE.Anim.Actor(this, vid, { x: pts[0][0], y: pts[0][1], height: VEHICLE_H });
-        this.addMover(pts, actor.image, 62 + i * 10, i, { actor });
-      } else this.addMover(pts, piece(this, pts[0][0], pts[0][1], VAN_ART[(first + i) % VAN_ART.length], 58).setOrigin(0.5, 0.85), 62 + i * 10, i);
-    });
+    // Job 19: the town always has some traffic, 1 to 4 vehicles counting delivery trips, never the whole fleet at once.
+    if (!paths.length && L.vans && L.vans[0]) { const way = PE.MapPaths.route(L, L.vans[0][0], L.vans[0][1]); if (way && way.length > 1) paths.push(way); }
     this.life.trips = new Map();
     this.syncTrips();
+    paths.slice(0, MAX_VEHICLES).forEach((pts, i) => {
+      const vid = this.pickTraffic(first * 3 + i);
+      if (vid) {
+        const actor = new PE.Anim.Actor(this, vid, { x: pts[0][0], y: pts[0][1], height: VEHICLE_H });
+        this.addMover(pts, actor.image, 62 + i * 10, i, { actor, vid });
+        (this.life.trafficSeen = this.life.trafficSeen || new Set()).add(vid);
+      } else this.addMover(pts, piece(this, pts[0][0], pts[0][1], VAN_ART[(first + i) % VAN_ART.length], 58).setOrigin(0.5, 0.85), 62 + i * 10, i);
+    });
     // Boats and trains are there whether or not you own anything: it's their town too.
     PE.MapPaths.linesOf(L, (k) => k.boat).slice(0, 2).forEach((l, i) => this.addMover(l.pts, this.add.image(l.pts[0][0], l.pts[0][1], 'map-boat').setDisplaySize(90, 49), 26, i, { lane: 0, artFaces: 1 }));
     PE.MapPaths.linesOf(L, (k) => k.train).slice(0, 1).forEach((l, i) => this.addMover(l.pts, this.add.image(l.pts[0][0], l.pts[0][1], 'map-train').setDisplaySize(130, 43), 110, i, { lane: 0 }));
@@ -218,7 +281,9 @@
     for (let i = 0; i < count; i++) {
       // Every customer with all their frames (the dog walker, the skater kid, the VIPs) takes a turn: each district shows
       // the next few of them in line, so between the four districts all of them walk the maps (job 17).
-      const pool = PE.BizRoom ? PE.BizRoom.customers() : [];
+      // One of each (job 19): nobody who's out riding, and nobody twice.
+      const taken = new Set(this.life.walkers.map((w) => w.id));
+      const pool = (PE.BizRoom ? PE.BizRoom.customers() : []).filter((id) => PE.Cast.isFree(id) && !taken.has(id));
       const dn = Number(this.district.slice(1)) - 1;
       const artId = pool.length ? pool[(dn * count + i) % pool.length] : 'WLK-0' + (((i + dn + 1) % 6) + 1);
       let way = null, entering = false;
@@ -237,7 +302,7 @@
       const sprite = actor ? actor.image : piece(this, way[0][0], way[0][1], artId, 44).setOrigin(0.5, 0.95);
       // The skater kid rides his board on the longer trips, faster than walking (job 17B).
       const skate = !!actor && PE.AnimPick.canSkate(artId) && total > SKATE_FROM;
-      this.life.walkers.push({ actor, sprite, pts: way, seg, total, d: total * ((i * 0.37) % 1), dir: entering || i % 2 === 0 ? 1 : -1, speed: (17 + i * 2) * (skate ? 2.4 : 1), entering, skate, side: i % 2 ? 6 : -6 });
+      this.life.walkers.push({ id: artId, actor, sprite, pts: way, seg, total, d: total * ((i * 0.37) % 1), dir: entering || i % 2 === 0 ? 1 : -1, speed: (17 + i * 2) * (skate ? 2.4 : 1), entering, skate, side: i % 2 ? 6 : -6 });
     }
   };
 
@@ -448,10 +513,24 @@
     if (this.calmNow) return;
     L.t += dt;
     const T = L.t;
+    let tripsOut = 0;
+    if (L.trips) for (const t of L.trips.values()) if (!t.away) tripsOut++;
+    let room = Math.max(0, MAX_VEHICLES - tripsOut);
     for (const m of L.movers) {
       m.d += m.dir * m.speed * dt;
-      if (m.d > m.total) { m.d = m.total; m.dir = -1; }
-      if (m.d < 0) { m.d = 0; m.dir = 1; }
+      let end = false;
+      if (m.d > m.total) { m.d = m.total; m.dir = -1; end = true; }
+      if (m.d < 0) { m.d = 0; m.dir = 1; end = true; }
+      if (m.actor && m.vid) {
+        if (end) this.swapTraffic(m);
+        // Deliveries out count too: a traffic vehicle waits off the road while there'd be more than four.
+        const show = room > 0;
+        if (show) room--;
+        if (!show) { m.sprite.setVisible(false); m.parked = true; continue; }
+        if (m.parked) { m.parked = false; m.actor.cur = null; }
+        // The next vehicle's pictures are in: it takes over.
+        if (m.next && m.next.actor.setNow) { m.actor.destroy(); this.adoptTraffic(m, m.next.actor, m.next.vid); }
+      }
       const p = along(m.pts, m.seg, m.d);
       const len = Math.hypot(p.dx, p.dy) || 1;
       const lane = m.lane * m.dir;
@@ -459,6 +538,7 @@
         m.actor.moveTo(p.x + (p.dy / len) * lane, p.y - (p.dx / len) * lane);
         m.actor.heading(p.dx * m.dir, p.dy * m.dir);
         if (!m.actor.hasFrames) m.sprite.setFlipX(p.dx * m.dir > 0);
+        if (m.next) { m.next.actor.moveTo(m.actor.x, m.actor.y); m.next.actor.heading(p.dx * m.dir, p.dy * m.dir); }
         continue;
       }
       m.sprite.setPosition(p.x + (p.dy / len) * lane, p.y - (p.dx / len) * lane);

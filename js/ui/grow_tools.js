@@ -142,7 +142,7 @@
       if (!s) return null;
       const st = s.stationData(si);
       const pos = s.room.stations[si];
-      const spot = PE.Layout.potSpot(PE.Data, st.model, pi, st.levels.pots);
+      const spot = PE.Layout.potSpot(PE.Data, st.model, pi, st.levels.pots, s.faceOf(si));
       const cam = s.cameras.main;
       const r = s.game.canvas.getBoundingClientRect();
       const k = r.width / s.scale.width;

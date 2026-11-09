@@ -51,7 +51,8 @@
       if (!PE.App.state.settings.helpers) return;
       // Uncle Haze and one other: two per screen at most, and they take turns.
       const other = Life.turn % 2 ? 'BUDZ' : 'LEAFY';
-      for (const id of world.ids || ['HAZE', other]) this.add(id);
+      // One of each (job 19): a helper who's out driving their vehicle somewhere doesn't also walk about here.
+      for (const id of world.ids || ['HAZE', other]) if (!PE.Cast || PE.Cast.isFree(id)) this.add(id);
     }
     add(id) {
       const i = this.list.length;

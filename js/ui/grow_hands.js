@@ -25,7 +25,7 @@
   // Stands opposite the computer, on the station's other side.
   P.drawPump = function drawPump(v, si, st, pos) {
     const D = PE.Data;
-    const M = Layout.model(D, st.model);
+    const M = Layout.model(D, st.model, this.faceOf(si));
     const base = Layout.piece(D, st.model, 'BASE');
     const x = pos.x - M.computer.x, y = pos.y + M.computer.y;
     this.part(v, `M${st.model}-BASE`, x, y, base.w, base.h, pos.y + 210, 0.5, 1);

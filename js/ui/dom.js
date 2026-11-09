@@ -310,10 +310,12 @@
 
   // A small picture of a hydro model built from its real pieces, for the model upgrade preview.
   Dom.hydroPreview = (m) => {
-    const A = PE.Data.hydroAnchors[m], [fw, fh] = PE.Data.hydroArt[`M${m}-FRAME`];
+    // Job 19: a redrawn straight-on bench brings its own measured holes, rail and badge spot.
+    const S = (PE.Data.hydroStraight || {})[m];
+    const A = S ? S.front : PE.Data.hydroAnchors[m], [fw, fh] = PE.Data.hydroArt[`M${m}-FRAME`];
     const pct = (x, y) => `left:${(x / fw) * 100}%;top:${(y / fh) * 100}%`;
     const url = (part) => `assets/hydro/M${m}/HY-M${m}-${part}.webp`;
-    const [[x0, y0], [x1, y1]] = A.holes;
+    const [[x0, y0], [x1, y1]] = S ? [A.holes[0], A.holes[6]] : A.holes;
     const pots = [2, 3].map((k) => `<img class="hy-pot" style="${pct(x0 + ((x1 - x0) * k) / 6, y0 + ((y1 - y0) * k) / 6)}" src="${url('POT-1')}" alt="">`).join('');
     return `<div class="hy-preview" style="aspect-ratio:${fw}/${fh}"><img class="hy-frame" src="${url('FRAME')}" alt="">${pots}
       <img class="hy-light" style="${pct(A.hangX, A.railY - 6)}" src="${url('LGT-1')}" alt="">

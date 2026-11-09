@@ -627,13 +627,15 @@ html.fast-time #hud::after { content: 'FAST TIME: NOT SAVING'; display: block; t
 @media (min-aspect-ratio: 3/4) { .load-scene { width: 56.25vh; height: 100vh; } #loading { background: radial-gradient(circle at 50% 40%, #5a2a8c, #1d0f33 70%); } }
 .load-bg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 #loading .load-logo { position: absolute; left: 50%; top: calc(env(safe-area-inset-top) + 9%); width: min(76%, 400px); transform: translateX(-50%); filter: drop-shadow(0 6px 10px #0006); }
-#load-van { position: absolute; left: 46%; top: 99%; width: 38%; transform: translate(-50%, -86%); transition: none; bottom: auto; }
-#load-van.right { transform: translate(-50%, -86%) scaleX(-1); }
-.load-bus { position: relative; display: block; width: 100%; animation: load-bump .32s ease-in-out infinite alternate; }
-.load-dust { position: absolute; left: 66%; bottom: 0; width: 80%; opacity: .85; transform-origin: 0 100%; animation: load-puff .5s ease-in-out infinite alternate; }
+/* Job 19: Budz's peel-off (sheet frames placed by the loading script) and Uncle Haze's cart on the loading bar. */
+#load-peel { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+#load-peel i { position: absolute; display: none; background-repeat: no-repeat; }
+#loading .load-road { position: relative; }
+#load-cart { position: absolute; left: 0; bottom: -7px; width: 64px; height: 64px; transform: translateX(-62%); background: url(../assets/anim/VEH-04/DRIVERIGHT.webp) 0 0 / 600% 100% no-repeat; animation: load-cart .6s steps(6) infinite; pointer-events: none; }
+@keyframes load-cart { to { background-position: 120% 0; } }
 @keyframes load-bump { from { transform: translateY(0); } to { transform: translateY(-2.5%); } }
 @keyframes load-puff { from { transform: scale(.88); opacity: .65; } to { transform: scale(1.05); opacity: .9; } }
-.calm .load-bus, .calm .load-dust { animation: none; }
+.calm #load-cart { animation: none; }
 .load-foot { position: absolute; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom) + 22px); display: flex; flex-direction: column; align-items: center; gap: 8px; }
 #loading .load-road { margin: 0; height: 12px; width: min(70vw, 320px); background: #1d0f33aa; box-shadow: 0 0 0 2px #fff8; }
 #load-text { margin: 0; color: #fff; text-shadow: 0 2px 3px #000, 0 0 8px #000a; }
@@ -712,3 +714,19 @@ html.fast-time #hud::after { content: 'FAST TIME: NOT SAVING'; display: block; t
 .calm .item.spot { animation: none; }
 /* The packet picture fills its packet (job 18: the old size rule only covered the tool buttons). */
 .seed-pack img.tool-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+
+/* ---- Job 19: hands-on shop shelves (js/ui/biz_hands.js) ---- */
+#shelf-stash { position: absolute; z-index: 6; pointer-events: auto; max-width: calc(100% - 16px); background: #2a1a47f5; border: 3px solid var(--lime); border-radius: 18px; padding: 8px 8px 6px; box-shadow: 0 8px 24px #000c; animation: pop .22s cubic-bezier(.2,1.5,.4,1); touch-action: none; }
+#shelf-stash .stash-head { font-weight: 600; font-size: 13px; padding: 0 4px 4px; color: #fff; }
+#shelf-stash .stash-head b { font-weight: 800; }
+#shelf-stash .stash-head.sub { color: #d8cdea; font-size: 12px; padding-bottom: 6px; }
+#shelf-stash .stash-row { display: flex; gap: 6px; overflow-x: auto; overscroll-behavior: contain; touch-action: pan-x; padding-bottom: 2px; }
+#ui .biz-prod .prod-pic, #ui .biz-prod .biz-pic { pointer-events: none; }
+#ui .biz-prod .prod-pic img { width: 46px; height: 46px; }
+#ui .biz-prod.on { border-color: var(--lime); }
+#ui .biz-prod.none { opacity: .55; }
+#ui .biz-prod small.have { color: #c6ff3d; font-weight: 600; }
+.biz-ghost { position: absolute; left: 0; top: 0; z-index: 8; pointer-events: none; width: 64px; height: 64px; filter: drop-shadow(0 6px 8px #000a); }
+.biz-ghost img { width: 64px; height: 64px; object-fit: contain; }
+.row-btns.spot { animation: spot-flash 1.2s ease-out 2; box-shadow: 0 0 0 3px var(--lime); border-radius: 12px; }
+.calm .row-btns.spot { animation: none; }

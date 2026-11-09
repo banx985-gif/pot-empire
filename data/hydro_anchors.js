@@ -9,6 +9,15 @@
 //   badge     the middle of the front of the bench, where the model's emblem goes
 //   computer  where the computer's stand sits, in world units from the middle pot hole. y is where its feet are.
 (globalThis.PE = globalThis.PE || {}).Data = globalThis.PE.Data || {};
+// Job 19: how big each model's old angled pieces were, so Aaron's straight-on redraws (data/hydro_straight.js) show at
+// the same size: the bench's width on screen in world units, and each light's width / height (level 1 to 6).
+globalThis.PE.Data.hydroOldSizes = {
+  1: { frameW: 1288, light: [0.599, 1.365, 1.241, 1.313, 1.328, 1.133] },
+  2: { frameW: 1230, light: [0.645, 1.141, 1.164, 1.219, 1.255, 1.156] },
+  3: { frameW: 1252, light: [0.652, 1.288, 1.308, 1.349, 1.273, 1.236] },
+  4: { frameW: 1338, light: [0.521, 1.092, 1.141, 1.264, 1.435, 1.115] },
+  5: { frameW: 1189, light: [0.692, 1.241, 1.227, 1.273, 1.288, 1.201] },
+};
 globalThis.PE.Data.hydroAnchors = {
   1: { holes: [[78, 282], [378, 365]], hangX: 245, railY: 88, stretch: [135, 215], badge: [240, 408], computer: { x: 560, y: 440 } },
   2: { holes: [[82, 245], [398, 318]], hangX: 258, railY: 84, stretch: [125, 205], badge: [240, 352], computer: { x: 570, y: 400 } },

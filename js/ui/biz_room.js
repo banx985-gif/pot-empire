@@ -16,7 +16,10 @@
     // imported frames (data/anim_art.js), so a new one filed by Cowork joins in with no code change.
     static customers() {
       const chars = PE.Data.animArt.chars;
-      return Object.keys(chars).filter((id) => /^(WLK|VIP)-\d\d$/.test(id) && chars[id].WALKFRONT && chars[id].WALKAWAY && chars[id].TALKAWAY && (chars[id].HAPPY || chars[id].FULL)).sort();
+      // Job 19: a reach-out isn't needed any more (DJ Dayglow and Dottie Disco have none yet: they stand on walk frame 01 at
+      // the counter), and Sunny Skates skates everywhere.
+      const c = (id) => chars[id];
+      return Object.keys(chars).filter((id) => /^(WLK|VIP)-\d\d$/.test(id) && (c(id).WALKFRONT || c(id).SKATEFRONT) && (c(id).WALKAWAY || c(id).SKATEAWAY) && (c(id).HAPPY || c(id).FULL)).sort();
     }   // how tall a shelf or machine stands, in room units
     // Where products stand on each piece: the board lines (0 = top of the picture, 1 = bottom), the left and right ends of a
     // board (0 to 1 across), how many fit on a board, and the largest an item may be (share of the picture's height).
@@ -66,7 +69,7 @@
       this.ready = true;
       this.refresh();
       if (!this.calm()) this.cameras.main.fadeIn(170, 20, 10, 36);
-      this.events.once('shutdown', () => { this.ready = false; this.unsub(); this.helperLife = null; this.managerActor = null; });
+      this.events.once('shutdown', () => { this.ready = false; this.unsub(); this.helperLife = null; this.managerActor = null; PE.BizHands.closeShelf(); this.dropG = null; this.dropAt = undefined; });
       PE.Hud.refresh();
     }
 
@@ -228,6 +231,9 @@
         const ready = !this.retail && slot.job && now >= slot.job.endMs && !b.lineWaiting(this.fid, slot);
         const idle = this.retail ? !slot.sku : !slot.job;
         v.mark.setVisible(ready || idle).setText(ready ? 'Ready!' : '!').setBackgroundColor(ready ? '#2fbf5b' : '#ff2d55');
+        // Job 19: the upgrade tag, and a finished batch's crate beside the machine (js/ui/biz_hands.js).
+        PE.BizHands.drawTag(this, v, i);
+        if (!this.retail) this.syncCrate(v, i, ready ? slot.sku : null);
       });
       this.bars.clear();
       if (!this.retail) slots.forEach((slot, i) => {
@@ -292,9 +298,10 @@
     nextCustomer() {
       const pool = this.customerPool;
       const busy = new Set(this.walkers.map((w) => w.id));
+      // One of each (job 19): DJ Dayglow and Captain Citrus don't walk in while they're out on their scooters.
       for (let k = 0; k < pool.length; k++) {
         const id = pool[this.customerTurn++ % pool.length];
-        if (!busy.has(id)) return id;
+        if (!busy.has(id) && (!PE.Cast || PE.Cast.isFree(id))) return id;
       }
       return pool[this.customerTurn++ % pool.length];
     }
@@ -523,7 +530,67 @@
         drag = null;
       });
     }
+    // ---- Job 19: hands-on shelves and machines (js/ui/biz_hands.js) ----------------------------------------------
+    // A finished batch pops out of its machine with a bounce, into a crate with the product's picture on it.
+    syncCrate(v, i, sku) {
+      if (!sku) { if (v.crate) { v.crate.destroy(); v.crate = null; } return; }
+      if (v.crate && v.crate.sku === sku) return;
+      if (v.crate) v.crate.destroy();
+      PE.BizHands.crateTexture(this);
+      const { x, y } = this.spot(i);
+      const c = this.add.container(x + 215, y + 150).setDepth(y + 200);
+      c.add(this.add.image(0, 0, 'biz-crate').setOrigin(0.5, 0.95).setDisplaySize(150, 150));
+      const key = 'ui-' + sku;
+      const put = () => { if (c.scene && this.textures.exists(key)) { const im = this.add.image(0, -62, key); im.setScale(74 / Math.max(im.width, im.height)); c.add(im); } };
+      if (this.textures.exists(key)) put(); else PE.UI.loadIcons(this, [sku], put);
+      c.sku = sku;
+      v.crate = c;
+      (this.crateLog = this.crateLog || []).push(i);
+      if (this.calm()) return;
+      // Out of the machine, up, and down with a bounce.
+      c.setPosition(x, y - 40).setScale(0.3);
+      this.tweens.add({ targets: c, x: x + 215, duration: 520, ease: 'Sine.easeOut' });
+      this.tweens.add({ targets: c, scale: 1, duration: 300, ease: 'Back.easeOut' });
+      this.tweens.add({ targets: c, y: { from: y - 40, to: y + 150 }, duration: 520, ease: 'Bounce.easeOut' });
+    }
+    crateHit(v, x, y) { return v && v.crate && Math.abs(x - v.crate.x) < 95 && y > v.crate.y - 160 && y < v.crate.y + 30; }
+    crateCollected(i) {
+      const v = this.views[i];
+      if (!v || !v.crate) return;
+      const c = v.crate;
+      v.crate = null;
+      if (this.calm()) { c.destroy(); return; }
+      this.tweens.add({ targets: c, y: c.y - 120, alpha: 0, scale: 1.25, duration: 360, ease: 'Sine.easeOut', onComplete: () => c.destroy() });
+    }
+    // A machine starting up gives a little jump.
+    machineBump(i) {
+      const v = this.views[i];
+      const im = v && v.parts && v.parts[0];
+      if (!im || this.calm()) return;
+      const y0 = im.y;
+      this.tweens.add({ targets: im, y: y0 - 24, yoyo: true, duration: 140, ease: 'Sine.easeOut', onComplete: () => { im.y = y0; } });
+    }
+    // Which shelf or machine is under a page point (a product being dragged), or null.
+    slotAtPage(px, py) {
+      const r = this.game.canvas.getBoundingClientRect();
+      const pt = this.cameras.main.getWorldPoint(((px - r.left) * this.scale.width) / r.width, ((py - r.top) * this.scale.height) / r.height);
+      const slots = this.g.business.slots(this.fid);
+      for (let i = 0; i < slots.length; i++) { const c = this.spot(i); if (Math.abs(pt.x - c.x) < 230 && pt.y > c.y - 260 && pt.y < c.y + 230) return i; }
+      return null;
+    }
+    // The shelf a product's held over glows.
+    dropGlow(i) {
+      if (!this.dropG) this.dropG = this.add.graphics().setDepth(89999);
+      if (this.dropAt === i) return;
+      this.dropAt = i;
+      this.dropG.clear();
+      if (i === null || i === undefined) return;
+      const c = this.spot(i);
+      this.dropG.lineStyle(14, 0xc6ff3d, 0.9).strokeRoundedRect(c.x - 225, c.y - 270, 450, 460, 40);
+    }
+
     tapAt(sx, sy) {
+      if (PE.BizHands.swallowTap()) return;
       const pt = this.cameras.main.getWorldPoint(sx, sy);
       // The shelf or machine picture stands from 255 above its spot to 175 below (drawFurniture), its name just under it.
       const near = (i) => { const c = this.spot(i); return Math.abs(pt.x - c.x) < 230 && pt.y > c.y - 260 && pt.y < c.y + 230; };
@@ -533,17 +600,12 @@
         return;
       }
       const slots = this.g.business.slots(this.fid);
+      // Job 19: the upgrade tag, then a crate, then the shelf or machine itself.
+      for (let i = 0; i < slots.length; i++) if (PE.BizHands.tagHit(this, i, pt.x, pt.y)) { PE.BizHands.openUpgrade(this.fid, i); return; }
+      for (let i = 0; i < slots.length; i++) if (this.crateHit(this.views[i], pt.x, pt.y)) { PE.BizHands.collect(this, i); return; }
       for (let i = 0; i < slots.length; i++) {
         if (!near(i)) continue;
-        const s = slots[i];
-        // A finished batch is collected on the spot. Anything else opens that slot's menu.
-        if (!this.retail && s.job && this.g.now() >= s.job.endMs && !this.g.business.lineWaiting(this.fid, s)) {
-          const r = this.g.business.claimLine(this.fid, i);
-          if (r && r.ok !== false) { PE.Dom.toast('Batch collected!', '', 'ACT-03'); PE.App.saveGame(); }
-          return;
-        }
-        if (!s.sku && !s.job) { PE.App.openPanel('skuPicker', { fid: this.fid, i, mode: this.row.mode }); return; }
-        PE.App.openPanel('business', { fid: this.fid });
+        if (this.retail) PE.BizHands.openShelf(i); else PE.BizHands.tapMachine(this, i);
         return;
       }
       const helper = this.helperLife && this.helperLife.tap(pt.x, pt.y);

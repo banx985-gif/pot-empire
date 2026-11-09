@@ -161,12 +161,13 @@
     const game = g();
     const b = game.business;
     const shelves = b.slots(fid).map((s, i) => {
-      if (!s.sku) return `<div class="item" data-act="pick:${i}"><div class="grow"><b>Shelf ${i + 1}</b><small>Empty. Tap to stock it.</small></div><span class="tag go">Stock</span></div>`;
+      if (!s.sku) return `<div class="shelf"><div class="item" data-act="pick:${i}"><div class="grow"><b>Shelf ${i + 1}</b><small>Empty. Tap to stock it.</small></div><span class="tag go">Stock</span></div>
+        <div class="row-btns" data-slot="${i}">${levelsBlock(fid, i, s, { speed: 'Speed', capacity: 'Capacity', value: 'Value' })}</div></div>`;
       const rate = b.shelfRatePerMinute(fid, s);
       const have = game.stock.getStock(s.sku);
       return `<div class="shelf"><div class="item" data-act="pick:${i}"><div class="grow"><b>Shelf ${i + 1}: ${esc(game.stock.skuName(s.sku))}</b>
         <small>Stock worth ${worth(have)} · sells ${(rate * 100).toFixed(1)}% a minute at x${b.shelfMarkup(fid, s).toFixed(2)}</small></div><span class="tag">Change</span></div>
-        <div class="row-btns">${levelsBlock(fid, i, s, { speed: 'Speed', capacity: 'Capacity', value: 'Value' })}</div></div>`;
+        <div class="row-btns" data-slot="${i}">${levelsBlock(fid, i, s, { speed: 'Speed', capacity: 'Capacity', value: 'Value' })}</div></div>`;
     }).join('');
     return `<p class="muted">Customers buy by themselves. Harvests add crop stock; factories add products. Demand shifts every few hours.</p>${shelves}${expansionBlock(fid)}${bizAssign(fid)}`;
   }
@@ -218,10 +219,10 @@
           <small>${waiting ? `Waiting: the ${esc(game.stock.skuName(l.sku))} store is full (${worth(b.storeCap())}). Sell some and it comes in. Nothing is lost.` : ready ? `Done: ${worth(l.job.output)} of product` : `${duration((l.job.endMs - now) / 1000)} left, makes ${worth(l.job.output)}`}</small>
           <div class="bar thin"><i style="width:${(t * 100).toFixed(0)}%"></i></div></div>
           ${ready && !waiting ? `<button class="btn small go" data-act="claim:${i}">Claim</button>` : rush}</div>
-          <div class="row-btns">${levelsBlock(fid, i, l, { speed: 'Speed', batch: 'Batch', value: 'Value' })}</div></div>`;
+          <div class="row-btns" data-slot="${i}">${levelsBlock(fid, i, l, { speed: 'Speed', batch: 'Batch', value: 'Value' })}</div></div>`;
       }
       return `<div class="shelf"><div class="item" data-act="pick:${i}"><div class="grow"><b>Line ${i + 1}</b><small>Idle${l.sku ? `, last made ${esc(game.stock.skuName(l.sku))}` : ''}.${l.waitForPlayer ? ' Its next batch costs cash, so it waited for you.' : ''} Tap to choose a product.</small></div><span class="tag go">Start</span></div>
-        <div class="row-btns">${levelsBlock(fid, i, l, { speed: 'Speed', batch: 'Batch', value: 'Value' })}</div></div>`;
+        <div class="row-btns" data-slot="${i}">${levelsBlock(fid, i, l, { speed: 'Speed', batch: 'Batch', value: 'Value' })}</div></div>`;
     }).join('');
     return `<p><b>Crop stock: ${worth(game.state.stock.crop)}</b></p>
       <p class="muted">Harvests by rarity: ${PE.DataCheck.RARITIES.map((r) => `${r} ${Money.format((game.state.stock.units || {})[r] || 0)}`).join(' · ')}</p>

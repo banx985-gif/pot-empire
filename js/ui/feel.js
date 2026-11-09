@@ -5,7 +5,19 @@
   const calm = () => (PE.App && PE.App.state.settings.reducedMotion);
 
   PE.Loading = {
-    done() { const el = $('loading'); if (el) el.remove(); },
+    // Budz's peel-off plays once to the end (about 5 s from the page opening) before the loading screen goes, unless
+    // it's tapped. If his picture hasn't arrived yet, it goes straight away.
+    done() {
+      const el = $('loading');
+      if (!el) return;
+      window.PE_LOADED = true;
+      const wait = window.PE_LOAD_WAIT && !window.PE_LOAD_NO_WAIT ? window.PE_LOAD_WAIT() : 0;
+      if (wait <= 0) { el.remove(); return; }
+      // The game underneath is ready: a tap goes straight through to it, and takes the loading screen away.
+      el.style.pointerEvents = 'none';
+      window.addEventListener('pointerdown', () => el.remove(), { once: true, capture: true });
+      setTimeout(() => el.remove(), wait + 150);
+    },
   };
 
   // ---- The intro comic: Aaron's INTRO-01..04 pictures, the headline written live in each sky. Skippable; Settings replays it.

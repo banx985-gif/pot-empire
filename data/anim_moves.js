@@ -8,6 +8,7 @@
 //                     own table means pick one at random each time).
 //           from, to  only these frames (counting from 1)
 //           frames    these frames, in this order
+//           first     use the first set in the list they have (a fallback list), not one at random
 //           fps, loop, hold (stays on the last frame), times (plays this many times), random (frames in random order)
 //           bob       a gentle up and down while it holds
 //           then      the move that follows this one (get angry, then point)
@@ -30,7 +31,8 @@ globalThis.PE.Data.animMoves = {
     chat: { set: ['TALK', 'TALKFRONT'], fps: 7, loop: true },
     talk: { set: ['TALK', 'TALKFRONT'], fps: 7, loop: true },
     // At the counter, waiting to be served: the reach-out's first frame (hand at rest) with a gentle bob.
-    order: { set: ['TALKAWAY', 'TALK'], from: 1, to: 1, hold: true, bob: true },
+    // Job 19: no reach-out drawn yet: frame 01 of the walk (or skate) away from us, facing the counter.
+    order: { set: ['TALKAWAY', 'TALK', 'WALKAWAY', 'SKATEAWAY'], first: true, from: 1, to: 1, hold: true, bob: true },
     happy: { set: ['HAPPY', 'REACT', 'FULL'], fps: 8, hold: true },
     // Job 17: the files called TALK<facing> are a reach-out (paying, taking the bag), not talking. Played once at the
     // counter, for the way the customer is facing (js/ui/biz_room.js picks reachUP, reachDOWNLEFT...), then back to rest.

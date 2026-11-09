@@ -30,7 +30,9 @@
     const frames = art(id);
     if (!frames) return null;
     const A = Data().animMoves;
-    const map = /^V\d\d$/.test(id) ? A.defaultDrive : style === 'skate' && frames.SKATEFRONT ? A.defaultSkate : A.walk[id] || A.defaultWalk;
+    // Sunny Skates (VIP-01) has no walk at all: she skates everywhere.
+    const skates = frames.SKATEFRONT && (style === 'skate' || !frames.WALKFRONT);
+    const map = isVehicle(id) ? A.defaultDrive : skates ? A.defaultSkate : A.walk[id] || A.defaultWalk;
     const a = DIRS[dirOf(dx, dy)];
     const order = Object.keys(DIRS).sort((p, q) => gap(a, DIRS[p]) - gap(a, DIRS[q]));
     for (const d of order) {
@@ -56,7 +58,7 @@
     if (!spec) return null;
     const list = (Array.isArray(spec.set) ? spec.set : [spec.set]).filter((s) => frames[s]);
     if (!list.length) return null;
-    const set = list[Math.min(list.length - 1, Math.floor(roll * list.length))];
+    const set = spec.first ? list[0] : list[Math.min(list.length - 1, Math.floor(roll * list.length))];
     const n = frames[set].n;
     let order;
     if (spec.frames) order = spec.frames.map((f) => f - 1);
@@ -73,7 +75,9 @@
     return { name, set, order, ms, fps: spec.fps || 6, loop: !!spec.loop, hold: !!spec.hold, times: spec.times || 1, random: !!spec.random, then: spec.then || null, bob: !!spec.bob, look: lookOf(id, set) };
   }
   const hasFrames = (id) => !!art(id);
+  // Depot vehicles (V02), town traffic (VEH-01) and Budz's van (LOAD-02).
+  function isVehicle(id) { return /^(V|VEH-|LOAD-)\d\d$/.test(id); }
   const canSkate = (id) => !!(art(id) && art(id).SKATEFRONT);
 
-  PE.AnimPick = { DIRS, dirOf, walkFor, lookOf, resolve, hasFrames, canSkate };
+  PE.AnimPick = { DIRS, dirOf, walkFor, lookOf, resolve, hasFrames, canSkate, isVehicle };
 })(globalThis.PE = globalThis.PE || {});
