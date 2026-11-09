@@ -240,13 +240,13 @@
       if (r.job) {
         const ready = now >= r.job.endMs;
         const t = Math.min(1, (now - r.job.startMs) / (r.job.endMs - r.job.startMs));
-        return `<div class="item">${PE.Dom.itemPic ? PE.Dom.itemPic(r.vehicle, 44, 'veh-pic') : ''}<div class="grow"><b>Route ${i + 1}: ${esc(r.job.offer.name)}</b>
+        return `<div class="item" data-slot="${i}">${PE.Dom.itemPic ? PE.Dom.itemPic(r.vehicle, 44, 'veh-pic') : ''}<div class="grow"><b>Route ${i + 1}: ${esc(r.job.offer.name)}</b>
           <small>${esc(game.collections.item(r.vehicle).name)} · pays ${worth(r.job.reward)}${ready ? '' : ` · ${duration((r.job.endMs - now) / 1000)} left`}</small>
           <div class="bar thin"><i style="width:${(t * 100).toFixed(0)}%"></i></div></div>
           ${ready ? `<button class="btn small go" data-act="claim:${i}">Claim</button>` : `<button class="btn small plain" data-act="cancel:${i}">Cancel</button>`}</div>`;
       }
       const auto = game.research.hasFlag('deliveryAuto') ? `<button class="btn small ${r.auto ? 'go' : 'cant'}" data-act="auto:${i}:${r.auto ? 0 : 1}">Auto ${r.auto ? 'on' : 'off'}</button>` : '';
-      return `<div class="item">${r.vehicle && PE.Dom.itemPic ? PE.Dom.itemPic(r.vehicle, 44, 'veh-pic') : ''}<div class="grow"><b>Route ${i + 1}</b><small>${r.vehicle ? esc(game.collections.item(r.vehicle).name) : 'No vehicle'}. Idle.</small></div>${auto}
+      return `<div class="item" data-slot="${i}">${r.vehicle && PE.Dom.itemPic ? PE.Dom.itemPic(r.vehicle, 44, 'veh-pic') : ''}<div class="grow"><b>Route ${i + 1}</b><small>${r.vehicle ? esc(game.collections.item(r.vehicle).name) : 'No vehicle'}. Idle.</small></div>${auto}
         <button class="btn small buy" data-act="dispatch:${i}">Dispatch</button></div>`;
     }).join('');
     return `<p class="muted">${owned.length} vehicles owned. ${game.state.depot.offers.length} contracts on offer.</p>${routes}${expansionBlock(fid)}${bizAssign(fid)}`;

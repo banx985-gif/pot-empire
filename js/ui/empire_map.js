@@ -4,6 +4,11 @@
 // The ground is Aaron's painting (js/ui/empire_map_ground.js), and everything on it is real art, by file name, from
 // the asset registry (npm run mapart). Only the signs on locked plots are still drawn here.
 (function (PE) {
+  // Job 20: the word on a building's bubble when something there needs you.
+  const BUBBLE_WORDS = {
+    Grow: { ready: 'Ripe!', idle: 'Plant!' }, Retail: { idle: 'Stock!' }, Factory: { ready: 'Batch!', idle: 'Start!' },
+    Logistics: { ready: 'Van back!', idle: 'Load a van' }, Research: { idle: 'Research!' }, Prestige: { idle: 'Prestige!' },
+  };
   const FONT = 'system-ui, sans-serif';
   const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
@@ -166,7 +171,7 @@
     }
     // Only redrawn when it changes, so most frames cost nothing.
     drawBubble(b, st) {
-      const busyText = st.kind === 'busy' ? PE.Dom.duration(Math.max(0, st.endsMs - this.g.now()) / 1000) : '';
+      const busyText = st.kind === 'busy' ? PE.Dom.duration(Math.max(0, st.endsMs - this.g.now()) / 1000) : (st.word || '');
       const sig = st.kind + busyText;
       if (sig === b.sig && b.hadArt === this.bubbleArtReady) return;
       b.sig = sig;
@@ -178,8 +183,10 @@
         const size = st.kind === 'busy' ? 26 : st.kind === 'ready' ? 50 : 44;
         b.pic.setTexture(key).setDisplaySize(size, size).setVisible(true);
         b.bg.clear();
-        if (st.kind === 'busy') {
-          b.label.setText(busyText).setFontSize(14).setStyle({ stroke: '#1d0f33', strokeThickness: 3 });
+        if (st.kind === 'busy' || busyText) {
+          // Job 20: a word beside the alert says what's waiting (Ripe!, Batch!, Van back!), so you can see where to go.
+          b.label.setText(busyText).setFontSize(st.kind === 'busy' ? 14 : 17).setStyle({ stroke: '#1d0f33', strokeThickness: 3 });
+          if (st.kind !== 'busy') b.pic.setDisplaySize(30, 30);
           const w = b.label.width + 40;
           b.bg.fillStyle(0x1d0f33, 0.92).fillRoundedRect(-w / 2, -16, w, 32, 15);
           b.bg.lineStyle(2, 0xffffff, 0.9).strokeRoundedRect(-w / 2, -16, w, 32, 15);
@@ -243,6 +250,7 @@
         if (own) v.sign.setText('');
         else v.sign.setText(open ? `FOR SALE\n$${PE.Money.format(g.facilities.econ(v.fid).cost)}` : `Level ${row.playerLevel}`);
         const showBubble = st.kind !== 'none';
+        if (own && (st.kind === 'ready' || st.kind === 'idle')) st.word = (BUBBLE_WORDS[row.mode] || {})[st.kind] || '';
         v.bubble.c.setVisible(showBubble);
         if (showBubble) { this.drawBubble(v.bubble, st); v.bubble.c.setScale(k); }
       }
@@ -452,7 +460,22 @@
       const v = this.views.get(fid);
       const mode = this.g.facilities.row(fid).mode;
       if (this.peeking) return;
-      if (!['Grow', 'Retail', 'Factory'].includes(mode) || !v || this.calm() || !v.image.visible || !v.artTop) { PE.App.goToRoom(fid); return; }
+      // Job 20: a short zoom in on the building on the way in (not with reduced motion).
+      // Only for places you walk into: the lab and HQ open a menu over the map, which must stay where it was.
+      const walkIn = ['Grow', 'Retail', 'Factory', 'Logistics'].includes(mode);
+      if (!walkIn) { PE.App.goToRoom(fid); return; }
+      if (v && !this.calm()) {
+        const cam = this.cameras.main;
+        cam.pan(v.s.x, v.s.y - 90, 380, 'Sine.easeInOut');
+        cam.zoomTo(Math.min(cam.zoom * 1.35, (this.zoomLimits ? this.zoomLimits().max : cam.zoom * 1.35)), 380, 'Sine.easeInOut');
+        this.zoomedIn = (this.zoomedIn || 0) + 1;
+      }
+      if (!['Grow', 'Retail', 'Factory'].includes(mode) || !v || this.calm() || !v.image.visible || !v.artTop) {
+        if (!v || this.calm()) { PE.App.goToRoom(fid); return; }
+        this.peeking = true;
+        this.time.delayedCall(380, () => { this.peeking = false; if (this.sys.settings.status < Phaser.Scenes.SHUTDOWN) PE.App.goToRoom(fid); });
+        return;
+      }
       this.peeking = true;
       const go = () => { this.peeking = false; if (this.sys.settings.status < Phaser.Scenes.SHUTDOWN) PE.App.goToRoom(fid); };
       const peekId = v.artId.replace('BLD-', 'PEEK-');

@@ -32,6 +32,8 @@ globalThis.PE.Data.animMoves = {
     talk: { set: ['TALK', 'TALKFRONT'], fps: 7, loop: true },
     // At the counter, waiting to be served: the reach-out's first frame (hand at rest) with a gentle bob.
     // Job 19: no reach-out drawn yet: frame 01 of the walk (or skate) away from us, facing the counter.
+    // Job 20: a van standing in its bay at the depot: its first driving frame, facing you.
+    parked: { set: ['DRIVEFRONT', 'DRIVEAWAY'], first: true, from: 1, to: 1, hold: true },
     order: { set: ['TALKAWAY', 'TALK', 'WALKAWAY', 'SKATEAWAY'], first: true, from: 1, to: 1, hold: true, bob: true },
     happy: { set: ['HAPPY', 'REACT', 'FULL'], fps: 8, hold: true },
     // Job 17: the files called TALK<facing> are a reach-out (paying, taking the bag), not talking. Played once at the

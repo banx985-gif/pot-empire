@@ -42,6 +42,7 @@ globalThis.PE.Data.tutorial = {
     { id: 'managers', move: 'cheer', rule: 'hasManager', who: 'BUDZ', face: 'BUDZ-21', text: 'You got a manager! Collection tab, then Managers. Put them on a station and they work for you. Duplicates level them up!' },
     { id: 'shop', move: 'think', rule: 'hasRetail', who: 'LEAFY', face: 'LEAFY-28', text: "You own a shop! Tap a shelf, then drag a product onto it. Customers buy by themselves, even while you're away. In the game. Only in the game." },
     { id: 'factory', move: 'clap', rule: 'hasFactory', who: 'HAZE', face: 'HAZE-40', text: "A factory! Tap a machine to start it. When it's done a crate pops out. Tap the crate. That's it. That's the job." },
+    { id: 'depot', move: 'clap', rule: 'inDepot', who: 'HAZE', face: 'HAZE-40', text: "The depot! Drag a crate onto a van and off it goes. Tap a van to see when it's back. It always comes back. Mostly." },
     { id: 'recipes', move: 'think', rule: 'inFactory', who: 'LEAFY', face: 'LEAFY-24', text: 'Each product has a recipe card. Green ticks mean you have enough. Red means go and make the missing thing first.' },
     { id: 'festival', move: 'cheer', rule: 'festivalOn', who: 'BUDZ', face: 'BUDZ-48', text: 'FESTIVAL! Every harvest scores points, and there are prizes all the way up. Tap Festival on the map.' },
     { id: 'prestige', move: 'chat', rule: 'prestigeOpen', who: 'HAZE', face: 'HAZE-38', text: "Prestige is open. You restart one district's gear for shares that boost every harvest forever. It's optional. No rush, kid." },

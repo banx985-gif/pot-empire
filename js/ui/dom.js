@@ -263,7 +263,7 @@
         if (g.facilities.canBuyStation(fid)) bar += `<button class="btn buy" data-act="buyStation">+ Station ${money(g.facilities.nextStationCost(fid))}</button>`;
       }
       if (route && route.name === 'empire' && !Dom.panelRoute && PE.MapBar) bar = PE.MapBar.html();
-      if (route && route.name === 'bizroom' && !Dom.panelRoute) bar = `<button class="btn go" data-act="manage">${icon('BIZ-06', 24)}Manage</button>`;
+      if (route && (route.name === 'bizroom' || route.name === 'depot') && !Dom.panelRoute) bar = `<button class="btn go" data-act="manage">${icon('BIZ-06', 24)}Manage</button>`;
       this.set('actionbar', bar);
       if (PE.GrowTools) PE.GrowTools.sync();
 

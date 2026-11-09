@@ -62,6 +62,7 @@
       },
       hasManager: () => Object.keys(state.managers.owned).length > 0,
       hasRetail: () => g.facilities.rows.some((r) => r.mode === 'Retail' && g.facilities.isOwned(r.id)),
+      inDepot: () => view.route() === 'depot',
       hasFactory: () => g.facilities.rows.some((r) => r.mode === 'Factory' && g.facilities.isOwned(r.id)),
       inFactory: () => panelIs('business') && g.facilities.row(view.params().fid).mode === 'Factory',
       festivalOn: () => g.meta.festivalNow().active,
