@@ -6,9 +6,12 @@
   class TitleScreen extends Phaser.Scene {
     constructor() { super('title'); }
     // The next splash in turn, remembered on this phone (if it can't be, one at random).
+    // Picked once per start: the title can be drawn again (sound starting up restarts it) without moving on.
     static nextSplash() {
+      if (TitleScreen.splashNow) return TitleScreen.splashNow;
       let n = Math.floor(Math.random() * SPLASHES.length);
       try { const last = Number(localStorage.getItem('pe-splash')); if (Number.isFinite(last) && localStorage.getItem('pe-splash') !== null) n = (last + 1) % SPLASHES.length; localStorage.setItem('pe-splash', String(n)); } catch (e) { /* private window: random */ }
+      TitleScreen.splashNow = SPLASHES[n];
       return SPLASHES[n];
     }
 
