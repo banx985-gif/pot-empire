@@ -13,7 +13,7 @@
 // sits in the corner of the grow room: harvested buds fly into it.
 (function (PE) {
   const $ = (id) => document.getElementById(id);
-  const calm = () => (PE.App && PE.App.state.settings.reducedMotion);
+  const calm = () => (PE.App && PE.App.calm());
   const HAND = '<img src="assets/ui/ACT-10.webp" alt="" draggable="false">';
   // The harvest tools, best last. Unlocked by player level; the best one you have is the one you swing.
   const LIST = [

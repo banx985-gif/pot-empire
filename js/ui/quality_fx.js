@@ -56,7 +56,7 @@
       const mark = ['', '▲ F', '■ P', '◆ T', '★ E'][grade];
       c.add(scene.add.text(0, -150, mark, { fontFamily: 'system-ui, sans-serif', fontStyle: '900', fontSize: '26px', color: '#ffffff', stroke: '#1d0f33', strokeThickness: 6 }).setOrigin(0.5));
     }
-    if (!PE.App.state.settings.reducedMotion) {
+    if (!PE.App.calm()) {
       c.tween = scene.tweens.add({ targets: c, alpha: 0.55, yoyo: true, repeat: -1, duration: 800, ease: 'Sine.easeInOut' });
       c.once('destroy', () => c.tween.stop());
     }

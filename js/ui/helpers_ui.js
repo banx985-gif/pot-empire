@@ -16,7 +16,7 @@
   const $ = (id) => document.getElementById(id);
   const B = () => PE.App.g.B;
   const Art = () => PE.Data.helperSprites;
-  const still = () => PE.App.state.settings.reducedMotion;
+  const still = () => PE.App.calm();
 
   const HelperArt = {
     url: (id) => `assets/helpers/${id}.webp`,

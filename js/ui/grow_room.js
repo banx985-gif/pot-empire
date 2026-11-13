@@ -88,10 +88,10 @@
       this.helperLife = null;
       this.refresh(true);
       this.ready = true;
-      if (!PE.App.state.settings.reducedMotion && !this.testOverride) this.cameras.main.fadeIn(170, 20, 10, 36);
+      if (!PE.App.calm() && !this.testOverride) this.cameras.main.fadeIn(170, 20, 10, 36);
     }
 
-    calm() { return PE.App.state.settings.reducedMotion || this.testOverride; }
+    calm() { return PE.App.calm() || this.testOverride; }
 
     brighten() {
       const cam = this.cameras.main;
@@ -562,7 +562,7 @@
       const t = this.add.text(x, y, label, {
         fontFamily: FONT, fontStyle: 'bold', fontSize: '30px', color: e.grade >= 3 ? '#ffd84d' : '#c6ff3d', stroke: '#1d0f33', strokeThickness: 6,
       }).setOrigin(0.5).setDepth(100001);
-      const still = PE.App.state.settings.reducedMotion;
+      const still = PE.App.calm();
       this.tweens.add({ targets: t, y: still ? y : y - 70, alpha: 0, duration: still ? 900 : 1100, ease: 'Sine.easeOut', onComplete: () => t.destroy() });
     }
 
@@ -966,7 +966,7 @@
       view.sprayOn = watering;
       // The animated spray moves by itself: no pulse needed.
       if (view.sprayAnim) { view.sprayAnim.on = watering; return; }
-      const calm = PE.App.state.settings.reducedMotion || this.testOverride;
+      const calm = PE.App.calm() || this.testOverride;
       if (watering && !calm && !view.sprayTween) {
         fx.setAlpha(0.45);
         const y0 = fx.y;
@@ -1299,7 +1299,7 @@
         pv.fx = PE.QualityFx.create(this, x, pos.y + spot.rim + WORLD.potBaseForFx, p.q);
         if (pv.fx) pv.fx.setDepth(depth + 5);
       }
-      if (PE.App.state.settings.reducedMotion || this.testOverride) return;
+      if (PE.App.calm() || this.testOverride) return;
       const base = pv.img.scaleX;
       pv.tween = this.tweens.add({ targets: pv.img, scaleX: base * 1.03, scaleY: base * 1.03, yoyo: true, repeat: -1, duration: 650, ease: 'Sine.easeInOut' });
     }

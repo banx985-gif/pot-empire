@@ -47,7 +47,10 @@
     function scheduleGift(G) {
       const T = B.map.gift;
       const roll = PE.Rng.roll(`${state.rng.seed}:giftwait:${G.day}:${G.count}`);
-      G.nextMs = g.now() + (T.minMinutes + roll * (T.maxMinutes - T.minMinutes)) * 60000;
+      // Job 24: the very first gift of a new game comes sooner (Terpz's balloon, the first-hour "wow").
+      const first = !(state.stats.giftsClaimed > 0) && G.count === 0 && T.firstMaxMinutes;
+      const lo = first ? T.firstMinMinutes : T.minMinutes, hi = first ? T.firstMaxMinutes : T.maxMinutes;
+      G.nextMs = g.now() + (lo + roll * (hi - lo)) * 60000;
     }
     function giftState() {
       const m = mapState();
@@ -296,6 +299,7 @@
         const n = G.count;
         let text = '';
         const ran = g.once(`gift:${G.day}:${n}`, () => {
+          state.stats.giftsClaimed = (state.stats.giftsClaimed || 0) + 1;
           const roll = PE.Rng.roll(`${state.rng.seed}:gift:${G.day}:${n}`);
           let sum = 0;
           const prizes = B.map.gift.prizes;

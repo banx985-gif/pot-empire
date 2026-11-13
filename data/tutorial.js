@@ -33,7 +33,7 @@ globalThis.PE.Data.tutorial = {
     { id: 'upgrade', who: 'BUDZ', face: 'BUDZ-21', text: 'A bigger light! Faster plants!', point: 'upgradeLight', until: 'upgraded', needs: 'stationOpen', skipIf: 'stationShut' },
     { id: 'closeSheet', who: 'LEAFY', face: 'LEAFY-03', text: 'Good. Close that before Budz buys another.', point: 'closePanel', until: 'noPanel', skipIf: 'stationShut' },
     { id: 'toMap', who: 'BUDZ', face: 'BUDZ-37', text: "Now the fun bit. Let's see the neighbourhood!", point: 'navEmpire', until: 'onMap', skipIf: 'onMap' },
-    { id: 'map', who: 'HAZE', face: 'HAZE-42', move: 'clap', talk: true, text: "This is Old Town. Tap a building to go in. A red mark means something's waiting. That's the job. I'm gonna have a nap.", until: 'next' },
+    { id: 'map', who: 'HAZE', face: 'HAZE-42', move: 'clap', talk: true, text: "This is Old Town. Tap a building to go in. A red mark means it needs you. I'm off for a nap.", until: 'next' },
   ],
 
   hints: [

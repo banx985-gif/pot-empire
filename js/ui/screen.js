@@ -40,7 +40,7 @@
     const zone = scene.add.zone(x, y, w, h).setInteractive({ useHandCursor: true });
     zone.on('pointerup', onTap);
     const parts = [text];
-    if (!(PE.App.state.settings.reducedMotion)) {
+    if (!(PE.App.calm())) {
       zone.on('pointerdown', () => { for (const p of parts) p.setScale((p.sx0 || 1) * 0.94, (p.sy0 || 1) * 0.94); });
       const up = () => { for (const p of parts) scene.tweens.add({ targets: p, scaleX: p.sx0 || 1, scaleY: p.sy0 || 1, duration: 130, ease: 'Back.easeOut' }); };
       zone.on('pointerup', up);

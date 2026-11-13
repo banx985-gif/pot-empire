@@ -7,7 +7,8 @@
 // sound. If the music can't load, the old quiet generated chords play instead.
 // Sound only starts after the first tap, as phones require.
 (function (PE) {
-  const settings = () => PE.App.state.settings;
+  // Job 24: Mute silences everything and stays on until it's switched off (the volume sliders keep their places).
+  const settings = () => { const s = PE.App.state.settings; return s.muted ? { ...s, sound: 0, music: 0 } : s; };
 
   // The stand-in tones: [ [frequency Hz, start s, length s, wave], ... ]
   const TONE_ONLY = new Set(['pump', 'spray']);   // no file to fetch
@@ -189,7 +190,7 @@
     const s = settings();
     const root = document.documentElement;
     root.classList.toggle('big-text', !!s.bigText);
-    root.classList.toggle('calm', !!s.reducedMotion);
+    root.classList.toggle('calm', !!(s.reducedMotion || s.lowPower));
     root.classList.toggle('cb', !!s.colourBlind);
     Fps.sync();
     Sound.syncMusic();
@@ -230,6 +231,11 @@
     after(g.business, 'claimLine', collected);
     after(g.business, 'claimRoute', collected);
     after(g.calendar, 'claim', collected);
+    // Job 24: the VIP order paid, the weekly event prizes, a Bud Match level won or lost, a free seed pack.
+    if (g.meta.claimVip) after(g.meta, 'claimVip', (r) => { if (r && r.ok) { Sound.play('rare'); Haptics.medium(); } });
+    if (g.eventHub) after(g.eventHub, 'claimMilestone', (r) => { if (r && r.ok) { Sound.play('chest'); Haptics.medium(); } });
+    if (g.eventHub) after(g.eventHub, 'finish', (r) => { if (r && r.ok) Sound.play(r.newStars || r.text ? 'celebrate' : 'collect'); });
+    if (g.lounge) after(g.lounge, 'place', (r) => { if (r && r.ok) Sound.play('upgrade'); });
     const toast = PE.Dom.toast.bind(PE.Dom);
     PE.Dom.toast = (text, kind, iconId) => { if (/^Not |^No more|switched off/.test(text)) Sound.play('error'); toast(text, kind, iconId); };
 

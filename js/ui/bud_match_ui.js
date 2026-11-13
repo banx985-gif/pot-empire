@@ -6,7 +6,7 @@
   const g = () => PE.App.g;
   const M = () => PE.BudMatch;
   const D = () => PE.Data.eventHub.budMatch;
-  const calm = () => PE.App.state.settings.reducedMotion;
+  const calm = () => PE.App.calm();
   const wait = (ms) => new Promise((ok) => setTimeout(ok, calm() ? 0 : ms));
   const SWAP_MS = 150, POP_MS = 200, FALL_MS = 230;
 
@@ -109,7 +109,8 @@
       root.querySelector('.bm-goal').innerHTML = M().goalProgress(b).map((x) => x.what === 'score'
         ? `<span class="bm-chip ${x.have >= x.need ? 'done' : ''}">${icon('RWD-05', 22)}<b>${Math.min(x.have, x.need)}/${x.need}</b><small>score</small></span>`
         : `<span class="bm-chip ${x.have >= x.need ? 'done' : ''}">${icon(D().tiles[x.what], 22)}<b>${x.have}/${x.need}</b><small>${esc(names[x.what])}</small></span>`).join('');
-      root.querySelector('.bm-moves b').textContent = b.movesLeft;
+      const mv = root.querySelector('.bm-moves b');
+      if (mv.textContent !== String(b.movesLeft)) { mv.textContent = b.movesLeft; mv.classList.remove('bump'); void mv.offsetWidth; mv.classList.add('bump'); }
       root.querySelector('.bm-score b').textContent = b.score;
     },
 
@@ -166,7 +167,7 @@
           const [ax, ay] = UI.xy(s.a), [bx, by] = UI.xy(s.b);
           if (A) A.style.transform = `translate(${bx}px, ${by}px)`;
           if (B) B.style.transform = `translate(${ax}px, ${ay}px)`;
-          if (s.type === 'back') { A && A.classList.add('nope'); B && B.classList.add('nope'); }
+          if (s.type === 'back') { A && A.classList.add('nope'); B && B.classList.add('nope'); if (PE.Sound) PE.Sound.play('error'); }
           await wait(SWAP_MS + 20);
           if (s.type === 'back') { if (A) { A.style.transform = `translate(${ax}px, ${ay}px)`; A.classList.remove('nope'); } if (B) { B.style.transform = `translate(${bx}px, ${by}px)`; B.classList.remove('nope'); } await wait(SWAP_MS); }
           else { const t = prev[s.a]; prev = prev.slice(); prev[s.a] = prev[s.b]; prev[s.b] = t; }
@@ -174,6 +175,7 @@
           // The swapped board, before this wave: pop what's gone.
           for (const n of s.cells) { const t = prev[n]; const el = t && UI.els.get(t.id); if (el && !(s.snap[n] && s.snap[n].id === t.id)) el.classList.add('pop'); }
           if (s.chain >= 2 || s.why.length) UI.burst(s);
+          if (PE.Sound) PE.Sound.play(s.why.length ? 'rare' : s.chain >= 2 ? 'collect' : 'harvest');
           await wait(POP_MS);
           UI.place(s.snap.map((t) => t), true);
           prev = s.snap;

@@ -877,3 +877,9 @@ html.fast-time #hud::after { content: 'FAST TIME: NOT SAVING'; display: block; t
 .lg-card small { font-size: 11px; color: #d8cce8; line-height: 1.2; }
 .lg-pic { height: 72px; width: auto; object-fit: contain; }
 .lg-warn { color: var(--gold); font-weight: 800; }
+
+/* Job 24: a small bounce when a counter changes (Bud Match's moves). */
+.bump { display: inline-block; animation: bump .25s cubic-bezier(.3,1.8,.5,1); }
+@keyframes bump { 0% { transform: scale(1); } 45% { transform: scale(1.25); } 100% { transform: scale(1); } }
+.calm .bump { animation: none; }
+.help-row .ico { flex: none; }

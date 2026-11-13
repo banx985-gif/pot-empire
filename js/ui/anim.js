@@ -7,7 +7,7 @@
 (function (PE) {
   const Pick = () => PE.AnimPick;
   const Art = () => PE.Data.animArt;
-  const calm = () => (PE.App && PE.App.state.settings.reducedMotion);
+  const calm = () => (PE.App && PE.App.calm());
   const shuffled = (list, count) => { const out = []; for (let i = 0; i < count; i++) out.push(list[Math.floor(Math.random() * list.length)]); return out; };
   // Job 22B, one standing-height rule for everyone: a person is scaled by how tall they really stand in their pictures
   // (measured by tools/import_anim_art.js, PE.Data.animArt.stand), so Haze, Budz, Leafy and every customer given the same

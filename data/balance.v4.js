@@ -529,6 +529,8 @@ globalThis.PE.Data.balance = {
       perDay: 5,             // the most that can be claimed in one day
       minMinutes: 8,         // shortest wait before the next one
       maxMinutes: 25,        // longest wait
+      firstMinMinutes: 4,    // job 24: the first gift of a new game comes sooner (the first-hour "wow": Terpz's balloon)
+      firstMaxMinutes: 10,
       missedMinutes: 6,      // if one flies past untapped, the next comes this soon (nothing is lost)
       flySeconds: 28,        // how long it stays on screen
       prizes: [

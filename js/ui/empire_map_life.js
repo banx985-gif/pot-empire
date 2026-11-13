@@ -454,7 +454,7 @@
       PE.Anim.lastHanded = key;
       const size = actor.height * 0.34;
       const s = scene.add.image(actor.x + actor.height * 0.3, actor.y - actor.height * 0.5, key).setDisplaySize(size, size).setDepth(actor.image.depth + 1);
-      if (PE.App.state.settings.reducedMotion) { scene.time.delayedCall(400, () => s.destroy()); return; }
+      if (PE.App.calm()) { scene.time.delayedCall(400, () => s.destroy()); return; }
       scene.tweens.add({ targets: s, y: s.y - actor.height * 0.45, x: s.x + actor.height * 0.12, alpha: 0, duration: 800, ease: 'Sine.easeOut', onComplete: () => s.destroy() });
     });
   };

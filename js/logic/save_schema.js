@@ -5,7 +5,7 @@
 //
 // Saves hold plain facts only (ids, numbers, UTC times), never anything from Phaser.
 (function (PE) {
-  const CURRENT_VERSION = 9;
+  const CURRENT_VERSION = 10;
 
   function newCollections() {
     return { owned: {}, productsUnlocked: {}, relicsByDistrict: {}, stickersByBusiness: {}, decorByFacility: {}, packagingBySku: {}, loadouts: [] };
@@ -25,7 +25,9 @@
   function newSettings() {
     return { reducedMotion: false, helpers: true, sound: 0.8, music: 0.5, bigText: false, colourBlind: false, showFps: false, pretendShop: false, haptics: true,
       // Phone notifications (job 18): the main switch and one for each kind.
-      notify: true, notifyHarvest: true, notifyTank: true, notifyOrders: true, notifyDaily: true, notifyEvents: true };
+      notify: true, notifyHarvest: true, notifyTank: true, notifyOrders: true, notifyDaily: true, notifyEvents: true,
+      // Job 24: Low power (fewer moving things, 30 frames a second when nothing moves) and the muted switch that sticks.
+      lowPower: false, muted: false };
   }
 
   // The first-time guide and the one-time hints. done means the guide won't start by itself.
@@ -192,6 +194,25 @@
       s.settings = { ...newSettings(), ...(s.settings || {}) };
       s.tutorial = { ...newTutorial(), ...(s.tutorial || {}), done: true, oldSave: true };
       s.consent = { ...newConsent(), ...(s.consent || {}) };
+      return s;
+    },
+    // Version 10 (job 24): everything jobs 19 to 26 added, filled in with its starting value, so an old save never meets
+    // a missing piece. (Each of those parts also makes itself on first use, so saves from those jobs work either way.)
+    //   job 21: play time, how many times the game's been opened, the notification question, tips already shown
+    //   job 22: rooms visited and when the last phone call was;  job 23: the Event Hub;  job 26: the lounges
+    //   job 24: Low power and mute
+    9(old) {
+      const s = old;
+      s.settings = { ...newSettings(), ...(s.settings || {}) };
+      s.ui = { garageStrainId: 'STR-001', ...(s.ui || {}) };
+      const ui = s.ui;
+      if (!Number.isFinite(ui.playMs)) ui.playMs = 0;
+      if (!Number.isFinite(ui.opens)) ui.opens = 0;
+      if (!Array.isArray(ui.tipsSeen)) ui.tipsSeen = [];
+      if (!Array.isArray(ui.tipsOnce)) ui.tipsOnce = [];
+      if (!Array.isArray(ui.roomsSeen)) ui.roomsSeen = Object.keys(s.facilities || {});   // rooms they've had: not a first visit
+      s.eventHub = s.eventHub || { levels: {}, week: null, stars: 0, weekBest: {}, wins: {}, milestones: {}, paidDay: null, paid: { day: {}, week: {} }, force: false };
+      s.lounge = s.lounge || { rooms: {} };
       return s;
     },
   };

@@ -11,6 +11,7 @@
   const slider = (key, title) => `<label class="item slider"><div class="grow"><b>${title}</b><small>${Math.round(S()[key] * 100)}%</small></div>
     <input type="range" min="0" max="100" step="5" value="${Math.round(S()[key] * 100)}" data-change="vol:${key}" aria-label="${title}"></label>`;
 
+  // Job 24: each with a picture from the game (an icon from art/ui). Up to three short lines each.
   const HELP = [
     ['Grow', 'Tap an empty pot to plant. Plants grow through five stages; tap a ripe one to harvest. Harvests sell by themselves.'],
     ['Upgrade', 'Tap a station\'s bench to upgrade its light, sprinkler, pots, computer and pot count. A new hydro model resets the parts but grows much more.'],
@@ -19,14 +20,23 @@
     ['Collect', 'Managers, relics, stickers, vehicles, products, packaging and decorations each help in their own way. Duplicates turn into Collection Tokens.'],
     ['Prestige', 'Optional. Restart one district\'s equipment for Empire Shares that raise every harvest forever.'],
     ['Breaks are fine', 'Nothing dies, no streaks are lost, and there\'s no energy to wait for.'],
+    ['Shops', 'Tap a shelf, then drag a product onto it. Customers walk in and buy by themselves, even while you\'re away.'],
+    ['Factory', 'Tap a machine to start a batch. When it\'s done a crate pops out: tap it to collect. Each recipe card shows what it needs.'],
+    ['Depot', 'Drag a crate onto a van to send a delivery. Tap a van to see when it\'s back.'],
+    ['Map', 'Tap a building to go in. A red mark means something\'s waiting. Locked plots show their price or level on the sign.'],
+    ['Events', 'One day a week is Event Day: tap Event on the map and play Bud Match for stars and weekly prizes.'],
+    ['Lounge', 'In a big enough grow room, the Lounge button puts in a TV and a seat. The helpers come over and play.'],
   ];
+  const HELP_ICON = { Grow: 'ACT-01', Upgrade: 'UPG-01', Automate: 'ACT-05', Expand: 'NAV-01', Collect: 'COL-01', Prestige: 'GOL-04', 'Breaks are fine': 'STA-01',
+    Shops: 'BIZ-01', Factory: 'BIZ-02', Depot: 'BIZ-03', Map: 'NAV-02', Events: 'GOL-03', Lounge: 'COL-06' };
+  PE.Help = { HELP, HELP_ICON };
 
   PE.Panels.settings = {
     title: 'Settings and help',
     render() {
       const s = S();
       const build = PE.BUILD.startsWith('__') ? 'dev' : PE.BUILD;
-      return `<h4>Sound</h4>${slider('sound', 'Sound effects')}${slider('music', 'Music')}
+      return `<h4>Sound</h4>${toggle('muted', 'Mute', 'Silence all sound and music. Stays muted until you switch it off')}${slider('sound', 'Sound effects')}${slider('music', 'Music')}
         ${toggle('haptics', 'Vibration', 'A gentle buzz on harvest, collect and level up')}
         <h4>Notifications</h4>
         ${toggle('notify', 'Notifications', 'A shout from Uncle Haze when something is ready. Never at night, only a few a day.')}
@@ -35,6 +45,7 @@
         <div class="item"><div class="grow"><b>Event day</b><small>The day of the week the Weekly Event Day runs, by your phone's date. Tap to change.</small></div>
           <button class="btn small go" data-act="eventDay">${PE.EventHub.DAYS[g().eventHub.eventDay()]}</button></div>
         <h4>Look and feel</h4>
+        ${toggle('lowPower', 'Low power', 'Saves battery: fewer moving things and effects, 30 frames a second')}
         ${toggle('reducedMotion', 'Reduced motion', 'Fewer moving effects; celebrations stay still')}
         <div class="item"><div class="grow"><b>Text size</b><small>The writing in menus and pop-ups. Tap to change.</small></div>
           <button class="btn small go" data-act="flip:bigText" aria-pressed="${!!s.bigText}">${s.bigText ? 'Large' : 'Normal'}</button></div>
@@ -53,18 +64,27 @@
         <button class="btn wide go" data-act="replayGuide">${PE.Dom.icon('SYS-02', 22)}Replay tutorial</button>
         <button class="btn wide plain" data-act="replayIntro">Replay intro</button>
         ${PE.HelperArt.says(PE.Data.helperSprites.screens.howToPlay, PE.Data.helperSprites.words.howToPlay, 'Leafy')}
-        ${HELP.map(([t, x]) => `<div class="item"><div class="grow"><b>${esc(t)}</b><small>${esc(x)}</small></div></div>`).join('')}
+        <button class="btn wide plain" data-act="help">${PE.Dom.icon('SYS-02', 22)}Help: how each place works</button>
         <p class="muted" data-act="version">Build ${esc(build)} · Balance table v${g().B.tableVersion} (provisional) · Save version ${PE.SaveSchema.CURRENT_VERSION}</p>
         <p class="muted">Music and ambience by TomMusic. Sound effects from ESM's Vibrant Game.</p>
-        <p class="muted">A fictional game for adults. Nothing here is real advice or a real product.${s ? '' : ''}</p>`;
+        <h4>Purchases</h4>
+        <button class="btn wide plain" data-act="restorePurchases">Restore purchases</button>
+        <h4>About</h4>
+        <p class="muted"><b>18+ only.</b> A fictional game for adults. Nothing here is real advice or a real product, and nothing in it can be bought or sold for real.</p>
+        <p class="muted"><b>Privacy:</b> the game keeps your progress on this phone only. It has no account, sends nothing about you anywhere and has no tracking. Purchases (if switched on) go through Google Play.</p>
+        <p class="muted"><b>Credits:</b> made by Banx Games. Art by Aaron. Music and ambience by TomMusic. Sound effects from ESM's Vibrant Game.</p>`;
     },
     actions: {
       eventDay() { g().eventHub.setDay((g().eventHub.eventDay() + 1) % 7); PE.App.saveGame(); },
       version() { PE.Tester.tapVersion(); },
       flip(key) {
         S()[key] = !S()[key]; changed();
+        if (key === 'muted') PE.Sound.syncMusic();
+        if (key === 'lowPower' && PE.App.wakeFrames) PE.App.wakeFrames();
         if (/^notify/.test(key)) { PE.Notify.changed(); if (key === 'notify' && S().notify) PE.Notify.check(true); PE.Dom.renderPanel(); } if (key === 'colourBlind') PE.Look.redrawRoom(); },
       vol(key, v) { S()[key] = Math.max(0, Math.min(1, Number(v) / 100)); changed(); if (key === 'sound') PE.Sound.play('tap'); },
+      help() { PE.App.router.go('help', {}); },
+      restorePurchases() { PE.Store.restore(); },
       replayList() { PE.App.router.go('helperReplay', {}); },
       replayIntro() { PE.Intro.show(true); },
       replayGuide() {
@@ -139,5 +159,13 @@
       }
       if (t.dataset && t.dataset.change) PE.Dom.runAction(`${t.dataset.change}:${t.value}`);
     });
+  };
+
+  // Job 24: the Help page: how each place works, in a few short lines, each with a picture from the game.
+  PE.Panels.help = {
+    title: 'Help',
+    render() {
+      return `<p class="muted">How each part of the game works. Tap Back to return.</p>` + HELP.map(([t, x]) => `<div class="item help-row">${PE.Dom.icon(HELP_ICON[t] || 'SYS-02', 44)}<div class="grow"><b>${esc(t)}</b><small>${esc(x)}</small></div></div>`).join('');
+    },
   };
 })(globalThis.PE = globalThis.PE || {});

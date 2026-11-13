@@ -24,6 +24,9 @@
     (function () {
       var total = 94, got = 0, shown = 0, start = Date.now();
       var P = window.PE_PEELOFF, peelStart = 0, peelEnd = 0, peelMs = 0, i;
+      // Job 24: Budz's 5 second peel-off only on the first open of the day (by the phone's date); after that the game
+      // comes straight in as soon as it's loaded.
+      try { var today = new Date().toDateString(); if (localStorage.getItem('pe-peel-day') === today) P = null; else localStorage.setItem('pe-peel-day', today); } catch (e) { /* no storage: play it */ }
       if (P) for (i = 0; i < P.steps.length; i++) peelMs += P.steps[i][1];
       function bar(t) {
         var b = document.getElementById('load-bar'), c = document.getElementById('load-cart');

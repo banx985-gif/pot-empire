@@ -11,7 +11,7 @@
 (function (PE) {
   const $ = (id) => document.getElementById(id);
   const esc = (t) => PE.Dom.esc(String(t));
-  const calm = () => (PE.App && PE.App.state.settings.reducedMotion);
+  const calm = () => (PE.App && PE.App.calm());
   const scene = () => { const s = PE.App.game.scene.getScene('bizroom'); return s && s.scene.isActive() && s.ready ? s : null; };
   const worth = (n) => '$' + PE.Money.format(n);
 

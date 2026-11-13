@@ -56,7 +56,7 @@
     const put = () => {
       if (!im.scene) return;
       im.setTexture(key).setOrigin(ox, oy).setScale(k).setVisible(true);
-      if (name === 'neon-wall' && !(PE.App && PE.App.state.settings.reducedMotion)) {
+      if (name === 'neon-wall' && !(PE.App && PE.App.calm())) {
         scene.tweens.add({ targets: im, alpha: 0.82, duration: 1100, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
       }
     };

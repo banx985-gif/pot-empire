@@ -79,7 +79,7 @@
     hide(now) {
       const el = $('tipbox');
       Tips.now = null;
-      if (now || PE.App.state.settings.reducedMotion) { el.hidden = true; el.innerHTML = ''; Tips.fading = false; return; }
+      if (now || PE.App.calm()) { el.hidden = true; el.innerHTML = ''; Tips.fading = false; return; }
       Tips.fading = true;
       el.classList.add('out');
       setTimeout(() => { if (!Tips.now) { el.hidden = true; el.innerHTML = ''; } Tips.fading = false; }, FADE_MS);

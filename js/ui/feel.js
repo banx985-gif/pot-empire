@@ -2,7 +2,7 @@
 (function (PE) {
   const $ = (id) => document.getElementById(id);
   const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const calm = () => (PE.App && PE.App.state.settings.reducedMotion);
+  const calm = () => (PE.App && PE.App.calm());
 
   PE.Loading = {
     // Budz's peel-off plays once to the end (about 5 s from the page opening) before the loading screen goes, unless

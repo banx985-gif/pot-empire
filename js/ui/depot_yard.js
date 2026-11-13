@@ -14,7 +14,7 @@
   class DepotYard extends Phaser.Scene {
     constructor() { super('depot'); }
     init(params) { this.fid = params.fid; }
-    calm() { return PE.App.state.settings.reducedMotion; }
+    calm() { return PE.App.calm(); }
 
     create() {
       this.g = PE.App.g;

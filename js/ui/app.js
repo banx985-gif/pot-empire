@@ -76,6 +76,8 @@
       dpr: size.dpr, router, g, state: loaded.state, saveNotice: notice, loadResult: loaded,
       saveGame: () => saves.save(app.state),
       saves,
+      // Job 24: "calm" = Reduced motion or Low power: fewer moving things. Every effect asks this one question.
+      calm: () => !!(app.state.settings.reducedMotion || app.state.settings.lowPower),
     };
     PE.App = app;
     PE.Dom.init();
@@ -131,11 +133,12 @@
     // move at the right speed (Phaser passes on the time that passed), just with fewer pictures.
     const IDLE_FPS = 30, IDLE_AFTER_MS = 4000;
     let lastInput = performance.now();
-    const busy = () => { lastInput = performance.now(); if (game.loop) game.loop._limitRate = 0; };
+    // Low power (job 24): 30 a second all the time, not just when idle.
+    const busy = () => { lastInput = performance.now(); if (game.loop) game.loop._limitRate = app.state.settings.lowPower ? 1000 / IDLE_FPS - 2 : 0; };
     ['pointerdown', 'pointermove', 'wheel', 'keydown'].forEach((t) => window.addEventListener(t, busy, { capture: true, passive: true }));
     game.events.once('ready', () => { game.loop._limitRate = 0; });
     setInterval(() => {
-      if (game.loop && performance.now() - lastInput > IDLE_AFTER_MS) game.loop._limitRate = 1000 / IDLE_FPS - 2;
+      if (game.loop && (app.state.settings.lowPower || performance.now() - lastInput > IDLE_AFTER_MS)) game.loop._limitRate = 1000 / IDLE_FPS - 2;
     }, 500);
     app.wakeFrames = busy;
 

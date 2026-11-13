@@ -34,7 +34,7 @@
     constructor() { super('bizroom'); }
     init(params) { this.fid = params.fid; }
 
-    calm() { return PE.App.state.settings.reducedMotion; }
+    calm() { return PE.App.calm(); }
     spot(i) {
       if (this.room && this.room.spots[i]) return this.room.spots[i];
       return { x: MARGIN + CELL_W / 2 + (i % COLS) * CELL_W, y: WALL + TOP_GAP + CELL_H / 2 + Math.floor(i / COLS) * CELL_H };

@@ -5,7 +5,7 @@
 // and all the moves in data/anim_moves.js. Kept light: at most two helpers on a screen, off-screen ones are paused, and
 // with reduced motion they stand still (and can still be tapped).
 (function (PE) {
-  const calm = () => (PE.App && PE.App.state.settings.reducedMotion);
+  const calm = () => (PE.App && PE.App.calm());
   const FONT = 'system-ui, sans-serif';
   const pick = (list) => list[Math.floor(Math.random() * list.length)];
   const rand = (a, b) => a + Math.random() * (b - a);
