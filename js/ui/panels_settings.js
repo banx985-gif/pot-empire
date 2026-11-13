@@ -31,6 +31,9 @@
         <h4>Notifications</h4>
         ${toggle('notify', 'Notifications', 'A shout from Uncle Haze when something is ready. Never at night, only a few a day.')}
         ${s.notify ? PE.Notify.KINDS.map((k) => toggle(k.key, k.title, k.text)).join('') : ''}
+        <h4>Events</h4>
+        <div class="item"><div class="grow"><b>Event day</b><small>The day of the week the Weekly Event Day runs, by your phone's date. Tap to change.</small></div>
+          <button class="btn small go" data-act="eventDay">${PE.EventHub.DAYS[g().eventHub.eventDay()]}</button></div>
         <h4>Look and feel</h4>
         ${toggle('reducedMotion', 'Reduced motion', 'Fewer moving effects; celebrations stay still')}
         <div class="item"><div class="grow"><b>Text size</b><small>The writing in menus and pop-ups. Tap to change.</small></div>
@@ -56,6 +59,7 @@
         <p class="muted">A fictional game for adults. Nothing here is real advice or a real product.${s ? '' : ''}</p>`;
     },
     actions: {
+      eventDay() { g().eventHub.setDay((g().eventHub.eventDay() + 1) % 7); PE.App.saveGame(); },
       version() { PE.Tester.tapVersion(); },
       flip(key) {
         S()[key] = !S()[key]; changed();

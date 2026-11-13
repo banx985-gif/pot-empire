@@ -9,7 +9,12 @@
   const Art = () => PE.Data.animArt;
   const calm = () => (PE.App && PE.App.state.settings.reducedMotion);
   const shuffled = (list, count) => { const out = []; for (let i = 0; i < count; i++) out.push(list[Math.floor(Math.random() * list.length)]); return out; };
-  const sizeOf = (id) => (PE.Data.animMoves.size || {})[id] || 1;
+  // Job 22B, one standing-height rule for everyone: a person is scaled by how tall they really stand in their pictures
+  // (measured by tools/import_anim_art.js, PE.Data.animArt.stand), so Haze, Budz, Leafy and every customer given the same
+  // height stand the same height. sizeOf is only for a customer drawn a few percent taller or shorter on purpose
+  // (data/anim_moves.js size, kept within 0.95 to 1.05). Vehicles keep the old rule: the frame is about 92% of them.
+  const sizeOf = (id) => Math.min(1.05, Math.max(0.95, (PE.Data.animMoves.size || {})[id] || 1));
+  const standPx = (id) => (Art().stand && Art().stand[id]) || Art().small * 0.92;
 
   // A still picture, for those with no frames yet: portraits (M01), walkers (WLK-01), VIPs (VIP-01).
   function stillUrl(id) {
@@ -37,7 +42,7 @@
     constructor(scene, id, opts) {
       this.scene = scene;
       this.id = id;
-      this.height = opts.height * sizeOf(id);
+      this.height = opts.height * (Pick().isVehicle(id) ? 1 : sizeOf(id));
       this.x = opts.x;
       this.y = opts.y;
       this.fixedDepth = opts.depth;
@@ -162,7 +167,7 @@
         this.frame = play.order[0];
         // A 520 pixel frame is Art().small tall on the sheet, and a character stands about 92% of that.
         this.image.setTexture(key, play.order[0]).setOrigin(f.ox, f.oy).setFlipX(!!play.flip)
-          .setScale(this.height / (Art().small * 0.92)).setVisible(true);
+          .setScale(this.height / standPx(this.id)).setVisible(true);
         if (calm() && play.done) { const done = play.done; play.done = null; this.scene.time.delayedCall(0, () => { if (!this.gone) done(); }); }
       }, () => {
         if (token === this.token) this.wanted = null;
@@ -321,7 +326,7 @@
         const inner = el.querySelector('.anim-sheet');
         const rows = Math.ceil(f.n / f.cols);
         const size = el.clientHeight || parseFloat(el.style.height);
-        const scale = (size * sizeOf(id)) / (Art().small * 0.92);
+        const scale = (size * sizeOf(id)) / standPx(id);
         const w = f.w * scale, h = f.h * scale;
         inner.style.cssText = `width:${w}px;height:${h}px;left:${size / 2 - f.ox * w}px;top:${size - f.oy * h}px;background-image:url("${url}");background-size:${f.cols * 100}% ${rows * 100}%`;
         el.dataset.set = spec.set;
@@ -350,6 +355,10 @@
     moving: () => [...live].filter((a) => a.el.isConnected && a.fps > 0).length,
   };
 
-  PE.Anim = { Actor, stepAll, stillUrl, solidAt };
+  // Job 22B: how tall a person stands in each place, in that place's own world units. Helpers, customers, VIPs and
+  // managers all use the same number there (the old map had helpers twice the height of the customers).
+  const PERSON_H = { map: 62, shop: 300, grow: 560 };
+
+  PE.Anim = { Actor, stepAll, stillUrl, solidAt, PERSON_H, standPx };
   PE.AnimDom = AnimDom;
 })(globalThis.PE = globalThis.PE || {});

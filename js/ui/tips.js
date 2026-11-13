@@ -14,6 +14,10 @@
 
   const Tips = {
     now: null,          // the line on screen
+    extra: [],          // one-off tips waiting their turn (Tips.once)
+    // A one-off tip shows once ever (remembered in its own list, ui.tipsOnce), on the screen it's about.
+    onceSeen() { const ui = PE.App.state.ui; if (!Array.isArray(ui.tipsOnce)) ui.tipsOnce = []; return ui.tipsOnce; },
+    once(text, where = 'empire') { if (!Tips.extra.some((t) => t.text === text) && !Tips.onceSeen().includes(text)) Tips.extra.push({ text, where }); },
     hideAt: 0,
     fading: false,
     seen() {
@@ -41,12 +45,17 @@
       const el = $('tipbox');
       if (!el) return;
       if (Tips.busy()) { if (Tips.now) Tips.hide(true); return; }
-      const want = PE.Goals.current(app.g);
+      // A one-off tip (job 23: the Event button) goes ahead of the usual "what next" line until it's been seen.
+      // Only on the screen it's about (the Event button's tip on the map); elsewhere the usual line.
+      const here = app.router.current().name;
+      const one = Tips.extra.find((t) => t.where === here && (!Tips.onceSeen().includes(t.text) || Tips.now === t.text));
+      const want = one ? one.text : PE.Goals.current(app.g);
       // Done what it said: away it goes.
       if (Tips.now && Tips.now !== want) { Tips.markSeen(Tips.now); Tips.hide(); return; }
       if (Tips.now) { if (Date.now() >= Tips.hideAt) { Tips.markSeen(Tips.now); Tips.hide(); } else Tips.place(); return; }
       if (Tips.fading || Tips.seen().includes(want)) return;
       Tips.show(want);
+      if (one && !Tips.onceSeen().includes(one.text)) Tips.onceSeen().push(one.text);
     },
     show(text) {
       const el = $('tipbox');

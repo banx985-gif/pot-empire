@@ -8,7 +8,8 @@
   const REWARD_ICON = { cashHarvests: 'CUR-01', gems: 'CUR-02', boostMinutes: 'STA-02', seedPack: 'ACT-09' };
   const REWARD_NAME = { cashHarvests: 'Cash', gems: 'Gems', boostMinutes: 'Grow boost', seedPack: 'Seed pack' };
   const rewardText = (r) => Object.entries(r).filter(([, v]) => v).map(([k, v]) => `${icon(REWARD_ICON[k], 18)}${k === 'boostMinutes' ? `${v} min` : k === 'cashHarvests' ? `${v} harvests` : `${v}`}`).join(' ');
-  const starRow = (n, of = 3) => Array.from({ length: of }, (_, i) => `<i class="bm-star ${i < n ? 'on' : ''}">★</i>`).join('');
+  // The stars are the game's own star art (RWD-05), grey when not earned.
+  const starRow = (n, of = 3, size = 14) => Array.from({ length: of }, (_, i) => icon('RWD-05', size, `bm-star ${i < n ? 'on' : ''}`)).join('');
 
   // The words on the map button: "On now" or the countdown.
   function status() {

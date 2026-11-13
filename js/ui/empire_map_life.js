@@ -224,7 +224,7 @@
       w.actor.destroy();
       if (!pool.length) { w.gone = true; continue; }
       w.id = pool[Math.floor(Math.random() * pool.length)];
-      w.actor = new PE.Anim.Actor(this, w.id, { x: at.x, y: at.y, height: 46 });
+      w.actor = new PE.Anim.Actor(this, w.id, { x: at.x, y: at.y, height: PE.Anim.PERSON_H.map });
       w.sprite = w.actor.image;
       w.skate = PE.AnimPick.canSkate(w.id) && w.total > SKATE_FROM;
     }
@@ -300,7 +300,7 @@
       if (!way || way.length < 2) continue;
       const { seg, total } = lengths(way);
       // A walker with drawn frames walks for real. The others keep their still picture with a bob until theirs arrive.
-      const actor = PE.AnimPick.hasFrames(artId) ? new PE.Anim.Actor(this, artId, { x: way[0][0], y: way[0][1], height: 46 }) : null;
+      const actor = PE.AnimPick.hasFrames(artId) ? new PE.Anim.Actor(this, artId, { x: way[0][0], y: way[0][1], height: PE.Anim.PERSON_H.map }) : null;
       const sprite = actor ? actor.image : piece(this, way[0][0], way[0][1], artId, 44).setOrigin(0.5, 0.95);
       // The skater kid rides his board on the longer trips, faster than walking (job 17B).
       const skate = !!actor && PE.AnimPick.canSkate(artId) && total > SKATE_FROM;
@@ -353,7 +353,7 @@
     const nearest = (x, y, list = names) => list.slice().sort((p, q) => Math.hypot(L.nodes[p][0] - x, L.nodes[p][1] - y) - Math.hypot(L.nodes[q][0] - x, L.nodes[q][1] - y))[0];
     const home = spots[0] || { x: L.w / 2, y: L.h / 2 };
     const world = {
-      height: 100,
+      height: PE.Anim.PERSON_H.map,
       speed: 24,
       near: 170,
       textScale: () => PE.App.dpr / this.cameras.main.zoom,
@@ -407,7 +407,7 @@
       const id = this.g.collections.managersAt(fid)[0];
       if (!id) continue;
       const s = this.layout.spots[fid];
-      const actor = new PE.Anim.Actor(this, id, { x: s.x + s.w * 0.38, y: s.y + 10, height: 74 });
+      const actor = new PE.Anim.Actor(this, id, { x: s.x + s.w * 0.38, y: s.y + 10, height: PE.Anim.PERSON_H.map });
       this.life.managers.push({ id, fid, actor });
     }
   };

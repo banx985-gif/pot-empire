@@ -103,6 +103,11 @@ globalThis.PE.Data.scenes = {
     [['LEAFY', 'Just checking in!'], ['HAZE', 'We had lunch together.'], ['LEAFY', 'That was ages ago.']],
     [['LEAFY', 'Can you hear me now?'], ['HAZE', 'Twice, little buddy.'], ['LEAFY', 'Stereo!']],
   ],
+  // Job 23: Bud Match. Haze and Leafy cheer a big chain or a special tile going off.
+  budMatchCheers: {
+    HAZE: ['Far out!', 'Now THAT is a harvest!', 'Groovy combo, man!', 'Whoa. Did you see that?', 'Smooth moves.'],
+    LEAFY: ['Leaf-tastic!', 'Chain reaction!', 'Boom goes the bud!', 'Do it again!', 'So shiny!'],
+  },
   // Now and then, at random, when someone's standing about. weight: how likely. pop: a thought bubble that bursts at the end.
   liveMoves: {
     // Job 19B: a proper mix, so smoking is just one of the things they do. ROFL and CRUSH are rare.

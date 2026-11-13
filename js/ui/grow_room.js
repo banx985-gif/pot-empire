@@ -704,7 +704,7 @@
     // Haze and friends wander the gaps between the setups. Not during the guide: Haze is talking to you then.
     buildLife() {
       const R = this.room, box = R.box;
-      const opts = { height: 560, speed: 240, near: 1000, depth: 40000, textScale: () => PE.App.dpr / this.cameras.main.zoom };
+      const opts = { height: PE.Anim.PERSON_H.grow, speed: 240, near: 1000, depth: 40000, textScale: () => PE.App.dpr / this.cameras.main.zoom };
       // They walk on the open floor, in the gaps: never across a setup, or the spot of one still to come, and not in the strip
       // just behind one either (they're drawn in front, so it would look like walking through it).
       const spots = R.stations.slice(0, Math.max(this.open, this.stationCount()));

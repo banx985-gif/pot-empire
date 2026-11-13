@@ -47,7 +47,6 @@
       board.addEventListener('pointermove', UI.move);
       board.addEventListener('pointerup', UI.up);
       board.addEventListener('pointercancel', () => { UI.drag = null; });
-      root.querySelector('.bm-end').addEventListener('click', UI.endTap);
       for (const [cls, move] of [['.bm-haze', 'idle'], ['.bm-leafy', 'idle']]) PE.AnimDom.play(root.querySelector(cls), move);
     },
     // How big a cell is: the board fills the width, or the height that's left, whichever is smaller.
@@ -238,21 +237,19 @@
       const next = UI.n < H.levels().length && H.isOpen(UI.n + 1);
       const el = UI.root().querySelector('.bm-end');
       el.innerHTML = b.won
-        ? `<div class="bm-card win"><h3>Level ${UI.n} done!</h3><p class="bm-stars">${Array.from({ length: 3 }, (_, i) => `<i class="bm-star ${i < stars ? 'on' : ''}">★</i>`).join('')}</p>
+        ? `<div class="bm-card win"><h3>Level ${UI.n} done!</h3><p class="bm-stars">${Array.from({ length: 3 }, (_, i) => icon('RWD-05', 46, `bm-star ${i < stars ? 'on' : ''}`)).join('')}</p>
             <p>${r.text ? `Prize: ${esc(r.text)}` : r.newStars ? '' : 'No new prize: this week\'s win prize for this level is already paid.'}${r.capped ? '<br><small>Some of it was over the prize limit.</small>' : ''}</p>
             <p class="muted">${r.newStars ? `+${r.newStars} stars this week` : 'Beat your best stars to add more this week.'}</p>
-            <div class="row-btns">${next ? `<button class="btn go" data-end="next">Next level</button>` : ''}<button class="btn plain" data-end="again">Play again</button><button class="btn plain" data-end="hub">Events</button></div></div>`
+            <div class="row-btns">${next ? `<button class="btn go" data-act="end:next">Next level</button>` : ''}<button class="btn plain" data-act="end:again">Play again</button><button class="btn plain" data-act="end:hub">Events</button></div></div>`
         : `<div class="bm-card lose"><h3>Out of moves</h3><p>So close. Every try is free, have another go.</p>
-            <div class="row-btns"><button class="btn go" data-end="again">Try again</button><button class="btn plain" data-end="hub">Events</button></div></div>`;
+            <div class="row-btns"><button class="btn go" data-act="end:again">Try again</button><button class="btn plain" data-act="end:hub">Events</button></div></div>`;
       el.hidden = false;
       const box = UI.root().querySelector(b.won ? '.bm-haze' : '.bm-leafy');
       PE.AnimDom.play(box, b.won ? 'cheer' : 'shrug');
     },
-    endTap(e) {
-      const btn = e.target.closest('[data-end]');
-      if (!btn) return;
-      const what = btn.dataset.end;
-      if (what === 'hub') { PE.App.back(); return; }
+    // The buttons on the end card go through the menu's own taps (PE.Panels.budMatch.actions.end).
+    endTap(what) {
+      if (what === 'hub') { PE.App.router.replace('eventHub', {}); return; }
       PE.App.router.replace('budMatch', { level: what === 'next' ? UI.n + 1 : UI.n });
     },
   };
@@ -266,6 +263,6 @@
       setTimeout(() => UI.mount(), 0);
       return UI.html();
     },
-    actions: {},
+    actions: { end(what) { UI.endTap(what); } },
   };
 })(globalThis.PE = globalThis.PE || {});

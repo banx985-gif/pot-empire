@@ -11,7 +11,7 @@
   class BizRoom extends Phaser.Scene {
     static MACHINE = { Snacks: 'MCH-01', Drinks: 'MCH-02', Accessories: 'MCH-03', 'Novelty Gifts': 'MCH-04', Wellness: 'MCH-05', 'Wellness Fiction': 'MCH-05', 'Premium Packs': 'MCH-06' };
     static FURNITURE_H = 430;
-    static CUSTOMER_H = 270;
+    static get CUSTOMER_H() { return PE.Anim.PERSON_H.shop; }   // job 22B: the same height as the helpers
     // Every customer with all they need for a shop visit: walks in all directions and a reach-out. Found from the
     // imported frames (data/anim_art.js), so a new one filed by Cowork joins in with no code change.
     static customers() {
@@ -417,7 +417,7 @@
     }
     // Two helpers wander the open floor, round the shelves and machines.
     buildLife() {
-      const opts = { height: 320, speed: 120, near: 520, textScale: () => PE.App.dpr / this.cameras.main.zoom };
+      const opts = { height: PE.Anim.PERSON_H.shop, speed: 120, near: 520, textScale: () => PE.App.dpr / this.cameras.main.zoom };
       let world;
       if (this.room) {
         const F = PE.Layout.FURNITURE;
@@ -438,7 +438,7 @@
       if (manager && PE.App.state.settings.helpers) {
         // The manager serves from beside the counter (or, in the factory, near the back wall).
         const at = this.room && this.room.counter ? { x: this.room.counter.x + 300, y: this.room.counter.y + 40 } : this.room ? { x: this.w / 2, y: Math.min(...this.room.floor.map((q) => q[1])) + 120 } : { x: this.w / 2 - 240, y: WALL + 96 };
-        this.managerActor = new PE.Anim.Actor(this, manager, { x: at.x, y: at.y, height: 250 });
+        this.managerActor = new PE.Anim.Actor(this, manager, { x: at.x, y: at.y, height: PE.Anim.PERSON_H.shop });
         this.managerId = manager;
       }
     }

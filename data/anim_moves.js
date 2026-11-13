@@ -52,8 +52,9 @@ globalThis.PE.Data.animMoves = {
   messy: {
     HAZE: ['SPIN', 'TALK', 'TALKTOWEL', 'TOWELFLICK', 'JOINTUP', 'CLAP', 'SHRUGCHEER', 'CHEERANGRY', 'CHAT4', 'CHAT5', 'CHAT6'],
   },
-  // How tall each one stands next to the others.
-  size: { HAZE: 1, BUDZ: 0.86, LEAFY: 0.92 },
+  // Job 22B (Aaron: everyone about the same height): every person is scaled by their measured height, so this is only
+  // for a customer meant to be a touch taller or shorter (0.95 to 1.05). Helpers are all 1.
+  size: {},
   moves: {
     // Terpz's gift balloon (job 19B): it fills up on the ground before take-off, to Aaron's timing.
     'VEH-06': { inflate: { set: 'INFLATE', hold: true } },

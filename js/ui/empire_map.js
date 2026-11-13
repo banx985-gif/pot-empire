@@ -14,6 +14,9 @@
 
   // A locked or for-sale plot: the plot itself is painted, so this is only the sign that stands on it.
   const BOX_W = 360, BOX_H = 420;
+  // The sign's board, in the sign picture: 132 x 62, its middle 179 pixels up from the picture's foot (job 22B: the price
+  // is placed from these, so it sits in the middle of the board whatever the board does).
+  const BOARD = { w: 132, h: 62, up: 179 };
   function drawLot(G, forSale) {
     const c = BOX_W / 2 - 12, b = BOX_H - 20;
     G.fillStyle(0x000000, 0.18).fillEllipse(c, b - 58, 60, 14);
@@ -154,8 +157,8 @@
           fontFamily: FONT, fontStyle: 'bold', fontSize: '20px', color: '#ffffff', stroke: '#1d0f33', strokeThickness: 5,
         }).setOrigin(0.5, 0).setDepth(s.y + 1);
         const sign = this.add.text(s.x, s.y - 138, '', {
-          fontFamily: FONT, fontStyle: 'bold', fontSize: '19px', color: '#1d0f33', align: 'center',
-        }).setOrigin(0.5).setDepth(s.y + 1);
+          fontFamily: FONT, fontStyle: '900', fontSize: '24px', color: '#1d0f33', align: 'center', lineSpacing: -3,
+        }).setOrigin(0.5).setDepth(s.y + 1).setResolution(2);
         const bubble = this.makeBubble(s.x, s.y - 220, s.y + 2);
         this.views.set(fid, { fid, s, image, name, sign, bubble, shown: null });
       }
@@ -248,8 +251,7 @@
           this.showLook(v, own, open, tier);
         }
         this.showStickers(v, own);
-        if (own) v.sign.setText('');
-        else v.sign.setText(open ? `FOR SALE\n$${PE.Money.format(g.facilities.econ(v.fid).cost)}` : `Level ${row.playerLevel}`);
+        this.placeSign(v, own, open, row);
         const showBubble = st.kind !== 'none';
         if (own && (st.kind === 'ready' || st.kind === 'idle')) st.word = (BUBBLE_WORDS[row.mode] || {})[st.kind] || '';
         v.bubble.c.setVisible(showBubble);
@@ -288,10 +290,27 @@
         });
       });
     }
+    // Job 22B: the words on a plot's sign. A for-sale price sits in the middle of the board, shrunk to fit inside it (the
+    // short money form, 1.2K, 3.4M...), and moves and scales with the sign. The sign is drawn over the vans and trees.
+    placeSign(v, own, open, row) {
+      const text = own ? '' : open ? `FOR SALE\n$${PE.Money.format(this.g.facilities.econ(v.fid).cost)}` : `Level ${row.playerLevel}`;
+      if (v.sign.text !== text) v.sign.setText(text);
+      if (own) return;
+      const k = v.image.scaleY || 1;
+      const foot = v.image.y;
+      // A locked plot's padlock fills the board's top, so its level goes along the bottom of the board.
+      const cy = open ? foot - BOARD.up * k : foot - (BOARD.up - 21) * k;
+      const room = open ? { w: (BOARD.w - 14) * k, h: (BOARD.h - 8) * k } : { w: (BOARD.w - 14) * k, h: 20 * k };
+      const fit = Math.min(1, room.w / Math.max(1, v.sign.width), room.h / Math.max(1, v.sign.height));
+      v.sign.setPosition(v.image.x, cy).setScale(fit);
+      v.sign.setDepth(50000 + v.s.y + 2);
+    }
     showLook(v, own, open, tier) {
       const id = !own ? PE.Data.map.lockedLotArt : `BLD-${v.fid}-${PE.Data.map.lookForRenovation[Math.min(3, tier)]}`;
       v.artId = id;
       v.image.setTexture(this.lotKey(open)).setOrigin((BOX_W / 2 - 12) / BOX_W, 1).setPosition(v.s.x, v.s.y + 20).setScale(1);
+      // A plot's sign stands over the traffic and the trees (job 22B); a building goes back to its own depth.
+      v.image.setDepth(own ? v.s.y : 50000 + v.s.y + 1);
       v.bubble.c.y = v.s.y - 220;
       v.artTop = 0;
       // A building stays hidden while its picture comes, so it never flashes up as a sign.
@@ -580,7 +599,10 @@
       const f = g.meta.festivalNow();
       const left = PE.Dom.duration(Math.max(0, f.endsMs - g.now()) / 1000);
       const banner = `<button class="map-event ${f.active ? 'on' : ''}" data-act="menu:festival">${PE.Dom.icon('GOL-03', 30)}<span><b>${PE.Dom.esc(f.theme)}</b><small>${f.active ? `On now, ends in ${left}` : `Starts in ${left}`}</small></span></button>`;
-      return `${banner}<div class="map-side${PE.MapBar.open ? ' open' : ''}">${side}${fold}</div>
+      // Job 23: the Event button opens the Event Hub; with no event on, it counts down to the next.
+      const hub = PE.EventHub ? PE.EventHub.button() : '';
+      if (PE.EventHub && !PE.App.g.tutorial.active()) PE.EventHub.tipOnce();
+      return `${hub}${banner}<div class="map-side${PE.MapBar.open ? ' open' : ''}">${side}${fold}</div>
         <button class="btn map-switch" data-act="districts">${PE.Dom.icon('NAV-01', 26)}${PE.Dom.esc(here.name)}${PE.Dom.icon('SYS-03', 14, 'down')}${waiting ? PE.Dom.icon('STA-03', 20) : ''}</button>
         <button class="btn plain map-list" data-act="mapList">${PE.Dom.icon('SYS-05', 22)}List</button>`;
     },
