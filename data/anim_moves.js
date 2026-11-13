@@ -85,6 +85,12 @@ globalThis.PE.Data.animMoves = {
       inspect2: { set: 'INSPECT2', fps: 7 },
       roll: { set: 'ROLL1', fps: 7, then: 'roll2' },
       roll2: { set: 'ROLL2', fps: 7 },
+      // Job 22, the rare phone call (HAZE-PHONE-TIMELINE.json): his pocket buzzes, he pulls the phone out and answers,
+      // talks for as long as the call lasts, then puts it away. steps count from 0 in full_call.
+      buzz: { set: 'PHONE', seq: 'pocket_buzz_loop', loop: true },
+      answer: { set: 'PHONE', seq: 'full_call', steps: [11, 14], then: 'oncall' },
+      oncall: { set: 'PHONE', seq: 'conversation_loop', loop: true },
+      hangup: { set: 'PHONE', seq: 'full_call', steps: [42, 46], hold: true },
     },
     // Pop-ups only, when he's been busy or just woke up. Every name here is in moves.HAZE too.
     HAZE_MESSY: {
@@ -153,6 +159,13 @@ globalThis.PE.Data.animMoves = {
       pillow: { set: 'SLEEPY', fps: 6, then: 'sleep' },
       sleep: { set: 'SLEEP', from: 1, to: 4, fps: 5, then: 'asleep' },
       asleep: { set: 'SLEEP', from: 5, to: 6, fps: 2, loop: true },
+      // Job 22, the rare phone call (LEAFY-PHONE-TIMELINE.json): phone out from behind his leaf, taps in the number
+      // (over and over while it rings), raises it and chats, then puts it away.
+      phoneout: { set: 'PHONE', seq: 'full_call', steps: [0, 2], then: 'dial' },
+      dial: { set: 'PHONE', seq: 'dialling_loop', loop: true },
+      raise: { set: 'PHONE', seq: 'full_call', steps: [14, 16], then: 'onphone' },
+      onphone: { set: 'PHONE', seq: 'conversation_loop', loop: true },
+      hangup: { set: 'PHONE', seq: 'full_call', steps: [45, 48], hold: true },
     },
   },
 };

@@ -27,6 +27,18 @@
     rivalEvery: [120, 260],   // Budz goes and yells at a rival's building, if one's near
     plantChat: 3,
   };
+  // Job 22, the rare phone call: Leafy rings Haze in the same grow room. All easy to tune.
+  const CALL = {
+    gapMs: 15 * 60 * 1000,    // at most once every 15 minutes of play (counted by js/ui/notify.js)
+    checkEvery: 20,           // how often (seconds) it rolls the dice while both are standing about
+    chance: 0.12,             // the chance on each roll
+    dial: 1.6,                // Leafy taps in the number before the pocket buzzes
+    ring: 1.8,                // Haze's pocket buzzes, he looks over
+    pickUp: 0.9,              // phone out and up to the ear, before the first line
+    line: 2.3,                // each speech bubble
+    hangUp: 1.3,              // both put their phones away
+    look: 1.0,                // a look at each other, then back to normal
+  };
 
   let lastInput = 0;
   if (typeof window !== 'undefined') window.addEventListener('pointerdown', () => { lastInput = performance.now(); }, { capture: true, passive: true });
@@ -51,6 +63,9 @@
       this.reactions = [];
       this.comments = [];   // job 19B: every comment said, with when (the tests read this)
       this.visits = [];     // and every plant Haze stopped at
+      this.callNow = null;  // job 22: the phone call, while it's on
+      this.calls = [];      // every call started, and how it ended (the tests read this)
+      this.nextCall = CALL.checkEvery;
       Life.turn = (Life.turn || 0) + 1;
       if (!PE.App.state.settings.helpers) return;
       // Uncle Haze and one other: two per screen at most, and they take turns.
@@ -79,11 +94,13 @@
       }
       if (this.frozen()) return;
       if (this.chatNow) this.stepChat(dt);
+      if (this.callNow) this.stepCall(dt);
       for (const e of this.list) this.stepOne(e, dt);
       this.maybeMeet();
       this.maybeNap();
       this.maybeLive();
       this.maybeBudz();
+      this.maybeCall();
     }
     stepOne(e, dt) {
       // Off-screen: paused where they are.
@@ -144,7 +161,7 @@
       }
     }
     backToIdle(e) {
-      if (e.state === 'chat') return;
+      if (e.state === 'chat' || e.state === 'call') return;
       e.arrive = null;
       e.busyDone = null;
       e.actor.setBehind(null);
@@ -368,6 +385,115 @@
       return true;
     }
 
+    // ---- Job 22: the rare phone call ---------------------------------------------------------------------------------
+    // Leafy rings Haze while they're both standing about in the same grow room. Only where the screen allows it
+    // (world.callOk: a grow room, not its first visit, not in the guide, a menu, or while dragging), at most once every
+    // 15 minutes of play, and only a small chance even then. The lines count as each one's next comment.
+    callReady() {
+      if (!this.world.callOk || this.callNow || this.chatNow || this.frozen()) return null;
+      const leafy = this.list.find((e) => e.id === 'LEAFY'), haze = this.list.find((e) => e.id === 'HAZE');
+      if (!leafy || !haze) return null;
+      // Both standing still and on screen: not walking, napping, chatting or doing a move.
+      const still = (e) => e.state === 'idle' && !e.path && !e.actor.paused && e.actor.image.visible;
+      if (!still(leafy) || !still(haze)) return null;
+      // The 25 second comment limit holds for both of them.
+      for (const e of [leafy, haze]) if (e.lastComment !== undefined && this.t - e.lastComment < T.commentGap) return null;
+      if (!this.world.callOk()) return null;
+      return { leafy, haze };
+    }
+    static callGapOk() {
+      const ui = PE.App.state.ui;
+      return (ui.playMs || 0) - (ui.lastCallPlayMs === undefined ? 0 : ui.lastCallPlayMs) >= CALL.gapMs;
+    }
+    maybeCall() {
+      if (this.t < this.nextCall) return;
+      const pair = this.callReady();
+      if (!pair) return;
+      this.nextCall = this.t + CALL.checkEvery;
+      if (!Life.callGapOk() || Math.random() >= CALL.chance) return;
+      this.startCall(pair.leafy, pair.haze);
+    }
+    startCall(leafy, haze) {
+      const list = PE.Data.scenes.phoneCalls || [];
+      if (!list.length) return false;
+      if (this.chatNow) this.endChat();
+      // Not the same call twice in a row.
+      let i = Math.floor(Math.random() * list.length);
+      if (list.length > 1 && i === Life.lastCallLines) i = (i + 1) % list.length;
+      Life.lastCallLines = i;
+      PE.App.state.ui.lastCallPlayMs = PE.App.state.ui.playMs || 0;
+      for (const e of [leafy, haze]) {
+        if (e.bubble) { e.bubble.destroy(); e.bubble = null; }
+        e.state = 'call'; e.path = null; e.arrive = null; e.busyDone = null; e.actor.setBehind(null);
+      }
+      leafy.actor.image.setFlipX(haze.actor.x > leafy.actor.x);
+      this.callNow = { leafy, haze, lines: list[i], step: 'dial', left: CALL.dial, line: 0, t0: this.t };
+      this.calls.push({ at: this.t, lines: i, end: null, steps: ['dial'] });
+      leafy.actor.play('phoneout');
+      haze.actor.play('stand');
+      return true;
+    }
+    callStep(step, left) {
+      const C = this.callNow;
+      C.step = step;
+      C.left = left;
+      this.calls[this.calls.length - 1].steps.push(step);
+    }
+    stepCall(dt) {
+      const C = this.callNow;
+      const { leafy, haze } = C;
+      // Either of them off the screen: stop cleanly.
+      if (leafy.actor.paused || haze.actor.paused) { this.endCall('away'); return; }
+      C.left -= dt;
+      if (C.left > 0) return;
+      if (C.step === 'dial') {
+        // His pocket buzzes, and he looks over at Leafy.
+        haze.actor.image.setFlipX(leafy.actor.x > haze.actor.x);
+        haze.actor.play('buzz');
+        this.callStep('ring', CALL.ring);
+      } else if (C.step === 'ring') {
+        haze.actor.play('answer');
+        leafy.actor.play('raise');
+        this.callStep('talk', CALL.pickUp);
+      } else if (C.step === 'talk') {
+        if (C.line >= C.lines.length) {
+          for (const e of [leafy, haze]) { if (e.bubble) { e.bubble.destroy(); e.bubble = null; } e.actor.play('hangup'); }
+          this.callStep('hangup', CALL.hangUp);
+          return;
+        }
+        const [who, text] = C.lines[C.line];
+        const speaker = who === 'HAZE' ? haze : leafy, other = speaker === haze ? leafy : haze;
+        if (other.bubble) { other.bubble.destroy(); other.bubble = null; }
+        this.say(speaker, text, CALL.line + 0.2);
+        speaker.lastComment = this.t;
+        this.comments.push({ id: speaker.id, kind: 'call', t: this.t });
+        C.line += 1;
+        C.left = CALL.line;
+      } else if (C.step === 'hangup') {
+        // A look at each other, then back to what they were doing.
+        leafy.actor.image.setFlipX(haze.actor.x > leafy.actor.x);
+        haze.actor.image.setFlipX(leafy.actor.x > haze.actor.x);
+        leafy.actor.play('stand');
+        haze.actor.play('stand');
+        this.callStep('look', CALL.look);
+      } else this.endCall('done');
+    }
+    endCall(why) {
+      const C = this.callNow;
+      if (!C) return;
+      this.callNow = null;
+      this.calls[this.calls.length - 1].end = why;
+      for (const e of [C.leafy, C.haze]) {
+        if (e.bubble) { e.bubble.destroy(); e.bubble = null; }
+        // Their lines count as their latest comment, so the 25 second limit runs on from the call.
+        e.lastComment = this.t;
+        e.state = 'react';
+        this.backToIdle(e);
+        e.wait = rand(1, 3);
+      }
+      this.nextChat = Math.max(this.nextChat, this.t + 10);
+    }
+
     // ---- Things happening nearby ----------------------------------------------------------------------------------------
     // kind: harvest, ripe, wilted, locked or rival (data/scenes.js says who does what).
     react(kind) {
@@ -377,7 +503,7 @@
       let any = false;
       const barks = PE.Data.scenes.barks[kind];
       for (const e of this.list) {
-        if (e.actor.paused || e.state === 'chat' || e.state === 'busy' || !moves[e.id]) continue;
+        if (e.actor.paused || e.state === 'chat' || e.state === 'busy' || e.state === 'call' || !moves[e.id]) continue;
         if (e.state === 'nap' && kind !== 'harvest') continue;
         // Budz only ever yells at the thing itself: behind the plant, or at the rival's building. Nothing to aim at: no yelling.
         if (e.id === 'BUDZ' && moves[e.id] === 'angry') {
@@ -425,6 +551,8 @@
           this.nextChat = Math.max(this.nextChat, this.t + 8);
           if (e.state === 'nap') e.state = 'react';
           if (this.chatNow && (this.chatNow.a === e || this.chatNow.b === e)) this.endChat();
+          // The phone call stops cleanly and the tap wins (job 22).
+          if (this.callNow && (this.callNow.leafy === e || this.callNow.haze === e)) this.endCall('tapped');
           e.path = null;
           e.arrive = null;
           e.busyDone = null;
@@ -488,5 +616,5 @@
     };
   }
 
-  PE.HelperLife = { Life, aisleWorld, T };
+  PE.HelperLife = { Life, aisleWorld, T, CALL };
 })(globalThis.PE = globalThis.PE || {});

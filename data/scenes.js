@@ -91,6 +91,18 @@ globalThis.PE.Data.scenes = {
   // Terpz, Budz's cousin, in his gift balloon (VEH-06, job 19B). He has no walking art yet, so he only ever flies.
   terpzArrive: ['Special delivery!', 'Catch, cuz!', 'Gift from the sky!', 'Tap me, I\'m loaded!'],
   terpzThanks: ['Enjoy, cuz!', 'Laters!', 'Peace out!'],
+  // Job 22: the rare phone call. Leafy rings Haze while they're both standing in the same grow room. Each call is a few
+  // lines in order, [who, line]. Cheeky, never mean, no yelling. Written by Claude Code; Aaron hasn't seen these yet.
+  phoneCalls: [
+    [['LEAFY', 'Hey Haze! Got a sec?'], ['HAZE', 'Dude... I’m right here.'], ['LEAFY', 'Yeah, but I’m calling.'], ['HAZE', '...Fair.']],
+    [['LEAFY', 'Haze! You there?'], ['HAZE', 'You’re literally standing there, man.'], ['LEAFY', 'Shh. It’s a vibe.']],
+    [['LEAFY', 'The plants say hi.'], ['HAZE', 'They can’t call me, you know.'], ['LEAFY', 'Not yet.']],
+    [['LEAFY', 'Quick question.'], ['HAZE', 'You could just... ask.'], ['LEAFY', 'Where’s the fun in that?']],
+    [['LEAFY', 'Guess where I am!'], ['HAZE', 'Six feet away?'], ['LEAFY', 'Lucky guess.']],
+    [['LEAFY', 'Hello? Is this Haze?'], ['HAZE', 'Wave if it’s you.'], ['LEAFY', '*waves*'], ['HAZE', 'Yep. It’s you.']],
+    [['LEAFY', 'Just checking in!'], ['HAZE', 'We had lunch together.'], ['LEAFY', 'That was ages ago.']],
+    [['LEAFY', 'Can you hear me now?'], ['HAZE', 'Twice, little buddy.'], ['LEAFY', 'Stereo!']],
+  ],
   // Now and then, at random, when someone's standing about. weight: how likely. pop: a thought bubble that bursts at the end.
   liveMoves: {
     // Job 19B: a proper mix, so smoking is just one of the things they do. ROFL and CRUSH are rare.

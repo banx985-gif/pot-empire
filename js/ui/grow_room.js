@@ -55,6 +55,10 @@
       this.lastRefresh = 0;
       this.ready = false;
       this.cameras.main.setBackgroundColor('#140a24');
+      // Job 22: the first time ever in this room (the rare phone call never plays then).
+      const seen = app.state.ui.roomsSeen = app.state.ui.roomsSeen || [];
+      this.firstVisit = !this.testOverride && !seen.includes(this.fid);
+      if (this.firstVisit) seen.push(this.fid);
       this.showAnchorMarks = !!(PE.App.debugAnchors);
 
       this.drawRoom();
@@ -710,6 +714,11 @@
       if (!world || !world.spots.length) { this.helperLife = false; return; }
       world.plantFor = (e, wilted) => this.plantForBudz(e, wilted);
       world.plantLook = (e) => this.plantForHaze(e);
+      // Job 22: Leafy's rare phone call to Haze. Never on the first visit to this room, in the guide, in a menu or
+      // pop-up, while Haze is talking to you, or while you're touching the screen (dragging, planting, panning).
+      world.callOk = () => !this.firstVisit && !this.g.tutorial.active() && !PE.Dom.panelRoute && !PE.Dom.modalNow
+        && !PE.Dom.isTouching() && !(PE.GrowTools && (PE.GrowTools.drag || PE.GrowTools.stashAt))
+        && !(PE.HelperUI && PE.HelperUI.now) && !(PE.ChestReveal && PE.ChestReveal.now);
       this.helperLife = new PE.HelperLife.Life(this, world);
     }
     // For Budz: the way to a spot just behind a plant, a little further up the screen than its pot, and how deep to draw him

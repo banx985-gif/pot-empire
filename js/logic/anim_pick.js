@@ -70,7 +70,12 @@
     // Aaron's own timing for these frames (job 17): seq = [frame, ms] steps in order, or ms = how long each frame shows.
     let ms = null;
     const fr = frames[set];
-    if (!spec.frames && !spec.from && !spec.to && fr.seq) { order = fr.seq.map((s) => s[0]); ms = fr.seq.map((s) => s[1]); }
+    // Job 22: seq names one of the frames' own timelines (full_call...), steps [a, b] a stretch of it (counting from 0).
+    if (spec.seq && fr.seqs && fr.seqs[spec.seq]) {
+      const all = fr.seqs[spec.seq];
+      const part = spec.steps ? all.slice(spec.steps[0], spec.steps[1] + 1) : all;
+      order = part.map((s) => s[0]); ms = part.map((s) => s[1]);
+    } else if (!spec.frames && !spec.from && !spec.to && fr.seq) { order = fr.seq.map((s) => s[0]); ms = fr.seq.map((s) => s[1]); }
     else if (fr.ms && !spec.fps) ms = order.map((f) => fr.ms[f] || 120);
     return { name, set, order, ms, fps: spec.fps || 6, loop: !!spec.loop, hold: !!spec.hold, times: spec.times || 1, random: !!spec.random, then: spec.then || null, bob: !!spec.bob, look: lookOf(id, set) };
   }
