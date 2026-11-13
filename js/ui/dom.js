@@ -260,6 +260,9 @@
         g.grow.eachStation((f, si, s) => { if (f === fid) s.pots.forEach((p, pi) => { if (!p && s.lastStrains[pi]) empties++; }); });
         if (canReplant && empties > 0) bar += `<button class="btn replant" data-act="replantAll">${icon('ACT-06', 24)}Replant All (${empties})</button>`;
         if (g.facilities.rows.filter((r) => g.facilities.isOwned(r.id)).length > 1) bar += `<button class="btn rooms" data-act="rooms">${icon('BIZ-06', 24)}Rooms</button>`;
+        // Job 26: the gaming lounge (a room picture is needed for it).
+        const gs = PE.App.game && PE.App.game.scene.getScene('garage');
+        if (!g.tutorial.active() && gs && gs.loungeFits) bar += `<button class="btn rooms lounge-btn" data-act="lounge" aria-label="Lounge">${icon('COL-06', 24)}Lounge</button>`;
         if (g.facilities.canBuyStation(fid)) bar += `<button class="btn buy" data-act="buyStation">+ Station ${money(g.facilities.nextStationCost(fid))}</button>`;
       }
       if (route && route.name === 'empire' && !Dom.panelRoute && PE.MapBar) bar = PE.MapBar.html();
@@ -281,6 +284,7 @@
         if (r.length) PE.Dom.toast(`Harvested ${r.length}: +${money(r.reduce((a, b) => a + b.cash, 0))}`, '', 'ACT-03');
       },
       replantAll() { PE.App.g.grow.replantAll(PE.App.router.current().params.fid); },
+      lounge() { PE.App.openPanel('lounge', { fid: PE.App.router.current().params.fid }); },
       manage() { PE.App.openPanel('business', { fid: PE.App.router.current().params.fid }); },
       buyStation() {
         const r = PE.App.g.facilities.buyStation(PE.App.router.current().params.fid);

@@ -866,3 +866,14 @@ html.fast-time #hud::after { content: 'FAST TIME: NOT SAVING'; display: block; t
   .bm { max-width: 640px; margin: 0 auto; width: 100%; }
   .bm-chip small { display: inline; color: #cbbbe6; font-size: 11px; }
 }
+
+/* ---- Job 26: the gaming lounge menu ------------------------------------------------------------------------------- */
+.lg-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 6px; }
+#panel .scroll > .lg-row { grid-column: 1 / -1; }
+.lg-card { display: flex !important; flex-direction: column; align-items: center; gap: 3px; padding: 8px 6px !important; border-radius: 14px; background: #ffffff10 !important; border: 2px solid #ffffff22 !important; text-align: center; min-width: 0; }
+.lg-card.on { border-color: var(--lime) !important; background: #c6ff3d1c !important; }
+.lg-card.locked { opacity: .55; }
+.lg-card b { font-size: 13px; }
+.lg-card small { font-size: 11px; color: #d8cce8; line-height: 1.2; }
+.lg-pic { height: 72px; width: auto; object-fit: contain; }
+.lg-warn { color: var(--gold); font-weight: 800; }

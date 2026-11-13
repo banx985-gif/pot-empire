@@ -170,3 +170,23 @@ globalThis.PE.Data.animMoves = {
     },
   },
 };
+
+// Job 26: the gaming lounge (LOUNGE-01..20 and LOUNGE-TIMELINE.json, the same poses for all three helpers): walk to the TV
+// (walking away from us), reach, pick up the controller, turn, walk to the seat (toward us), sit, play; getting up is the
+// sitting played backwards (there's no get-up drawn yet). Each seat has its own way of sitting and playing.
+(function (A) {
+  const L = (seq, more) => ({ set: 'LOUNGE', seq, ...more });
+  const sit = { SOFA: ['SOFA:turn_and_sit'], RECLINER: ['RECLINER:turn_and_sit', 'RECLINER:settle_into_recliner', 'RECLINER:raise_feet'], MASSAGE: ['MASSAGE:turn_and_sit', 'MASSAGE:settle_into_massage_chair'] };
+  const play = { SOFA: 'SOFA:seated_gaming', RECLINER: 'RECLINER:reclined_gaming', MASSAGE: 'MASSAGE:seated_gaming' };
+  for (const id of ['HAZE', 'BUDZ', 'LEAFY']) {
+    const T = A.moves[id];
+    T.loungeAway = L('SOFA:approach_tv', { steps: [0, 3], loop: true });
+    T.loungePick = L(['SOFA:reach_empty_hand', 'SOFA:pick_up_controller', 'SOFA:turn_with_controller', 'SOFA:face_seat'], { hold: true });
+    T.loungeToward = L('SOFA:walk_to_seat', { steps: [0, 3], loop: true });
+    for (const seat of Object.keys(sit)) {
+      T['loungeSit' + seat] = L(['SOFA:stop_at_seat', ...sit[seat]], { hold: true });
+      T['loungePlay' + seat] = L(play[seat], { loop: true });
+      T['loungeUp' + seat] = L(sit[seat], { reverse: true, hold: true });
+    }
+  }
+})(globalThis.PE.Data.animMoves);

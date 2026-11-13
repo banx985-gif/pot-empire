@@ -136,7 +136,10 @@
       if (this.roomArt) {
         // Job 21: props from the art already in the game on the bare floor round the edges.
         this.haloTexture();
+        // Job 26: the gaming lounge, if this room has one. Worked out first, so the props keep out of its way.
+        PE.Lounge.prepare(this);
         PE.RoomProps.attach(this, this.room);
+        PE.Lounge.attach(this);
         // Bought decorations go in the room's fixed sockets (job 17).
         if (!this.testOverride) PE.DecorArt.attach(this, this.fid, { room: this.room });
         // A bought room theme: a soft colour tint over the room's light. Faint, so the art always shows through.
@@ -449,6 +452,8 @@
         const e = this.helperLife.tap(pt.x, pt.y);
         if (e) { g.helpers.chat(e.id); return; }
       }
+      // Job 26: the lounge's TV or seat: its menu (change the TV or the seat).
+      if (!hit && PE.Lounge.hit(this, pt.x, pt.y)) { PE.App.openPanel('lounge', { fid: this.fid }); return; }
       if (this.tapWait) {
         this.tapWait.remove();
         this.tapWait = null;
@@ -708,12 +713,15 @@
       // They walk on the open floor, in the gaps: never across a setup, or the spot of one still to come, and not in the strip
       // just behind one either (they're drawn in front, so it would look like walking through it).
       const spots = R.stations.slice(0, Math.max(this.open, this.stationCount()));
-      const blocked = (x, y) => spots.some((q) => x > q.x - box.halfW - 30 && x < q.x + box.halfW + 30 && y > q.y - box.up + 250 && y < q.y + box.down + 40) || PE.RoomProps.blocks(this.roomProps, x, y);
+      const blocked = (x, y) => spots.some((q) => x > q.x - box.halfW - 30 && x < q.x + box.halfW + 30 && y > q.y - box.up + 250 && y < q.y + box.down + 40) || PE.RoomProps.blocks(this.roomProps, x, y) || PE.Lounge.blocks(this, x, y);
       this.walkWorld = R.picture ? PE.RoomArt.floorWorld(R, blocked, { ...opts, step: 80 }) : null;
       const world = this.walkWorld;
       if (!world || !world.spots.length) { this.helperLife = false; return; }
       world.plantFor = (e, wilted) => this.plantForBudz(e, wilted);
       world.plantLook = (e) => this.plantForHaze(e);
+      // Job 26: the lounge. In a room with a sofa, now and then all three helpers come in (a rare treat: all three on it).
+      world.lounge = PE.Lounge.world(this);
+      if (world.lounge && world.lounge.kind === 'SOFA' && (window.__allThree || Math.random() < PE.Data.lounge.allThree)) world.ids = ['HAZE', 'BUDZ', 'LEAFY'];
       // Job 22: Leafy's rare phone call to Haze. Never on the first visit to this room, in the guide, in a menu or
       // pop-up, while Haze is talking to you, or while you're touching the screen (dragging, planting, panning).
       world.callOk = () => !this.firstVisit && !this.g.tutorial.active() && !PE.Dom.panelRoute && !PE.Dom.modalNow

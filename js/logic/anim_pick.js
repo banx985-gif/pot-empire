@@ -71,9 +71,12 @@
     let ms = null;
     const fr = frames[set];
     // Job 22: seq names one of the frames' own timelines (full_call...), steps [a, b] a stretch of it (counting from 0).
-    if (spec.seq && fr.seqs && fr.seqs[spec.seq]) {
-      const all = fr.seqs[spec.seq];
-      const part = spec.steps ? all.slice(spec.steps[0], spec.steps[1] + 1) : all;
+    // Job 26: seq can also be a list of them, played one after another, and reverse plays the lot backwards (getting up).
+    const seqs = spec.seq ? (Array.isArray(spec.seq) ? spec.seq : [spec.seq]) : [];
+    if (seqs.length && fr.seqs && seqs.every((q) => fr.seqs[q])) {
+      const all = seqs.flatMap((q) => fr.seqs[q]);
+      let part = spec.steps ? all.slice(spec.steps[0], spec.steps[1] + 1) : all;
+      if (spec.reverse) part = part.slice().reverse();
       order = part.map((s) => s[0]); ms = part.map((s) => s[1]);
     } else if (!spec.frames && !spec.from && !spec.to && fr.seq) { order = fr.seq.map((s) => s[0]); ms = fr.seq.map((s) => s[1]); }
     else if (fr.ms && !spec.fps) ms = order.map((f) => fr.ms[f] || 120);

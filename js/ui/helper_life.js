@@ -66,6 +66,8 @@
       this.callNow = null;  // job 22: the phone call, while it's on
       this.calls = [];      // every call started, and how it ended (the tests read this)
       this.nextCall = CALL.checkEvery;
+      this.lounges = [];    // job 26: every trip to the lounge, and how it went (the tests read this)
+      this.nextLounge = rand(5, 20);
       Life.turn = (Life.turn || 0) + 1;
       if (!PE.App.state.settings.helpers) return;
       // Uncle Haze and one other: two per screen at most, and they take turns.
@@ -101,6 +103,7 @@
       this.maybeLive();
       this.maybeBudz();
       this.maybeCall();
+      this.maybeLounge();
     }
     stepOne(e, dt) {
       // Off-screen: paused where they are.
@@ -113,7 +116,8 @@
         e.napLeft -= dt;
         this.zzz(e, dt);
         if (e.napLeft <= 0) this.wake(e);
-      } else if (e.state === 'busy') {
+      } else if (e.state === 'lounge') this.stepLounge(e, dt);
+      else if (e.state === 'busy') {
         e.busyLeft -= dt;
         if (e.busyLeft <= 0) { const go = e.busyDone; e.busyDone = null; e.state = 'react'; go(); }
       }
@@ -149,7 +153,7 @@
           P.left += go; go = 0;
           const k = P.left / len;
           e.actor.moveTo(ax + (bx - ax) * k, ay + (by - ay) * k);
-          e.actor.heading(bx - ax, by - ay);
+          if (!P.own) e.actor.heading(bx - ax, by - ay);
         } else { go -= room; P.left = 0; P.i++; }
       }
       if (P.i >= P.pts.length - 1) {
@@ -161,7 +165,7 @@
       }
     }
     backToIdle(e) {
-      if (e.state === 'chat' || e.state === 'call') return;
+      if (e.state === 'chat' || e.state === 'call' || e.state === 'lounge') return;
       e.arrive = null;
       e.busyDone = null;
       e.actor.setBehind(null);
@@ -494,6 +498,116 @@
       this.nextChat = Math.max(this.nextChat, this.t + 10);
     }
 
+    // ---- Job 26: the gaming lounge ---------------------------------------------------------------------------------------
+    // Now and then an idle helper goes over to the room's lounge: walks to the TV, picks up a controller, walks to their
+    // seat (a sofa has a place for each helper; a recliner or massage chair seats one), sits and plays for a few minutes
+    // (data/lounge.js), then gets up and carries on. The TV shows the game while anyone's playing. Never during the phone
+    // call, a chat, or while they're off the screen.
+    maybeLounge() {
+      const W = this.world.lounge;
+      if (!W || this.frozen() || this.t < this.nextLounge) return;
+      const D = PE.Data.lounge;
+      this.nextLounge = this.t + D.check;
+      const free = this.list.filter((e) => e.state === 'idle' && !e.path && !e.actor.paused && (e.loungeRest || 0) <= this.t && (PE.Data.animArt.chars[e.id] || {}).LOUNGE && W.slotFor(e.id));
+      if (!free.length) return;
+      // A friend already on the sofa makes it more likely (all three together is the rare treat).
+      const chance = (D.perHour * D.check) / 3600 * (W.playing.size ? 3 : 1);
+      if (Math.random() >= chance) return;
+      this.goLounge(free[Math.floor(Math.random() * free.length)]);
+    }
+    goLounge(e) {
+      const W = this.world.lounge;
+      const slot = W && W.slotFor(e.id);
+      if (!slot || e.state === 'lounge' || e.state === 'call') return false;
+      W.take(e.id, slot.key);
+      e.state = 'lounge';
+      e.path = null; e.arrive = null; e.busyDone = null;
+      if (e.bubble) { e.bubble.destroy(); e.bubble = null; }
+      e.lg = { phase: 'toTv', slot, at: this.t };
+      this.lounges.push({ id: e.id, seat: W.kind, at: this.t, steps: ['toTv'], end: null, played: 0 });
+      // Along the open floor to just below the TV, then up to it with his back to us.
+      const F = W.front;
+      const near = [F.x, Math.min(W.seat.y + 160, F.y + W.seat.h + 380)];
+      const floor = this.world.route ? this.world.route([e.actor.x, e.actor.y], near) : null;
+      const first = floor && floor.length > 1 ? [[e.actor.x, e.actor.y], ...floor.slice(1)] : null;
+      const upToTv = () => this.loungeLeg(e, [[e.actor.x, e.actor.y], [W.seat.x + (W.seat.w / 2 + 140) * (e.actor.x < W.seat.x ? -1 : 1), e.actor.y], [F.x + (slot.x - W.seat.x) * 0.4, F.y]], 'loungeAway', () => this.atTv(e));
+      if (first) { this.walkAlong(e, first); e.state = 'lounge'; e.arrive = upToTv; } else upToTv();
+      return true;
+    }
+    // A stretch walked with the lounge's own frames (away from us, or toward us with the controller).
+    loungeLeg(e, pts, move, then) {
+      e.path = { pts, i: 0, left: 0, own: true };
+      e.actor.play(move, { flip: false });
+      e.lg.walk = true;
+      e.arrive = () => { e.lg.walk = false; then(); };
+    }
+    atTv(e) {
+      const W = this.world.lounge;
+      e.lg.phase = 'pick';
+      this.loungeStep(e, 'pick');
+      e.actor.play('loungePick', { flip: false, done: () => {
+        if (e.state !== 'lounge') return;
+        e.lg.phase = 'toSeat';
+        this.loungeStep(e, 'toSeat');
+        // Behind the seat's back from here on: it hides their legs as they reach it.
+        e.actor.setBehind(W.behind);
+        this.loungeLeg(e, [[e.actor.x, e.actor.y], [e.lg.slot.x, e.lg.slot.y]], 'loungeToward', () => this.sitDown(e));
+      } });
+    }
+    sitDown(e) {
+      const W = this.world.lounge;
+      e.lg.phase = 'sit';
+      this.loungeStep(e, 'sit');
+      e.actor.moveTo(e.lg.slot.x, e.lg.slot.y);
+      e.actor.play('loungeSit' + W.kind, { flip: false, done: () => {
+        if (e.state !== 'lounge') return;
+        e.lg.phase = 'play';
+        e.lg.until = this.t + W.minutes() * 60;
+        e.lg.sat = this.t;
+        this.loungeStep(e, 'play');
+        W.setPlaying(e.id, true);
+        e.actor.play('loungePlay' + W.kind, { flip: false });
+      } });
+    }
+    stepLounge(e, dt) {
+      if (e.path) { this.stepWalk(e, dt); return; }
+      if (e.lg && e.lg.phase === 'play' && this.t >= e.lg.until) this.getUp(e);
+    }
+    getUp(e) {
+      const W = this.world.lounge;
+      e.lg.phase = 'up';
+      this.loungeStep(e, 'up');
+      const rec = this.lounges[this.lounges.length - 1];
+      if (rec && rec.id === e.id) rec.played = this.t - (e.lg.sat || this.t);
+      W.setPlaying(e.id, false);
+      e.actor.play('loungeUp' + W.kind, { flip: false, done: () => {
+        if (e.state !== 'lounge') return;
+        // Out past the end of the seat (still behind its back), then off to carry on with the day.
+        const side = e.lg.slot.x < W.seat.x ? -1 : 1;
+        const out = [W.seat.x + side * (W.seat.w / 2 + 150), e.actor.y];
+        this.walkAlong(e, [[e.actor.x, e.actor.y], out]);
+        e.state = 'lounge';
+        e.lg.phase = 'away';
+        e.arrive = () => this.leaveLounge(e, 'done');
+      } });
+    }
+    leaveLounge(e, why) {
+      const W = this.world.lounge;
+      if (W) { W.free(e.id); W.setPlaying(e.id, false); }
+      for (let i = this.lounges.length - 1; i >= 0; i--) if (this.lounges[i].id === e.id && !this.lounges[i].end) { this.lounges[i].end = why; break; }
+      e.lg = null;
+      e.path = null;
+      e.arrive = null;
+      e.actor.setBehind(null);
+      e.state = 'react';
+      if (why !== 'tapped') this.backToIdle(e);
+      // Not straight back to the TV.
+      e.loungeRest = this.t + 120;
+    }
+    loungeStep(e, step) {
+      for (let i = this.lounges.length - 1; i >= 0; i--) if (this.lounges[i].id === e.id && !this.lounges[i].end) { this.lounges[i].steps.push(step); break; }
+    }
+
     // ---- Things happening nearby ----------------------------------------------------------------------------------------
     // kind: harvest, ripe, wilted, locked or rival (data/scenes.js says who does what).
     react(kind) {
@@ -503,7 +617,7 @@
       let any = false;
       const barks = PE.Data.scenes.barks[kind];
       for (const e of this.list) {
-        if (e.actor.paused || e.state === 'chat' || e.state === 'busy' || e.state === 'call' || !moves[e.id]) continue;
+        if (e.actor.paused || e.state === 'chat' || e.state === 'busy' || e.state === 'call' || e.state === 'lounge' || !moves[e.id]) continue;
         if (e.state === 'nap' && kind !== 'harvest') continue;
         // Budz only ever yells at the thing itself: behind the plant, or at the rival's building. Nothing to aim at: no yelling.
         if (e.id === 'BUDZ' && moves[e.id] === 'angry') {
@@ -549,6 +663,8 @@
         // Only if the finger is clearly on their body. Otherwise the tap belongs to whatever's underneath (a building).
         if (e.actor.covers(x, y) && !(hidden && hidden(e))) {
           this.nextChat = Math.max(this.nextChat, this.t + 8);
+          if (e.state === 'lounge' && e.lg && e.lg.phase === 'play') { e.lg.tapped = (e.lg.tapped || 0) + 1; return e; }
+          if (e.state === 'lounge') this.leaveLounge(e, 'tapped');
           if (e.state === 'nap') e.state = 'react';
           if (this.chatNow && (this.chatNow.a === e || this.chatNow.b === e)) this.endChat();
           // The phone call stops cleanly and the tap wins (job 22).
