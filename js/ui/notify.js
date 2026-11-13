@@ -3,7 +3,9 @@
 //     things will be ready and books them on the phone; no server. Coming back cancels any still waiting.
 //   - In a phone's browser: the browser's own notifications, if it allows them, for as long as the page is kept
 //     alive in the background. If it doesn't, nothing happens.
-//   - It never asks when the game first opens: it asks after your first harvest (outside the guide), with a friendly line.
+//   - It never asks when the game first opens (job 21). It asks later, in the game's own pop-up first: after the first
+//     harvest AND 5 minutes of play, or the second time the game is opened, whichever comes first. The phone's own
+//     permission box only shows if the player taps yes. A "not now" waits a month before one more try, then never again.
 //   - At most MAX_A_DAY a day, at least MIN_GAP apart, and never between 10 pm and 8 am phone time (moved to 8 am).
 //   - Tapping one opens the game on the right screen.
 (function (PE) {
@@ -14,6 +16,11 @@
     { key: 'notifyDaily', id: 'daily', title: 'Daily reward', text: "Today's reward is in. Free stuff. I checked, it's legal. In the game.", route: 'calendar' },
     { key: 'notifyEvents', id: 'event', title: 'Festival time', text: 'A festival just kicked off! Every harvest scores points. Grab your sneakers.', route: 'festival' },
   ];
+  const ASK_TITLE = 'Want a nudge?';
+  const ASK_AFTER_PLAY_MS = 5 * 60000;     // with a harvest done
+  const ASK_SETTLE_MS = 20000;             // on a second open: a little play first, never straight away
+  const ASK_AGAIN_MS = 30 * 86400000;      // after a "not now"
+  const ASK_MOST = 2;                      // times ever
   const MAX_A_DAY = 4;
   const MIN_GAP_MS = 2 * 3600000;
   const QUIET_FROM = 22, QUIET_TO = 8;
@@ -33,6 +40,8 @@
 
   const Notify = {
     KINDS,
+    ASK_TITLE,
+    sessionMs: 0,
     wake,
     booked: [],   // what's booked now (the tests read this)
     timers: [],
@@ -132,18 +141,49 @@
       if (!ask || Notification.permission === 'denied') return Promise.resolve(Notify.allowed = false);
       return Promise.resolve(Notification.requestPermission()).then((p) => (Notify.allowed = p === 'granted')).catch(() => (Notify.allowed = false));
     },
-    // After the first harvest (not during the guide), once ever: Uncle Haze asks, then the phone does.
+    // Is it time to ask? (job 21) Never on the first screens, in the guide, or over another pop-up.
+    askDue() {
+      const ui = PE.App.state.ui, g = PE.App.g;
+      if (ui.notifyAnswer === 'yes' || (ui.notifyAsks || 0) >= ASK_MOST) return false;
+      if (ui.notifyAsked && !ui.notifyAnswer) return false;   // marked as asked by an older version (or a test)
+      if (ui.notifyAnswer === 'no' && Date.now() - (ui.notifyAskedAt || 0) < ASK_AGAIN_MS) return false;
+      const played = (g.state.stats.harvests > 0 && (ui.playMs || 0) >= ASK_AFTER_PLAY_MS) || ((ui.opens || 0) >= 2 && Notify.sessionMs >= ASK_SETTLE_MS);
+      return played;
+    },
+    canAskNow() {
+      const app = PE.App, top = app.router.current();
+      if (!top || top.name === 'title' || !PE.AgeGate.answered() || app.g.tutorial.active()) return false;
+      if (PE.Dom.modalNow || PE.Dom.panelRoute || PE.Dom.isTouching() || (PE.Intro && PE.Intro.open)) return false;
+      if ((PE.HelperUI && PE.HelperUI.now) || (PE.ChestReveal && PE.ChestReveal.now)) return false;
+      const cel = document.getElementById('celebrate');
+      return !(cel && !cel.hidden);
+    },
+    // Counts time played (only while the game is on screen, past the title), then asks when it's time.
+    tick(ms) {
+      const app = PE.App;
+      if (!app || !app.g || document.hidden) return;
+      const top = app.router.current();
+      if (!top || top.name === 'title' || !PE.AgeGate.answered()) return;
+      const ui = app.state.ui;
+      ui.playMs = (ui.playMs || 0) + ms;
+      Notify.sessionMs += ms;
+      if (Notify.askDue() && Notify.canAskNow()) Notify.maybeAsk();
+    },
+    // Uncle Haze asks first in the game's own pop-up; only a yes brings up the phone's own permission box.
     maybeAsk() {
       const ui = PE.App.state.ui;
-      if (ui.notifyAsked || PE.App.g.tutorial.active()) return;
+      if (!Notify.askDue()) return;
       ui.notifyAsked = true;
+      ui.notifyAskedAt = Date.now();
+      ui.notifyAsks = (ui.notifyAsks || 0) + 1;
+      ui.notifyAnswer = 'no';   // until they say yes
       PE.App.saveGame();
       PE.Dom.modal({
-        title: 'Want a shout?',
-        html: `<div class="notify-ask">${PE.AnimDom ? PE.AnimDom.html('HAZE', 120, 'notify-haze') : ''}<p>Want a shout when your plants are ready, kid? Only the good stuff, never at night. You can switch them off in Settings.</p></div>`,
+        title: ASK_TITLE,
+        html: `<div class="notify-ask">${PE.AnimDom ? PE.AnimDom.html('HAZE', 120, 'notify-haze') : ''}<p>Want a nudge when your plants are ripe, kid? Only the good stuff, never at night. You can switch them off in Settings.</p></div>`,
         buttons: [
-          { label: 'Not now', style: 'plain', onTap: () => { S().notify = false; PE.App.saveGame(); } },
-          { label: 'Yes please', style: 'go', onTap: () => { S().notify = true; PE.App.saveGame(); Notify.check(true); } },
+          { label: 'Not now', style: 'plain', onTap: () => { ui.notifyAnswer = 'no'; ui.notifyAskedAt = Date.now(); PE.App.saveGame(); } },
+          { label: 'Yes please', style: 'go', onTap: () => { ui.notifyAnswer = 'yes'; S().notify = true; PE.App.saveGame(); Notify.check(true); } },
         ],
       });
       setTimeout(() => { const el = document.querySelector('#modal .notify-haze'); if (el) PE.AnimDom.play(el, 'greet'); }, 50);
@@ -151,11 +191,16 @@
     // A switch changed in Settings: anything booked that's now off is cancelled.
     changed() { Notify.cancel(); },
     init() {
-      const g = PE.App.g;
       // Older saves have no switches yet: all on.
       for (const k of ['notify', ...KINDS.map((x) => x.key)]) if (S()[k] === undefined) S()[k] = true;
+      // Saves from before job 21 that were already asked keep their answer: never asked twice by mistake.
+      const ui = PE.App.state.ui;
+      if (ui.notifyAsked && !ui.notifyAnswer) { ui.notifyAnswer = S().notify === false ? 'no' : 'yes'; ui.notifyAskedAt = ui.notifyAskedAt || Date.now(); ui.notifyAsks = 1; }
+      ui.opens = (ui.opens || 0) + 1;
+      // Only looks at what the phone already allows: never brings up its permission box.
       Notify.check(false);
-      g.on((type) => { if (type === 'harvest') setTimeout(() => Notify.maybeAsk(), 1800); });
+      let last = Date.now();
+      setInterval(() => { const t = Date.now(); Notify.tick(Math.min(t - last, 10000)); last = t; }, 2000);
       document.addEventListener('visibilitychange', () => Notify.away(document.hidden));
       const c = cap();
       if (c && c.addListener) {

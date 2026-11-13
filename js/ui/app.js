@@ -92,6 +92,7 @@
 
     PE.Native.init();
     PE.Notify.init();
+    PE.Tips.init();
 
     // A picture or sound the game's loader couldn't fetch goes in the log.
     const baseNext = Phaser.Loader.LoaderPlugin.prototype.nextFile;

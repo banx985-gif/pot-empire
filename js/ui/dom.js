@@ -243,9 +243,9 @@
           ${netDot}
           <button class="gear" data-act="settings" aria-label="Settings">${icon('SYS-01', 34)}</button>
         </div>
-        <div class="goal">${esc(PE.Goals.current(g))}</div>
         ${chest ? `<button class="chest" data-act="chest">${icon('RWD-01', 26)}Choose your reward${chest > 1 ? ` (${chest})` : ''}</button>` : ''}`);
       PE.Juice.Counter.sync();
+      if (PE.Tips) PE.Tips.sync();
 
       const route = app.router.current();
       const inRoom = route && route.name === 'garage';

@@ -55,7 +55,19 @@ html, body {
 .gems { font-weight: 700; color: var(--cyan); white-space: nowrap; }
 .off { font-size: 11px; color: var(--gold); border: 1px solid var(--gold); border-radius: 8px; padding: 1px 5px; }
 .gear { width: 40px; height: 40px; font-size: 20px !important; flex: none; }
-.goal { margin-top: 3px; font-size: 13px; color: #e8def8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* The tip box (job 21): a small panel just under the top bar, inside the safe area. One at a time; it fades away. */
+#tipbox { position: absolute; top: calc(env(safe-area-inset-top) + 52px); left: calc(env(safe-area-inset-left) + 10px); right: calc(env(safe-area-inset-right) + 10px); margin: 0 auto; max-width: 400px; z-index: 1;
+  display: flex; align-items: center; gap: 8px; padding: 5px 6px 5px 5px; border-radius: 16px; background: #fff8e4f5; border: 2px solid var(--lime); box-shadow: 0 3px 10px #0007; color: var(--ink);
+  pointer-events: none; animation: tip-in .3s ease-out; transition: opacity .4s, transform .4s; }
+/* Touches go straight through the tip to whatever is under it (a bubble, a building): only its close button catches them. */
+#tipbox .tip-x { pointer-events: auto; }
+#tipbox.out { opacity: 0; transform: translateY(-8px); pointer-events: none; }
+@keyframes tip-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+.calm #tipbox { animation: none; transition: none; }
+.tip-face { width: 38px; height: 38px; flex: none; border-radius: 50%; object-fit: cover; object-position: 50% 6%; background: #c6ff3d55; border: 2px solid #fff; }
+.tip-text { flex: 1; min-width: 0; margin: 0; font-size: 13.5px; font-weight: 700; line-height: 1.25; }
+#ui .tip-x { flex: none; width: 30px; height: 30px; border-radius: 50%; background: #1d0f331a; color: var(--ink); font-size: 20px; font-weight: 800; line-height: 1; }
+.big-text .tip-text { font-size: 15.5px; }
 .chest { display: block; margin: 6px auto 0; }
 
 #actionbar { position: absolute; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom) + 70px); display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; padding: 0 10px; pointer-events: auto; }
@@ -218,7 +230,6 @@ ul.plain li { padding: 3px 0; }
 
 /* Bigger text: menus, pop-ups, toasts and the goal line grow; the top bar keeps its size to fit. */
 .big-text #panel .scroll > *, .big-text #modal .card, .big-text .toast, .big-text .helper-pop .bubble { zoom: 1.18; }
-.big-text .goal { font-size: 15px; }
 
 /* Colour-blind friendly quality: each grade also shows a shape and letter. */
 .cb .q-mark[data-q]::before { margin-right: 4px; }
@@ -248,10 +259,26 @@ ul.plain li { padding: 3px 0; }
 .line-face { width: 44px; height: 44px; flex: none; }
 
 /* ---- Job 5: the Empire map's buttons ---- */
-.map-side { position: absolute; right: 8px; bottom: 56px; display: flex; flex-direction: column; gap: 6px; }
-.map-side-btn { position: relative; width: 54px; height: 54px; border-radius: 50%; background: #2a1a47f2 !important; border: 2px solid var(--lime) !important; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 3px 8px #0008; }
-.map-side-btn span { font-size: 20px; line-height: 1.05; }
-.map-side-btn small { font-size: 8px; font-weight: 800; line-height: 1; max-width: 50px; overflow: hidden; }
+/* Job 21: a slim column hugging the right edge, inside the safe area: small round icon buttons, nearly solid. The name
+   shows beside a button while it's pressed. On a narrow screen (a folding phone's cover screen) it folds into one button. */
+.map-side { position: absolute; right: calc(env(safe-area-inset-right) + 4px); bottom: 56px; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+.map-side-btn { padding: 0; display: flex; align-items: center; justify-content: center; }
+.map-side-btn span { line-height: 1; }
+.map-side-btn span .ico { width: 26px; height: 26px; }
+.map-side-btn small { display: none; position: absolute; right: calc(100% + 6px); top: 50%; transform: translateY(-50%); padding: 4px 8px; border-radius: 10px; background: #1d0f33; border: 1.5px solid var(--lime); font-size: 12px; font-weight: 800; white-space: nowrap; pointer-events: none; }
+.map-side-btn:active small, .map-side-btn.held small { display: block; }
+.map-side-btn .side-alert { width: 16px; height: 16px; top: -4px; right: -4px; }
+.map-side-fold { display: none; }
+.map-side .fold-x { display: none; }
+@media (max-width: 369px) {
+  .map-side-fold { display: flex; }
+  .map-side:not(.open) .map-side-btn:not(.map-side-fold) { display: none; }
+  .map-side.open { padding: 4px; border-radius: 26px; background: #1d0f33e6; }
+  .map-side.open .map-side-fold .fold-open { display: none; }
+  .map-side.open .map-side-fold .fold-x { display: block; font-size: 22px; font-weight: 900; }
+  .fold-bars { display: flex; flex-direction: column; gap: 3px; }
+  .fold-bars b { display: block; width: 18px; height: 3px; border-radius: 2px; background: var(--lime); }
+}
 .map-side-btn em, .map-switch em, .alert-dot { display: inline-block; font-style: normal; font-weight: 900; color: #fff; background: #ff2d55; border-radius: 10px; min-width: 18px; line-height: 18px; text-align: center; font-size: 12px; }
 .map-side-btn em { position: absolute; top: -3px; right: -3px; }
 .map-switch em { margin-left: 6px; }
@@ -341,9 +368,8 @@ ul.plain li { padding: 3px 0; }
 
 @media (max-height: 700px) {
   .map-side { gap: 3px; bottom: 50px; }
-  .map-side-btn { width: 44px; height: 44px; }
-  .map-side-btn span { font-size: 16px; }
-  .map-side-btn small { font-size: 7px; }
+  .map-side-btn { width: 38px; height: 38px; }
+  .map-side-btn span .ico { width: 24px; height: 24px; }
 }
 .cal-day.best small { color: #2a0f33; }
 
@@ -392,10 +418,11 @@ ul.plain li { padding: 3px 0; }
 .hub-btn span { line-height: 1; margin-bottom: 2px; }
 .fac-ico { display: flex; align-items: center; justify-content: center; }
 
-/* Round map buttons: BTN-06 behind the icon, the label under it. */
-.map-side-btn { width: 56px; height: 62px; border-radius: 0; background: none !important; border: 0 !important; box-shadow: none; position: relative; }
-.map-side-btn span { width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; background: url(../assets/ui/BTN-06.webp) center / contain no-repeat; }
-.map-side-btn small { font-size: 10px; color: #fff; text-shadow: -1px -1px 0 #1d0f33, 1px -1px 0 #1d0f33, -1px 1px 0 #1d0f33, 1px 1px 0 #1d0f33; max-width: 60px; margin-top: -1px; }
+/* Round map buttons: BTN-06 behind the icon. Job 21: slimmer (44 across, was 56 by 62), icon only, the name shows
+   beside it while held (the small label above). A dark disc behind the art so nothing shows through. */
+.map-side-btn { width: 44px; height: 44px; border-radius: 50%; background: #2a1a47 !important; border: 0 !important; box-shadow: 0 2px 6px #0009; position: relative; }
+.map-side-btn span { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: url(../assets/ui/BTN-06.webp) center / contain no-repeat; }
+.map-side-fold span { color: var(--lime); }
 .side-alert { position: absolute; top: -3px; right: 0; }
 .map-switch .ico:last-child:not(.down) { margin: 0 0 0 5px; }
 
@@ -421,15 +448,14 @@ ul.plain li { padding: 3px 0; }
 .toast .ico { margin-right: 6px; vertical-align: -6px; }
 .scroll h4 .ico { vertical-align: -4px; }
 @media (max-height: 700px) {
-  .map-side-btn { width: 50px; height: 54px; }
-  .map-side-btn span { width: 40px; height: 40px; }
-  .map-side-btn span .ico { width: 28px; height: 28px; }
-  .map-side-btn small { font-size: 9px; }
+  .map-side-btn, .map-side-btn span { width: 40px; height: 40px; }
+  .map-side-btn span .ico { width: 24px; height: 24px; }
 }
 
 /* ---- Big job 3, Stages 4 and 5: the guide and the 18+ check ---- */
 #tutor { position: absolute; inset: 0; z-index: 7; pointer-events: none; }
-#tutor .dim { position: absolute; background: #0b0518b8; pointer-events: auto; }
+/* Job 21: gentler than it was (#0b0518b8), so the first grow room isn't a dark screen. */
+#tutor .dim { position: absolute; background: #0b05187a; pointer-events: auto; }
 .tut-hole { position: absolute; border-radius: 14px; box-shadow: 0 0 0 3px var(--lime), 0 0 18px var(--lime); pointer-events: none; }
 .tut-arrow { position: absolute; width: 54px; height: 54px; pointer-events: none; filter: drop-shadow(0 3px 5px #000a); }
 .tut-arrow.pointing-down .ico { transform: rotate(180deg); }
@@ -736,3 +762,22 @@ html.fast-time #hud::after { content: 'FAST TIME: NOT SAVING'; display: block; t
 #reveal .terpz-bal { width: 110px; height: 110px; background: url(../assets/anim/VEH-06/DRIVERIGHT.webp) 0 0 / 600% 100% no-repeat; animation: load-cart .6s steps(6) infinite; }
 #reveal .terpz-fly b { background: #fff; color: #1d0f33; font: 800 13px system-ui, sans-serif; padding: 6px 10px; border-radius: 12px; white-space: nowrap; margin-top: 8px; }
 @keyframes terpz-across { from { transform: translateX(-140px); } to { transform: translateX(110vw); } }
+
+/* ---- Job 21: wide screens (a folding phone opened out, nearly square) use the width ----
+   Lists go into two columns (headings and notes still run across), the hubs and card grids get more columns,
+   pop-ups and bottom sheets stay a comfortable width in the middle, and the loading screen's sides are filled. */
+@media (min-width: 600px) {
+  #panel .scroll { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 12px; align-content: start; }
+  #panel .scroll > * { grid-column: 1 / -1; }
+  #panel .scroll > .item:not(.big) { grid-column: auto; margin-bottom: 10px; }
+  #panel.is-sheet { justify-content: center; }
+  #panel.is-sheet .box { max-width: 600px; border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
+  .hub { grid-template-columns: repeat(3, 1fr); }
+  .hall-grid { grid-template-columns: repeat(3, 1fr); }
+  #modal .card { max-width: 480px; }
+  #loading::before { content: ''; position: absolute; inset: -30px; background: url(../assets/intro/LOAD-01.webp) center / cover; filter: blur(16px) brightness(.6); }
+}
+@media (min-width: 900px) {
+  #panel .scroll { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .hub { grid-template-columns: repeat(4, 1fr); }
+}

@@ -6,6 +6,8 @@
 (function (PE) {
   // Job 19C: the soft light round every pot (warm white-lime) and how strong it is on a planted pot.
   const POT_LIGHT = 0xf2ffc4, POT_LIGHT_ALPHA = 0.2;
+  // Job 21: how much brighter the grow room is drawn, and the warm light on the floor under each station (on, and off).
+  const ROOM_BRIGHT = 1.14, POOL_COLOUR = 0xffd896, POOL_ON = 0.42, POOL_OFF = 0.22;
   const { WORLD } = PE.Layout;
   const FONT = 'system-ui, sans-serif';
   const { Layout } = PE;
@@ -74,6 +76,9 @@
       this.events.on('sleep', () => PE.EdgeArrows.clear());
 
       this.makeRoomTextures();
+      // Job 21: a brighter room. The whole room's picture is lifted a little (on phones with the graphics-card mode),
+      // and each station throws a warm pool of light on the floor (drawStation).
+      this.brighten();
       PE.UI.loadIcons(this, ['ACT-01', 'ACT-04'], () => {});
       this.lastCull = '';
       this.helperLife = null;
@@ -83,6 +88,14 @@
     }
 
     calm() { return PE.App.state.settings.reducedMotion || this.testOverride; }
+
+    brighten() {
+      const cam = this.cameras.main;
+      if (this.sys.game.renderer.type !== Phaser.WEBGL || !cam.postFX) return;
+      this.brightFx = cam.postFX.addColorMatrix();
+      this.brightFx.brightness(ROOM_BRIGHT);
+      this.brightFx.saturate(0.06, true);
+    }
 
     makeRoomTextures() {
       const once = (key, w, h, draw) => {
@@ -117,6 +130,9 @@
       this.glows = [];
       this.ghostSig = null;
       if (this.roomArt) {
+        // Job 21: props from the art already in the game on the bare floor round the edges.
+        this.haloTexture();
+        PE.RoomProps.attach(this, this.room);
         // Bought decorations go in the room's fixed sockets (job 17).
         if (!this.testOverride) PE.DecorArt.attach(this, this.fid, { room: this.room });
         // A bought room theme: a soft colour tint over the room's light. Faint, so the art always shows through.
@@ -688,7 +704,7 @@
       // They walk on the open floor, in the gaps: never across a setup, or the spot of one still to come, and not in the strip
       // just behind one either (they're drawn in front, so it would look like walking through it).
       const spots = R.stations.slice(0, Math.max(this.open, this.stationCount()));
-      const blocked = (x, y) => spots.some((q) => x > q.x - box.halfW - 30 && x < q.x + box.halfW + 30 && y > q.y - box.up + 250 && y < q.y + box.down + 40);
+      const blocked = (x, y) => spots.some((q) => x > q.x - box.halfW - 30 && x < q.x + box.halfW + 30 && y > q.y - box.up + 250 && y < q.y + box.down + 40) || PE.RoomProps.blocks(this.roomProps, x, y);
       this.walkWorld = R.picture ? PE.RoomArt.floorWorld(R, blocked, { ...opts, step: 80 }) : null;
       const world = this.walkWorld;
       if (!world || !world.spots.length) { this.helperLife = false; return; }
@@ -879,6 +895,7 @@
         const first = v.lightOn === undefined;
         v.lightOn = growing;
         if (v.light && v.light.setTint) { if (growing) v.light.clearTint(); else v.light.setTint(0x55505f); }
+        if (v.pool) v.pool.setAlpha(growing ? POOL_ON : POOL_OFF);
         if (v.cone) {
           v.cone.wantVisible = growing;
           v.cone.setVisible(growing && v.shown !== false);
@@ -918,6 +935,7 @@
         const set = (o) => { if (o) o.setVisible(on && o.wantVisible !== false); };
         view.parts.forEach(set);
         view.texts.forEach(set);
+        set(view.pool);
         view.pots.forEach((pv) => [pv.tray, pv.back, pv.shadow, pv.light, pv.img, pv.logo, pv.logoBg, pv.fx, pv.glow, pv.halo].forEach((o) => { if (o) o.setVisible(on && !(o === pv.logo && !pv.logoShown)); }));
       }
     }
@@ -955,6 +973,7 @@
         if (v.water) v.water.destroy();
         v.parts.forEach((o) => o.destroy());
         v.texts.forEach((t) => t.destroy());
+        if (v.pool) v.pool.destroy();
         v.pots.forEach((pv) => {
           [pv.seedIcon, pv.img, pv.logo, pv.logoBg, pv.fx, pv.tray, pv.back, pv.shadow, pv.light, pv.glow, pv.halo].forEach((o) => { if (o) o.destroy(); });
           if (this.potLights) this.potLights.delete(pv);
@@ -1027,6 +1046,11 @@
       v.cone = this.add.image(pos.x + O.x, pos.y + O.lightBottom - 30, 'room-cone').setOrigin(0.5, 0).setDisplaySize(900, Math.max(200, -O.lightBottom + 10)).setDepth(pos.y + 206).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.4).setVisible(false);
       v.cone.wantVisible = false;
       v.parts.push(v.cone);
+      // A soft warm pool of light on the floor under the station, brighter while its light is on.
+      this.haloTexture();
+      v.pool = this.add.image(pos.x + O.x, pos.y + 300, 'pot-halo').setDepth(-989).setBlendMode(Phaser.BlendModes.ADD).setTint(POOL_COLOUR).setAlpha(POOL_OFF)
+        .setDisplaySize(this.room.box.halfW * 2.1, 760);
+      // (Kept apart from the bench's own pieces: it's light on the floor, not part of the station.)
       v.lightOn = undefined;
       const fxId = `M${m}-FX-${L.sprinkler}`;
       const [fw, fh] = D.hydroArt[fxId] || [100, 100];

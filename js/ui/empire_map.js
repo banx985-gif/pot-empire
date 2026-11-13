@@ -213,6 +213,7 @@
     update(time) {
       if (!this.ready) return;
       if (this.updateLife) this.updateLife(time);
+      this.placeNames();
       if (time - (this.lastSharp || 0) > 120) { this.lastSharp = time; PE.MapGround.keepSharp(this, this.ground); }
       if (time - this.lastRefresh < 250) return;
       this.lastRefresh = time;
@@ -496,6 +497,59 @@
       if (type === 'changed' && this.ready) this.needRefresh = true;
     }
 
+    // Every name on the map (buildings, features, rivals), each with the spot it belongs under.
+    nameLabels() {
+      const out = [];
+      for (const v of this.views.values()) if (v.name && v.name.scene) out.push({ t: v.name, x: v.s.x, y: v.s.y + 6, top: v.s.y - (v.artTop || 200) });
+      if (this.life && this.life.rivals) for (const r of this.life.rivals.values()) if (r.label && r.label.scene) out.push({ t: r.label, x: r.spot.x, y: r.spot.y + 6, top: r.spot.y - (r.image && r.image.displayHeight > 4 ? r.image.displayHeight : 200) });
+      return out;
+    }
+    // Job 21: a name always shows whole. Near the screen's edge it slides back in (inside the safe area), and it keeps
+    // clear of the side buttons. Drawn over the traffic and the trees, under the bubbles. Only redone when the camera moves.
+    placeNames(force) {
+      const cam = this.cameras.main;
+      const side = document.querySelector('#actionbar .map-side');
+      const sr = side ? side.getBoundingClientRect() : null;
+      // The buttons along the bottom and the top bar: names stay between them.
+      const low = [...document.querySelectorAll('#actionbar .map-switch, #actionbar .map-list, #actionbar .map-event')].map((e) => e.getBoundingClientRect()).filter((r) => r.height);
+      const lowTop = low.length ? Math.min(...low.map((r) => r.top)) : null;
+      const topBar = document.querySelector('#hud .hud-top');
+      const hudBottom = topBar && !document.getElementById('hud').hidden ? topBar.getBoundingClientRect().bottom : 0;
+      const sig = `${cam.scrollX.toFixed(1)}|${cam.scrollY.toFixed(1)}|${cam.zoom.toFixed(4)}|${this.scale.width}|${sr ? Math.round(sr.left) + ',' + Math.round(sr.top) + ',' + Math.round(sr.bottom) : ''}|${lowTop === null ? '' : Math.round(lowTop)}|${Math.round(hudBottom)}`;
+      if (!force && sig === this.nameSig) return;
+      this.nameSig = sig;
+      const L = PE.UI.layout(this);
+      // Worked out from the camera itself: its worldView can be a frame behind just after a zoom.
+      const z = cam.zoom;
+      const view = { x: cam.scrollX + cam.width * cam.originX - (cam.width / z) * cam.originX, y: cam.scrollY + cam.height * cam.originY - (cam.height / z) * cam.originY };
+      const pad = 6 * L.u;
+      // The side buttons, in the canvas's own pixels.
+      let col = null;
+      const cr = this.game.canvas.getBoundingClientRect();
+      const k = this.scale.width / cr.width;
+      if (sr && sr.width) col = { left: (sr.left - cr.left) * k, top: (sr.top - cr.top) * k, bottom: (sr.bottom - cr.top) * k };
+      const yHi = lowTop === null ? L.bottom : Math.min(L.bottom, (lowTop - cr.top) * k);
+      const yLo = Math.max(L.top, (hudBottom - cr.top) * k);
+      for (const n of this.nameLabels()) {
+        const t = n.t;
+        if (t.depth < 50000) t.setDepth(50000 + n.y);
+        const w = t.width * t.scaleX * z, h = t.height * t.scaleY * z;
+        const sx = (n.x - view.x) * z, sy = (n.y - view.y) * z;
+        const onScreen = sx > -w && sx < L.W + w;
+        // Not tucked under the buttons along the bottom, or the top bar (only when its building is on screen).
+        let ny = sy;
+        const topY = (n.top - view.y) * z;   // the building's roof, on screen
+        if (onScreen && topY < yHi - h && sy > yLo - h * 3) ny = Math.max(yLo + pad, Math.min(sy, yHi - pad - h));
+        t.y = view.y + ny / z;
+        // Slid in from the screen's edges, and clear of the side buttons at the height it ends up at.
+        let lo = L.left + pad + w / 2, hi = L.right - pad - w / 2;
+        if (col && ny + h > col.top - pad && ny < col.bottom + pad) hi = Math.min(hi, col.left - pad - w / 2);
+        let nx = sx;
+        // Only a name whose building is at least partly on screen is pulled in.
+        if (onScreen) nx = lo > hi ? Math.max(L.left + pad + w / 2, hi) : Math.min(hi, Math.max(lo, sx));
+        t.x = view.x + nx / z;
+      }
+    }
     // Where a map point is on screen, in page points. Used by the automatic browser test to really tap it.
     worldToPage(wx, wy) {
       const cam = this.cameras.main;
@@ -518,16 +572,26 @@
       const g = PE.App.g;
       const here = g.map.districts().find((d) => d.id === g.map.current());
       const waiting = g.map.districts().some((d) => d.id !== here.id && g.map.isUnlocked(d.id) && g.map.needsYou(d.id));
-      const side = (PE.MapMenu || []).map((m) => `<button class="map-side-btn" data-act="menu:${m.id}" aria-label="${m.label}"><span>${PE.Dom.icon(m.icon, 34)}</span><small>${m.label}</small>${m.dot && m.dot() ? PE.Dom.icon('STA-03', 22, 'side-alert') : ''}</button>`).join('');
+      const menu = PE.MapMenu || [];
+      const side = menu.map((m) => `<button class="map-side-btn" data-act="menu:${m.id}" aria-label="${m.label}"><span>${PE.Dom.icon(m.icon, 28)}</span><small>${m.label}</small>${m.dot && m.dot() ? PE.Dom.icon('STA-03', 16, 'side-alert') : ''}</button>`).join('');
+      // On a narrow screen the column folds into this one button (job 21). It carries a "!" if any inside has one.
+      const anyDot = menu.some((m) => m.dot && m.dot());
+      const fold = `<button class="map-side-btn map-side-fold" data-act="sideFold" aria-label="More"><span class="fold-open"><i class="fold-bars"><b></b><b></b><b></b></i></span><span class="fold-x">×</span>${anyDot && !PE.MapBar.open ? PE.Dom.icon('STA-03', 16, 'side-alert') : ''}</button>`;
       const f = g.meta.festivalNow();
       const left = PE.Dom.duration(Math.max(0, f.endsMs - g.now()) / 1000);
       const banner = `<button class="map-event ${f.active ? 'on' : ''}" data-act="menu:festival">${PE.Dom.icon('GOL-03', 30)}<span><b>${PE.Dom.esc(f.theme)}</b><small>${f.active ? `On now, ends in ${left}` : `Starts in ${left}`}</small></span></button>`;
-      return `${banner}<div class="map-side">${side}</div>
+      return `${banner}<div class="map-side${PE.MapBar.open ? ' open' : ''}">${side}${fold}</div>
         <button class="btn map-switch" data-act="districts">${PE.Dom.icon('NAV-01', 26)}${PE.Dom.esc(here.name)}${PE.Dom.icon('SYS-03', 14, 'down')}${waiting ? PE.Dom.icon('STA-03', 20) : ''}</button>
         <button class="btn plain map-list" data-act="mapList">${PE.Dom.icon('SYS-05', 22)}List</button>`;
     },
   };
   PE.Hud.actions.districts = () => PE.App.openPanel('districts', {});
   PE.Hud.actions.mapList = () => PE.App.openPanel('empireList', {});
-  PE.Hud.actions.menu = (id) => PE.App.router.go(id, {});
+  PE.Hud.actions.menu = (id) => { PE.MapBar.open = false; PE.App.router.go(id, {}); };
+  PE.Hud.actions.sideFold = () => { PE.MapBar.open = !PE.MapBar.open; };
+  // Holding a side button shows its name beside it (a quick tap just opens it).
+  document.addEventListener('pointerdown', (e) => { const b = e.target.closest && e.target.closest('.map-side-btn'); if (b) b.classList.add('held'); }, true);
+  const unhold = () => document.querySelectorAll('.map-side-btn.held').forEach((b) => b.classList.remove('held'));
+  document.addEventListener('pointerup', unhold, true);
+  document.addEventListener('pointercancel', unhold, true);
 })(globalThis.PE = globalThis.PE || {});
