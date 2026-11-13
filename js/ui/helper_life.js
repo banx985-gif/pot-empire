@@ -519,6 +519,8 @@
       const W = this.world.lounge;
       const slot = W && W.slotFor(e.id);
       if (!slot || e.state === 'lounge' || e.state === 'call') return false;
+      // A chat they're in ends first (its end would otherwise send them back to standing about).
+      if (this.chatNow && (this.chatNow.a === e || this.chatNow.b === e)) this.endChat();
       W.take(e.id, slot.key);
       e.state = 'lounge';
       e.path = null; e.arrive = null; e.busyDone = null;
