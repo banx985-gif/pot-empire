@@ -47,6 +47,10 @@ globalThis.PE.Data.scenes = {
     { LEAFY: 'I made a list.', BUDZ: 'Is it snacks?' },
     { HAZE: 'Hear that?', BUDZ: 'Hear what?' },
     { BUDZ: 'New shoes!', LEAFY: 'Those are old.' },
+    // Terpz, Budz's cousin (job 32: he walks about now).
+    { TERPZ: 'Sup, Haze!', HAZE: 'Feet on the ground for once?' },
+    { HAZE: 'Where\'s the balloon?', TERPZ: 'Parked it on a cloud.' },
+    { TERPZ: 'Nice view from up top.', HAZE: 'Nicer down here, kid.' },
   ],
   // In the world: a word or two when something happens nearby.
   barks: {
@@ -87,7 +91,7 @@ globalThis.PE.Data.scenes = {
       tank: ['Tank\'s full! Spray time!'],
     },
   },
-  // Terpz, Budz's cousin, in his gift balloon (VEH-06, job 19B). He has no walking art yet, so he only ever flies.
+  // Terpz, Budz's cousin, in his gift balloon (VEH-06, job 19B). Since job 32 he also walks about as a helper.
   terpzArrive: ['Special delivery!', 'Catch, cuz!', 'Gift from the sky!', 'Tap me, I\'m loaded!'],
   terpzThanks: ['Enjoy, cuz!', 'Laters!', 'Peace out!'],
   // Job 22: the rare phone call. Leafy rings Haze while they're both standing in the same grow room. Each call is a few

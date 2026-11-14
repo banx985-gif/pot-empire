@@ -112,6 +112,8 @@
       const label = this.add.text(spot.x, spot.y + 6, rival.name, {
         fontFamily: FONT, fontStyle: 'bold', fontSize: '18px', color: '#ffd9d9', stroke: '#1d0f33', strokeThickness: 5,
       }).setOrigin(0.5, 0).setDepth(spot.y + 1);
+      // Job 32: rivals' names on the pink and red spiky nameplate (NAME-02).
+      PE.Plates.behind(this, 'NAME-02', label, { padX: 0.8, padY: 0.5, lift: 0.08 });
       this.life.rivals.set(spot.rival, { spot, image, label, beaten: null, rival });
     }
   };
@@ -568,7 +570,23 @@
       G.lineStyle(3, 0x1d0f33, 1).strokeRoundedRect(-37, -78, 74, 40, 6);
       const t = this.add.text(0, -58, 'LOT\nFOR SALE', { fontFamily: 'system-ui, sans-serif', fontStyle: '900', fontSize: '13px', color: '#1d0f33', align: 'center', lineSpacing: -2 }).setOrigin(0.5).setResolution(2);
       c.add([G, t]);
-      return { x: s.x, y: s.y };
+      // Job 27: Aaron's drawn For Sale sign (SIGN-FORSALE, art/ui/words/) takes the place of the board drawn here.
+      PE.Words.texture(this, 'SIGN-FORSALE', (key) => {
+        if (!c.scene) return;
+        G.clear().fillStyle(0x000000, 0.25).fillEllipse(0, 2, 70, 16);
+        t.destroy();
+        const im = this.add.image(0, 4, key).setOrigin(0.5, 1);
+        im.setScale(Math.min(130 / im.width, 84 / im.height));
+        im.wordId = 'SIGN-FORSALE';
+        c.add(im);
+        // Job 32: its blank strip says what the lot is waiting for (the strip is 14% to 86% across, 63% to 84% down).
+        const sw = im.displayWidth, sh = im.displayHeight;
+        const soon = this.add.text(0, 4 - sh + sh * 0.735, 'Coming soon', { fontFamily: 'system-ui, sans-serif', fontStyle: '900', fontSize: '22px', color: '#5a2a0a' }).setOrigin(0.5).setResolution(2);
+        soon.setScale(Math.min((sw * 0.66) / soon.width, (sh * 0.17) / soon.height));
+        c.add(soon);
+        c.signArt = im;
+      });
+      return { x: s.x, y: s.y, c };
     });
   };
   proto.tapLot = function tapLot(x, y) {
@@ -744,7 +762,7 @@
   // ---- Job 19B: Terpz (Budz's cousin) brings the gift in his balloon (VEH-06) ---------------------------------------
   // It fills up on the ground at the edge of the screen (VEH-06-INFLATE), rises on its DRIVEFRONT frames, then floats
   // across well above the rooftops with a soft shadow on the ground below. Tap it for the gift: Terpz says ta and
-  // floats off up and away. Terpz is one person: one balloon, and he never walks (no walking art yet).
+  // floats off up and away. Terpz is one person: while he's walking about (job 32) the balloon waits, and the other way round.
   const BALLOON_H = 190, LIFT = 300;
   proto.spawnBalloon = function spawnBalloon(x, y, vx, seconds) {
     const actor = new PE.Anim.Actor(this, 'VEH-06', { x, y: y + LIFT, height: BALLOON_H, depth: 80000 });
@@ -814,6 +832,8 @@
     const x = this.calmNow ? cam.midPoint.x : (fromLeft ? cam.midPoint.x - vw / 2 - margin : cam.midPoint.x + vw / 2 + margin);
     const dist = vw + margin * 2;
     // Job 19B: Terpz flies it in, if his balloon's frames are in and he isn't already out (one of each).
+    // Job 32: if he's walking about on this map, he heads off to his balloon first.
+    if (PE.AnimPick.hasFrames('VEH-06') && !PE.Cast.isFree('VEH-06') && this.life.helperLife) this.life.helperLife.leave('TERPZ');
     if (PE.AnimPick.hasFrames('VEH-06') && PE.Cast.isFree('VEH-06')) {
       // He takes off from just inside the edge of the screen, so the take-off is seen.
       const startX = this.calmNow ? x : (fromLeft ? cam.midPoint.x - vw * 0.25 : cam.midPoint.x + vw * 0.25);   // clear of the buttons down the sides

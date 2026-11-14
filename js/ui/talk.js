@@ -83,7 +83,7 @@
         PE.Dom.modal({
           title: opts.title,
           cls: `talk-scene ${opts.cls || ''}`,
-          html: `${stageHtml(people, line.who, opts)}<div class="talk-bubble-line"><b>${esc(name)}</b><p class="talk-line">${esc(line.text)}</p></div>`,
+          html: `${stageHtml(people, line.who, opts)}<div class="talk-bubble-line">${PE.Plates.name(line.who, esc(name))}<p class="talk-line">${esc(line.text)}</p></div>`,
           buttons: last ? [{ label: 'Done', style: 'go', onTap: opts.onDone }] : [{ label: 'Skip', style: 'plain', onTap: opts.onDone }, { label: 'Next', style: 'go', onTap: () => step(i + 1) }],
         });
         // The pop-up may be waiting behind another one, so start the moment it's the one showing.
@@ -96,7 +96,7 @@
     // hair 'messy': he's been working hard or just woke up.
     inlineHtml(lines, hair) {
       const people = cast(lines).slice(0, 3);
-      return `<div class="talk-inline">${stageHtml(people, lines[0].who, { hair })}<div class="talk-bubble-line"><b>${esc(names()[lines[0].who])}</b><p class="talk-line">${esc(lines[0].text)}</p></div></div>`;
+      return `<div class="talk-inline">${stageHtml(people, lines[0].who, { hair })}<div class="talk-bubble-line">${PE.Plates.name(lines[0].who, esc(names()[lines[0].who]))}<p class="talk-line">${esc(lines[0].text)}</p></div></div>`;
     },
     startInline(lines) {
       const root = document.querySelector('#modal .talk-inline');

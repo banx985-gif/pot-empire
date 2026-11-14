@@ -173,7 +173,7 @@
       if (!this.modalNow) { el.hidden = true; el.innerHTML = ''; return; }
       const m = this.modalNow;
       const buttons = m.buttons.map((b, i) => `<button class="btn ${b.style || ''}" data-act="${i}">${b.icon ? icon(b.icon, 22) : ''}${esc(b.label)}</button>`).join('');
-      el.innerHTML = `<div class="card ${m.cls || ''}"><h3>${esc(m.title)}</h3><div class="body">${m.html}</div><div class="row">${buttons}</div></div>`;
+      el.innerHTML = `<div class="card ${m.cls || ''}"><h3>${m.titleHtml || esc(m.title)}</h3><div class="body">${m.html}</div><div class="row">${buttons}</div></div>`;
       el.hidden = false;
     },
     runModal(act) {

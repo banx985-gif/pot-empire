@@ -36,7 +36,7 @@
     render() {
       const s = S();
       const build = PE.BUILD.startsWith('__') ? 'dev' : PE.BUILD;
-      return `<h4>Sound</h4>${toggle('muted', 'Mute', 'Silence all sound and music. Stays muted until you switch it off')}${slider('sound', 'Sound effects')}${slider('music', 'Music')}
+      return `${PE.Words.extra('WRD-GAME-LOGO-SMALL', 'Pot Empire', 'menu-logo')}<h4>Sound</h4>${toggle('muted', 'Mute', 'Silence all sound and music. Stays muted until you switch it off')}${slider('sound', 'Sound effects')}${slider('music', 'Music')}
         ${toggle('haptics', 'Vibration', 'A gentle buzz on harvest, collect and level up')}
         <h4>Notifications</h4>
         ${toggle('notify', 'Notifications', 'A shout from Uncle Haze when something is ready. Never at night, only a few a day.')}

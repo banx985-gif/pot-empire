@@ -3,7 +3,7 @@
 // the feet are in a frame (0 to 1), big means there is also a pop-up sized sheet.
 // stand: how tall each person stands on the small sheets, in pixels (measured; js/ui/anim.js scales everyone by it).
 (globalThis.PE = globalThis.PE || {}).Data = globalThis.PE.Data || {};
-globalThis.PE.Data.animArt = {"small":190,"large":340,"base":520,"stand":{"BUDZ":178.7,"HAZE":177.2,"LEAFY":176.8,"VIP-01":154.9,"VIP-02":155.7,"VIP-03":156,"VIP-04":156.8,"VIP-05":155.7,"VIP-06":154.9,"VIP-07":154.9,"VIP-08":179.4,"VIP-09":179.8,"VIP-10":180.1,"VIP-11":167,"VIP-12":161.9,"WLK-01":155.3,"WLK-02":156,"WLK-03":155.3,"WLK-04":156.4,"WLK-05":154.9,"WLK-06":172.1},"chars":{
+globalThis.PE.Data.animArt = {"small":190,"large":340,"base":520,"stand":{"BUDZ":178.7,"HAZE":177.2,"LEAFY":176.8,"TERPZ":156.4,"VIP-01":154.9,"VIP-02":155.7,"VIP-03":156,"VIP-04":156.8,"VIP-05":155.7,"VIP-06":154.9,"VIP-07":154.9,"VIP-08":179.4,"VIP-09":179.8,"VIP-10":180.1,"VIP-11":167,"VIP-12":161.9,"WLK-01":155.3,"WLK-02":156,"WLK-03":155.3,"WLK-04":156.4,"WLK-05":154.9,"WLK-06":172.1},"chars":{
 "BUDZ":{"CHAT1":{"n":6,"cols":6,"w":190,"h":190,"ox":0.498,"oy":0.977,"big":true},
 "CHAT2":{"n":6,"cols":6,"w":190,"h":190,"ox":0.5,"oy":0.977,"big":true},
 "CHAT3":{"n":6,"cols":6,"w":190,"h":190,"ox":0.499,"oy":0.977,"big":true},
@@ -73,7 +73,15 @@ globalThis.PE.Data.animArt = {"small":190,"large":340,"base":520,"stand":{"BUDZ"
 "WALKLEFT":{"n":6,"cols":6,"w":190,"h":190,"ox":0.475,"oy":0.977,"big":false},
 "WALKRIGHT":{"n":6,"cols":6,"w":190,"h":190,"ox":0.47,"oy":0.977,"big":false},
 "WALKUPLEFT":{"n":6,"cols":6,"w":190,"h":190,"ox":0.387,"oy":0.977,"big":false},
-"WALKUPRIGHT":{"n":6,"cols":6,"w":190,"h":190,"ox":0.475,"oy":0.977,"big":false}},"VIP-01":{
+"WALKUPRIGHT":{"n":6,"cols":6,"w":190,"h":190,"ox":0.475,"oy":0.977,"big":false}},
+"TERPZ":{"WALKAWAY":{"n":6,"cols":6,"w":187,"h":187,"ox":0.486,"oy":0.906,"big":false,"ms":[120,120,120,120,120,120]},
+"WALKDOWNLEFT":{"n":6,"cols":6,"w":187,"h":187,"ox":0.416,"oy":0.906,"big":false,"ms":[120,120,120,120,120,120]},
+"WALKDOWNRIGHT":{"n":6,"cols":6,"w":187,"h":187,"ox":0.526,"oy":0.906,"big":false,"ms":[120,120,120,120,120,120]},
+"WALKFRONT":{"n":6,"cols":6,"w":187,"h":187,"ox":0.506,"oy":0.904,"big":false,"ms":[120,120,120,120,120,120]},
+"WALKLEFT":{"n":6,"cols":6,"w":187,"h":187,"ox":0.484,"oy":0.904,"big":false,"ms":[120,120,120,120,120,120]},
+"WALKRIGHT":{"n":6,"cols":6,"w":187,"h":187,"ox":0.506,"oy":0.904,"big":false,"ms":[120,120,120,120,120,120]},
+"WALKUPLEFT":{"n":6,"cols":6,"w":187,"h":187,"ox":0.508,"oy":0.904,"big":false,"ms":[120,120,120,120,120,120]},
+"WALKUPRIGHT":{"n":6,"cols":6,"w":187,"h":187,"ox":0.435,"oy":0.904,"big":false,"ms":[120,120,120,120,120,120]}},"VIP-01":{
 "SKATEAWAY":{"n":6,"cols":6,"w":205,"h":197,"ox":0.504,"oy":0.969,"big":true,"ms":[240,110,120,140,100,290]},
 "SKATEDOWNLEFT":{"n":6,"cols":6,"w":205,"h":197,"ox":0.521,"oy":0.969,"big":true,"ms":[240,110,120,140,100,290]},
 "SKATEDOWNRIGHT":{"n":6,"cols":6,"w":205,"h":197,"ox":0.514,"oy":0.969,"big":true,"ms":[240,110,120,140,100,290]},

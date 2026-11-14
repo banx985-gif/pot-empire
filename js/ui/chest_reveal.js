@@ -29,8 +29,8 @@
   function terpz(calm) {
     if (calm || !(PE.Data.animArt.chars['VEH-06'] || {}).DRIVERIGHT) return '';
     const lines = PE.Data.scenes.terpzArrive || ['Special delivery!'];
-    // Job 25: Terpz himself rides along once his own frames are in (npm run animart files him as TERPZ).
-    const rider = PE.Data.animArt.chars.TERPZ && PE.AnimDom ? `<span class="terpz-rider">${PE.AnimDom.html('TERPZ', 54)}</span>` : '';
+    // Job 25: Terpz himself rides along once his own wave is in (TERPZ-WAVE; job 32: only his walk is drawn so far).
+    const rider = (PE.Data.animArt.chars.TERPZ || {}).WAVE && PE.AnimDom ? `<span class="terpz-rider">${PE.AnimDom.html('TERPZ', 54)}</span>` : '';
     return `<div class="terpz-fly" aria-hidden="true">${rider}<span class="terpz-bal"></span><b>${esc(lines[Math.floor(Math.random() * lines.length)])}</b></div>`;
   }
 

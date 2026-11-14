@@ -23,7 +23,7 @@
     button() {
       const st = status();
       const claim = g().eventHub.anyToClaim();
-      return `<button class="map-hub ${st.on ? 'on' : ''}" data-act="eventHub">${icon('GOL-03', 30)}<span><b>Event</b><small>${esc(st.text)}</small></span>${claim ? icon('STA-03', 16, 'side-alert') : ''}</button>`;
+      return `<button class="map-hub ${st.on ? 'on' : ''}" data-act="eventHub">${icon('GOL-03', 30)}<span>${PE.Words.html('WRD-EVENT-WEEKLY', 'Event', '<b>Event</b>', 'hub-word')}<small>${esc(st.text)}</small></span>${claim ? icon('STA-03', 16, 'side-alert') : ''}</button>`;
     },
     // A Haze or Leafy tip the first time the button shows (job 21's tip box).
     tipOnce() {
@@ -44,14 +44,14 @@
       const now = game.now();
       const head = `<div class="ev-card ${ev.on ? 'on' : ''}" style="--ev:${esc(ev.look.colour)}">
         ${icon(ev.look.icon, 64)}
-        <div class="grow"><b>${esc(ev.name)}</b><small>${esc(ev.blurb)}</small>
+        <div class="grow">${PE.Words.html('WRD-EVENT-WEEKLY', ev.name, `<b>${esc(ev.name)}</b>`, 'ev-word')}<small>${esc(ev.blurb)}</small>
           <p class="ev-when">${ev.on ? `On today! Ends in ${duration((ev.endsMs - now) / 1000)}` : `Next one ${DAYS[new Date(ev.startsMs).getDay()]}, in ${duration((ev.startsMs - now) / 1000)}`}</p>
           <small>Event day: ${DAYS[H.eventDay()]} (change it in Settings)${ev.forced ? ' · test switch on' : ''}</small></div></div>`;
       const next = H.levels().findIndex((x, i) => !H.best(i + 1));
       const playN = next < 0 ? H.levels().length : next + 1;
-      const play = ev.on
+      const play = PE.Words.extra('WRD-BUD-MATCH', 'Bud Match', 'ev-bm-word') + (ev.on
         ? `<button class="btn wide go bm-play" data-act="play:${playN}">${icon('GOL-05', 24)}Play Bud Match · level ${playN}</button>`
-        : `<button class="btn wide cant bm-play" data-act="closed">${icon('STA-02', 24)}Bud Match opens on event day</button>`;
+        : `<button class="btn wide cant bm-play" data-act="closed">${PE.Words.html('SIGN-CLOSED', 'Closed', icon('STA-02', 24), 'btn-word')}Bud Match opens on event day</button>`);
       // The week's stars and milestone prizes.
       const ms = H.milestones();
       const top = ms[ms.length - 1].stars;

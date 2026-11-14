@@ -36,7 +36,7 @@
       unlock(id) {
         const res = g().grow.unlockStrain(id);
         if (!res.ok) toast(res.why === 'cash' ? 'Not enough cash yet' : 'Not available yet');
-        else toast(`${g().grow.strainStats(id).name} unlocked!`);
+        else PE.Words.toast('WRD-NEW-STRAIN', 'New Strain!', `${g().grow.strainStats(id).name} unlocked!`);
       },
     },
   };
@@ -169,6 +169,7 @@
       const talker = game.state.settings.helpers ? PE.Talk.inlineHtml(script, 'messy') : PE.Dom.icon('STA-01', 72, 'center-ico');
       PE.Dom.modal({
         title: 'Welcome back!',
+        titleHtml: PE.Words.html('WRD-WELCOME-BACK', 'Welcome back!', '', 'modal-word') || undefined,
         cls: 'welcome',
         html: `${talker}<p>You were away for <b>${duration(r.awaySeconds)}</b>.${r.capped ? ` Automation is capped at ${duration(game.offline.capSeconds())}.` : ''}</p>
           <p class="bigcash">${money(r.cash)}</p>

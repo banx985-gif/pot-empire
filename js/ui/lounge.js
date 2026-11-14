@@ -80,8 +80,119 @@
     img.src = `assets/furniture/${id}.webp`;
   }
 
+  // ---- Job 27: the TV's screen playing a game (Aaron's animations, art/collections/furniture/tv_anim/) -----------------------
+  // While someone plays: the TV's BASE picture (the TV and cabinet) with the screen frames drawn over its screen, looping the
+  // timeline. Each play starts at frame 1. Nobody playing: the still LOGO picture, as before. The two cross-fade (FADE) since
+  // they're slightly different drawings; the BASE is sized so its TV lines up with the LOGO picture's (data/tv_anim.js fit).
+  // The frames only move while the TV is on the screen, not in Low power, and not while the game is in the background.
+  // TV-3's idle picture: kept as the Pot Empire logo like the other two (the THC6 title is its first playing frame).
+  const FADE = 150;
+  const TV = () => PE.Data.tvAnim || {};
+  const TvScreen = {
+    FADE,
+    has: (id) => !!TV()[id],
+    // The BASE and the frame sheets as textures (each frame named 'f<n>' on its sheet). Calls ready() once all are in.
+    load(scene, id, ready) {
+      const A = TV()[id];
+      const files = [{ key: `tvb-${id}`, src: `assets/furniture/${id}-BASE.webp` }]
+        .concat(A.sheets.map((s, i) => ({ key: `tvs-${id}-${i}`, src: `assets/furniture/${s.file}`, sheet: i })));
+      let left = files.length;
+      const done = () => {
+        if (--left) return;
+        A.frames.forEach((f, n) => { const t = scene.textures.get(`tvs-${id}-${f.s}`); if (!t.has('f' + n)) t.add('f' + n, 0, f.x, f.y, A.cell.w, A.cell.h); });
+        ready();
+      };
+      for (const f of files) {
+        if (scene.textures.exists(f.key)) { done(); continue; }
+        const img = new Image();
+        img.onload = () => {
+          if (!scene.sys || scene.sys.settings.status >= Phaser.Scenes.SHUTDOWN) return;
+          if (!scene.textures.exists(f.key)) scene.textures.addImage(f.key, img);
+          done();
+        };
+        img.src = f.src;
+      }
+    },
+    // The scene's TV screen state (made the first time anyone plays).
+    of(scene) {
+      if (scene.tvScreen) return scene.tvScreen;
+      const st = scene.tvScreen = { id: scene.lounge.tv.id, want: false, built: false, i: 0, t: 0, loops: 0, sessions: 0, log: [], paused: null };
+      const tick = (time, delta) => TvScreen.step(scene, delta);
+      scene.events.on('update', tick);
+      scene.events.once('shutdown', () => {
+        scene.events.off('update', tick);
+        if (scene.tvScreen === st) scene.tvScreen = null;   // (a scene that restarts is the same object)
+        // The big frame sheets only stay in memory while you're in a room with that TV.
+        for (const k of scene.textures.getTextureKeys()) if (k.startsWith('tvs-')) scene.textures.remove(k);
+      });
+      return st;
+    },
+    // Someone starts or stops playing.
+    set(scene, playing) {
+      const st = TvScreen.of(scene);
+      if (st.want === playing) return;
+      st.want = playing;
+      if (playing) { st.sessions++; st.i = 0; st.t = 0; st.loops = 0; st.log = [0]; }
+      const fade = () => {
+        if (!scene.sys || !scene.loungeParts || st.want !== playing) return;
+        if (playing) TvScreen.build(scene, st);
+        if (!st.built) return;
+        if (playing) TvScreen.show(scene, st, 0);
+        const logo = scene.loungeParts.tv;
+        scene.tweens.killTweensOf([st.base, st.screen, logo]);
+        st.fading = true;
+        scene.tweens.add({ targets: [st.base, st.screen], alpha: playing ? 1 : 0, duration: FADE });
+        scene.tweens.add({ targets: logo, alpha: playing ? 0 : 1, duration: FADE, onComplete: () => { st.fading = false; } });
+      };
+      if (playing) TvScreen.load(scene, st.id, fade); else fade();
+    },
+    build(scene, st) {
+      if (st.built) return;
+      const P = scene.lounge, A = TV()[st.id];
+      const left = P.tv.x - P.tv.w / 2, top = P.tv.y - P.tv.h;
+      const bx = left + A.fit.x * P.tv.w, by = top + A.fit.y * P.tv.h, bw = A.fit.w * P.tv.w, bh = A.fit.h * P.tv.h;
+      st.rect = { x: bx, y: by, w: bw, h: bh };
+      st.base = scene.add.image(bx, by, `tvb-${st.id}`).setOrigin(0, 0).setDisplaySize(bw, bh).setDepth(P.tv.y + 0.01).setAlpha(0);
+      st.screen = scene.add.image(bx + A.screen.x * bw, by + A.screen.y * bh, `tvs-${st.id}-${A.frames[0].s}`, 'f0')
+        .setOrigin(0, 0).setDisplaySize(A.screen.w * bw, A.screen.h * bh).setDepth(P.tv.y + 0.02).setAlpha(0);
+      st.built = true;
+    },
+    show(scene, st, n) {
+      const A = TV()[st.id], f = A.frames[n];
+      const sw = st.screen.displayWidth, sh = st.screen.displayHeight;
+      st.screen.setTexture(`tvs-${st.id}-${f.s}`, 'f' + n).setDisplaySize(sw, sh);
+    },
+    // Why the frames aren't moving right now (null: they are).
+    pauseWhy(scene, st) {
+      if (PE.App.state.settings.lowPower) return 'lowPower';
+      if (typeof document !== 'undefined' && document.hidden) return 'background';
+      const v = scene.cameras.main.worldView, r = st.rect;
+      if (r && (r.x > v.right || r.x + r.w < v.x || r.y > v.bottom || r.y + r.h < v.y)) return 'offScreen';
+      return null;
+    },
+    // Moves the timeline on by ms milliseconds.
+    step(scene, ms) {
+      const st = scene.tvScreen;
+      if (!st || !st.want || !st.built) return;
+      st.paused = TvScreen.pauseWhy(scene, st);
+      if (st.paused) return;
+      const A = TV()[st.id];
+      st.t += Math.min(ms, A.total);
+      let moved = false;
+      while (st.t >= A.frames[st.i].ms) {
+        st.t -= A.frames[st.i].ms;
+        st.i = (st.i + 1) % A.frames.length;
+        if (!st.i) st.loops++;
+        st.log.push(st.i);
+        moved = true;
+      }
+      if (st.log.length > 400) st.log.splice(0, st.log.length - 400);
+      if (moved) TvScreen.show(scene, st, st.i);
+    },
+  };
+
   const Lounge = {
-    plan, SEAT_DEPTH, BEHIND_SEAT,
+    plan, SEAT_DEPTH, BEHIND_SEAT, TvScreen,
     // Works out the room's lounge before the props are placed, so they keep out of its way.
     prepare(scene) {
       const setup = !scene.testOverride && PE.App.g.lounge.in(scene.fid);
@@ -112,12 +223,23 @@
         parts.seat = im;
       });
     },
-    // The TV's screen: the Pot Empire logo when nobody's playing, the game while someone is.
+    // The TV's screen: the Pot Empire logo when nobody's playing, the game while someone is. Job 27: a TV with Aaron's
+    // animated screens (data/tv_anim.js) plays them instead of the still GAME picture (TvScreen below).
     showScreen(scene, playing) {
       const P = scene.lounge, parts = scene.loungeParts;
       if (!P || !parts) return;
-      const id = `${P.tv.id}-${playing ? 'GAME' : 'LOGO'}`;
       scene.loungeScreen = playing ? 'GAME' : 'LOGO';
+      if (TvScreen.has(P.tv.id)) {
+        if (!parts.tv.type || parts.tv.type !== 'Image') texture(scene, `${P.tv.id}-LOGO`, (key) => {
+          if (!parts.tv.scene || parts.tv.type === 'Image') return;
+          const im = scene.add.image(P.tv.x, P.tv.y, key).setOrigin(0.5, 1).setDisplaySize(P.tv.w, P.tv.h).setDepth(P.tv.y);
+          parts.tv.destroy(); parts.tv = im;
+          if (scene.tvScreen && scene.tvScreen.want && scene.tvScreen.built) im.setAlpha(0);
+        });
+        TvScreen.set(scene, playing);
+        return;
+      }
+      const id = `${P.tv.id}-${playing ? 'GAME' : 'LOGO'}`;
       texture(scene, id, (key) => {
         if (!parts.tv.scene || scene.loungeScreen !== (playing ? 'GAME' : 'LOGO')) return;
         if (parts.tv.type === 'Image') parts.tv.setTexture(key).setDisplaySize(P.tv.w, P.tv.h);

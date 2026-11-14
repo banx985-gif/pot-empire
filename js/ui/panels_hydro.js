@@ -156,6 +156,7 @@
       unlock() {
         const res = g().grow.unlockStrain(params().id);
         if (!res.ok) PE.Dom.toast(res.why === 'cash' ? 'Not enough cash yet' : 'Not available yet');
+        else if (PE.Words.has('WRD-NEW-STRAIN')) PE.Words.toast('WRD-NEW-STRAIN', 'New Strain!', `${g().grow.strainStats(params().id).name} unlocked!`);
       },
     },
   };

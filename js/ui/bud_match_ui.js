@@ -239,11 +239,11 @@
       const next = UI.n < H.levels().length && H.isOpen(UI.n + 1);
       const el = UI.root().querySelector('.bm-end');
       el.innerHTML = b.won
-        ? `<div class="bm-card win"><h3>Level ${UI.n} done!</h3><p class="bm-stars">${Array.from({ length: 3 }, (_, i) => icon('RWD-05', 46, `bm-star ${i < stars ? 'on' : ''}`)).join('')}</p>
+        ? `<div class="bm-card win">${PE.Words.has('WRD-LEVEL-COMPLETE') ? `${PE.Words.html('WRD-LEVEL-COMPLETE', `Level ${UI.n} done!`, '', 'bm-word')}<h4>Level ${UI.n}</h4>` : `<h3>Level ${UI.n} done!</h3>`}<p class="bm-stars">${Array.from({ length: 3 }, (_, i) => icon('RWD-05', 46, `bm-star ${i < stars ? 'on' : ''}`)).join('')}</p>
             <p>${r.text ? `Prize: ${esc(r.text)}` : r.newStars ? '' : 'No new prize: this week\'s win prize for this level is already paid.'}${r.capped ? '<br><small>Some of it was over the prize limit.</small>' : ''}</p>
             <p class="muted">${r.newStars ? `+${r.newStars} stars this week` : 'Beat your best stars to add more this week.'}</p>
             <div class="row-btns">${next ? `<button class="btn go" data-act="end:next">Next level</button>` : ''}<button class="btn plain" data-act="end:again">Play again</button><button class="btn plain" data-act="end:hub">Events</button></div></div>`
-        : `<div class="bm-card lose"><h3>Out of moves</h3><p>So close. Every try is free, have another go.</p>
+        : `<div class="bm-card lose">${PE.Words.html('WRD-OUT-OF-MOVES', 'Out of moves', '<h3>Out of moves</h3>', 'bm-word')}<p>So close. Every try is free, have another go.</p>
             <div class="row-btns"><button class="btn go" data-act="end:again">Try again</button><button class="btn plain" data-act="end:hub">Events</button></div></div>`;
       el.hidden = false;
       const box = UI.root().querySelector(b.won ? '.bm-haze' : '.bm-leafy');

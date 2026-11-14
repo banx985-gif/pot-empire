@@ -17,6 +17,10 @@
   // The sign's board, in the sign picture: 132 x 62, its middle 179 pixels up from the picture's foot (job 22B: the price
   // is placed from these, so it sits in the middle of the board whatever the board does).
   const BOARD = { w: 132, h: 62, up: 179 };
+  // Job 32: the plates on a plot's post: drawn this wide, their foot this far up from the picture's foot; the words go
+  // at cy (part of the plate's height, from its top), shifted dx, in a box tw x th (parts of the plate).
+  const PLATE_BOARD = { sale: { w: 186, foot: 148, cy: 0.6, tw: 0.74, th: 0.34, dx: 0 }, lot: { w: 156, foot: 150, cy: 0.5, tw: 0.62, th: 0.48, dx: 0.1 } };
+  const NAME_SIGN_H = 58;   // job 27: a drawn name sign's height on the map (the typed name is about 26 high)
   function drawLot(G, forSale) {
     const c = BOX_W / 2 - 12, b = BOX_H - 20;
     G.fillStyle(0x000000, 0.18).fillEllipse(c, b - 58, 60, 14);
@@ -78,6 +82,12 @@
       this.freeOtherDistrictArt();
       this.buildBuildings();
       this.buildFeatures();
+      // Job 32: Aaron's plates for the plots' signs. Once they're here the plots are redrawn with them.
+      PE.Plates.textures(this, ['PRICE-FORSALE', 'LBL-LIGHT-01'], () => {
+        if (!this.views || !this.sys.isActive()) return;
+        for (const v of this.views.values()) if (!v.feature && !this.g.facilities.isOwned(v.fid)) v.shown = null;
+        this.refresh();
+      });
       PE.UI.loadIcons(this, ['STA-03', 'STA-06', 'STA-02', 'CUR-01'], () => { this.bubbleArtReady = true; this.refresh(); });
       this.setUpCamera();
       this.setUpInput();
@@ -108,7 +118,11 @@
     }
 
     // ---- Buildings ---------------------------------------------------------------------------------------
+    // Job 32: with Aaron's plates in, a plot for sale shows the gold For Sale price tag (PRICE-FORSALE) and a locked plot
+    // the light label (LBL-LIGHT-01) with a padlock, on the same post. Until they're in, the board drawn here.
     lotKey(forSale) {
+      const plate = forSale ? 'PRICE-FORSALE' : 'LBL-LIGHT-01';
+      if (this.textures.exists('plate-' + plate)) return this.lotArtKey(forSale, plate);
       const key = forSale ? 'map-lot-sale' : 'map-lot-locked';
       if (!this.textures.exists(key)) {
         const G = this.make.graphics({ x: 0, y: 0, add: false });
@@ -117,6 +131,38 @@
         G.destroy();
       }
       return key;
+    }
+    lotArtKey(forSale, plate) {
+      const key = forSale ? 'map-lot-sale-art' : 'map-lot-locked-art';
+      if (this.textures.exists(key)) return key;
+      const img = this.textures.get('plate-' + plate).getSourceImage();
+      const g = PLATE_BOARD[forSale ? 'sale' : 'lot'];
+      const tex = this.textures.createCanvas(key, BOX_W, BOX_H);
+      const ctx = tex.getContext();
+      const c = BOX_W / 2 - 12, b = BOX_H - 20;
+      ctx.fillStyle = 'rgba(0,0,0,0.18)';
+      ctx.beginPath(); ctx.ellipse(c, b - 58, 30, 7, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#7a4a2c'; ctx.fillRect(c - 7, b - 150, 14, 92);
+      const h = (g.w * img.height) / img.width, top = BOX_H - g.foot - h;
+      ctx.drawImage(img, c - g.w / 2, top, g.w, h);
+      if (!forSale) {   // a padlock at the label's left end
+        const px = c - g.w / 2 + g.w * 0.17, py = top + h * 0.5;
+        ctx.strokeStyle = '#8b8fa3'; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.arc(px, py - 4, 7, Math.PI, 0); ctx.stroke();
+        ctx.fillStyle = '#ffd84d'; ctx.strokeStyle = '#2c1a4d'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.rect(px - 10, py - 4, 20, 15); ctx.fill(); ctx.stroke();
+      }
+      tex.refresh();
+      return key;
+    }
+    // Where the words go on a plot's sign: how far up from the picture's foot its middle is, the room there, and a nudge sideways.
+    boardFor(open) {
+      const plate = open ? 'PRICE-FORSALE' : 'LBL-LIGHT-01';
+      if (!this.textures.exists('plate-' + plate)) return { art: false, up: open ? BOARD.up : BOARD.up - 21, w: BOARD.w - 14, h: open ? BOARD.h - 8 : 20, dx: 0 };
+      const g = PLATE_BOARD[open ? 'sale' : 'lot'];
+      const img = this.textures.get('plate-' + plate).getSourceImage();
+      const h = (g.w * img.height) / img.width;
+      return { art: true, up: g.foot + h * (1 - g.cy), w: g.w * g.tw, h: h * g.th, dx: g.w * g.dx };
     }
     // Building pictures are big. Only this district's are kept in memory.
     freeOtherDistrictArt() {
@@ -145,7 +191,9 @@
         const name = this.add.text(s.x, s.y + 6, f.name, { fontFamily: FONT, fontStyle: 'bold', fontSize: '19px', color: '#ffe9a0', stroke: '#1d0f33', strokeThickness: 5 }).setOrigin(0.5, 0).setDepth(s.y + 1);
         const sign = this.add.text(s.x, s.y, '', { fontSize: '1px' }).setVisible(false);
         const bubble = this.makeBubble(s.x, s.y - s.w * 0.7, s.y + 2);
-        this.views.set(f.id, { fid: f.id, s, image, name, sign, bubble, shown: null, feature: f });
+        const v = { fid: f.id, s, image, name, sign, bubble, shown: null, feature: f };
+        this.views.set(f.id, v);
+        this.drawnName(v);
       }
     }
     buildBuildings() {
@@ -160,8 +208,21 @@
           fontFamily: FONT, fontStyle: '900', fontSize: '24px', color: '#1d0f33', align: 'center', lineSpacing: -3,
         }).setOrigin(0.5).setDepth(s.y + 1).setResolution(2);
         const bubble = this.makeBubble(s.x, s.y - 220, s.y + 2);
-        this.views.set(fid, { fid, s, image, name, sign, bubble, shown: null });
+        const v = { fid, s, image, name, sign, bubble, shown: null };
+        this.views.set(fid, v);
+        this.drawnName(v);
       }
+    }
+    // Job 27: a building's drawn name sign (SIGN-F01.., SIGN-X01.., art/ui/words/) takes the place of its typed name, once
+    // Aaron has drawn it. It's placed and kept on screen the same way (placeNames).
+    drawnName(v) {
+      // Job 32: until then the typed name sits on the dark building label (LBL-DARK-01).
+      if (!PE.Words.has(`SIGN-${v.fid}`)) PE.Plates.behind(this, 'LBL-DARK-01', v.name, { padX: 0.7, padY: 0.42 });
+      // Job 32: Trophy Tower's main sign (SIGN-X12) is tall and thin, too small at a name's height: the map uses its
+      // wide one (SIGN-X12-B), a bit taller, when it's there.
+      const wide = `SIGN-${v.fid}-B`;
+      const id = PE.Words.has(wide) ? wide : `SIGN-${v.fid}`;
+      PE.Words.swapLabel(this, id, v.name, id === wide ? NAME_SIGN_H * 1.7 : NAME_SIGN_H, (im) => { v.name = im; this.nameSig = null; });
     }
     makeBubble(x, y, depth) {
       const c = this.add.container(x, y).setDepth(depth + 60000);
@@ -216,6 +277,7 @@
     update(time) {
       if (!this.ready) return;
       if (this.updateLife) this.updateLife(time);
+      this.placeHub();
       this.placeNames();
       if (time - (this.lastSharp || 0) > 120) { this.lastSharp = time; PE.MapGround.keepSharp(this, this.ground); }
       if (time - this.lastRefresh < 250) return;
@@ -293,16 +355,18 @@
     // Job 22B: the words on a plot's sign. A for-sale price sits in the middle of the board, shrunk to fit inside it (the
     // short money form, 1.2K, 3.4M...), and moves and scales with the sign. The sign is drawn over the vans and trees.
     placeSign(v, own, open, row) {
-      const text = own ? '' : open ? `FOR SALE\n$${PE.Money.format(this.g.facilities.econ(v.fid).cost)}` : `Level ${row.playerLevel}`;
+      const B = this.boardFor(open);
+      const price = `$${PE.Money.format(this.g.facilities.econ(v.fid).cost)}`;
+      const text = own ? '' : open ? (B.art ? price : `FOR SALE\n${price}`) : `Level ${row.playerLevel}`;
       if (v.sign.text !== text) v.sign.setText(text);
       if (own) return;
       const k = v.image.scaleY || 1;
       const foot = v.image.y;
       // A locked plot's padlock fills the board's top, so its level goes along the bottom of the board.
-      const cy = open ? foot - BOARD.up * k : foot - (BOARD.up - 21) * k;
-      const room = open ? { w: (BOARD.w - 14) * k, h: (BOARD.h - 8) * k } : { w: (BOARD.w - 14) * k, h: 20 * k };
-      const fit = Math.min(1, room.w / Math.max(1, v.sign.width), room.h / Math.max(1, v.sign.height));
-      v.sign.setPosition(v.image.x, cy).setScale(fit);
+      const cy = foot - B.up * k;
+      const room = { w: B.w * k, h: B.h * k };
+      const fit = Math.min(B.art ? 1.6 : 1, room.w / Math.max(1, v.sign.width), room.h / Math.max(1, v.sign.height));
+      v.sign.setPosition(v.image.x + B.dx * k, cy).setScale(fit);
       v.sign.setDepth(50000 + v.s.y + 2);
     }
     showLook(v, own, open, tier) {
@@ -523,6 +587,68 @@
       if (this.life && this.life.rivals) for (const r of this.life.rivals.values()) if (r.label && r.label.scene) out.push({ t: r.label, x: r.spot.x, y: r.spot.y + 6, top: r.spot.y - (r.image && r.image.displayHeight > 4 ? r.image.displayHeight : 200) });
       return out;
     }
+    // Job 27 (Aaron: "never covers a shop at any zoom, on every screen size"): the Event button and the festival card move
+    // out of the way of the buildings. Whenever the map moves they check the buildings on screen and take the first clear
+    // place: bottom left (where they were), the middle of the left side, then under the top bar. If none is clear they
+    // shrink to their icons and try again. Only redone when the camera, the screen or the buttons change.
+    // Every building showing on the map: yours, the plots, the feature buildings and the rivals' ({ id, image, x, y }).
+    buildingImages() {
+      const out = [];
+      for (const v of this.views.values()) if (v.image && v.image.visible && v.image.scene) out.push({ id: v.fid, image: v.image, x: v.s.x, y: v.s.y });
+      if (this.life && this.life.rivals) for (const [id, r] of this.life.rivals) if (r.image && r.image.visible && r.image.scene) out.push({ id, image: r.image, x: r.spot.x, y: r.spot.y });
+      return out;
+    }
+    placeHub(force) {
+      const hub = document.querySelector('#actionbar .map-hub'), fest = document.querySelector('#actionbar .map-event');
+      const els = [hub, fest].filter(Boolean);
+      if (!els.length) return;
+      const cam = this.cameras.main;
+      const sig = `${cam.scrollX.toFixed(1)}|${cam.scrollY.toFixed(1)}|${cam.zoom.toFixed(4)}|${this.scale.width}x${this.scale.height}|${window.innerHeight}`;
+      const fresh = els.every((e) => e.dataset.placed);
+      if (!force && fresh && (sig === this.hubSig || performance.now() - (this.hubAt || 0) < 150)) return;   // (at most ~7 times a second while dragging)
+      this.hubSig = sig;
+      this.hubAt = performance.now();
+      // The buildings on screen, in page points.
+      const boxes = [];
+      for (const v of this.buildingImages()) {
+        const b = v.image.getBounds();
+        const a = this.worldToPage(b.x, b.y), z = this.worldToPage(b.right, b.bottom);
+        boxes.push({ id: v.id, l: a.x, t: a.y, r: z.x, b: z.y });
+      }
+      const topBar = document.querySelector('#hud .hud-top');
+      const hudBottom = topBar && !document.getElementById('hud').hidden ? topBar.getBoundingClientRect().bottom : 0;
+      const row = [...document.querySelectorAll('#actionbar .map-switch, #actionbar .map-list')].map((e) => e.getBoundingClientRect()).filter((r) => r.height);
+      const rowTop = row.length ? Math.min(...row.map((r) => r.top)) : window.innerHeight;
+      const hits = (shift) => {
+        let n = 0;
+        for (const e of els) {
+          const r = e.getBoundingClientRect(), t = r.top + shift, bt = r.bottom + shift;
+          for (const k of boxes) if (r.left < k.r && r.right > k.l && t < k.b && bt > k.t) n += Math.min(r.right, k.r) - Math.max(r.left, k.l);
+        }
+        return n;
+      };
+      let best = null;
+      for (const compact of [false, true]) {
+        for (const e of els) { e.classList.toggle('compact', compact); e.style.translate = ''; }
+        const tops = els.map((e) => e.getBoundingClientRect()), top = Math.min(...tops.map((r) => r.top)), bottom = Math.max(...tops.map((r) => r.bottom));
+        const h = bottom - top;
+        // Moves for: where they are now, the middle of the left side, just under the top bar.
+        const shifts = [0, (hudBottom + rowTop) / 2 - h / 2 - top, hudBottom + 10 - top].filter((s, i) => i === 0 || top + s >= hudBottom + 6);
+        for (const [i, s] of shifts.entries()) {
+          const n = hits(s);
+          if (!best || n < best.n) best = { n, s, compact, spot: ['low', 'middle', 'top'][i] };
+          if (!n) break;
+        }
+        if (best && !best.n) break;
+      }
+      // Nowhere clear (zoomed right in, a building wider than the screen): they step off the map, and the Event button
+      // shows in the side column with the other map buttons until there's a clear place again.
+      const tucked = best.n > 0;
+      for (const e of els) { e.classList.toggle('compact', best.compact); e.style.translate = best.s ? `0 ${best.s.toFixed(0)}px` : ''; e.dataset.placed = '1'; }
+      document.getElementById('actionbar').classList.toggle('hub-tucked', tucked);
+      this.hubPlace = { spot: tucked ? 'side' : best.spot, compact: best.compact, covering: tucked ? 0 : best.n, tucked };
+      this.nameSig = null;
+    }
     // Job 21: a name always shows whole. Near the screen's edge it slides back in (inside the safe area), and it keeps
     // clear of the side buttons. Drawn over the traffic and the trees, under the bubbles. Only redone when the camera moves.
     placeNames(force) {
@@ -530,7 +656,11 @@
       const side = document.querySelector('#actionbar .map-side');
       const sr = side ? side.getBoundingClientRect() : null;
       // The buttons along the bottom and the top bar: names stay between them.
-      const low = [...document.querySelectorAll('#actionbar .map-switch, #actionbar .map-list, #actionbar .map-event')].map((e) => e.getBoundingClientRect()).filter((r) => r.height);
+      // (Job 32: the festival card only while it's down there: moved up out of a building's way, or tucked away, it isn't
+      // a bottom button any more.)
+      const low = [...document.querySelectorAll('#actionbar .map-switch, #actionbar .map-list, #actionbar .map-event')]
+        .filter((e) => !e.classList.contains('map-event') || (!e.style.translate && getComputedStyle(e).visibility !== 'hidden'))
+        .map((e) => e.getBoundingClientRect()).filter((r) => r.height);
       const lowTop = low.length ? Math.min(...low.map((r) => r.top)) : null;
       const topBar = document.querySelector('#hud .hud-top');
       const hudBottom = topBar && !document.getElementById('hud').hidden ? topBar.getBoundingClientRect().bottom : 0;
@@ -567,6 +697,7 @@
         // Only a name whose building is at least partly on screen is pulled in.
         if (onScreen) nx = lo > hi ? Math.max(L.left + pad + w / 2, hi) : Math.min(hi, Math.max(lo, sx));
         t.x = view.x + nx / z;
+        if (t.plate) PE.Plates.follow(t);
       }
     }
     // Where a map point is on screen, in page points. Used by the automatic browser test to really tap it.
@@ -603,8 +734,10 @@
       // Job 23: the Event button opens the Event Hub; with no event on, it counts down to the next.
       const hub = PE.EventHub ? PE.EventHub.button() : '';
       if (PE.EventHub && !PE.App.g.tutorial.active()) PE.EventHub.tipOnce();
-      return `${hub}${banner}<div class="map-side${PE.MapBar.open ? ' open' : ''}">${side}${fold}</div>
-        <button class="btn map-switch" data-act="districts">${PE.Dom.icon('NAV-01', 26)}${PE.Dom.esc(here.name)}${PE.Dom.icon('SYS-03', 14, 'down')}${waiting ? PE.Dom.icon('STA-03', 20) : ''}</button>
+      // Job 27: the Event button's stand-in in the side column, only shown while the map has no clear place for it.
+      const hubSide = PE.EventHub ? `<button class="map-side-btn hub-side ${PE.EventHub.status().on ? 'on' : ''}" data-act="eventHub" aria-label="Event"><span>${PE.Dom.icon('GOL-03', 28)}</span><small>Event</small>${g.eventHub.anyToClaim() ? PE.Dom.icon('STA-03', 16, 'side-alert') : ''}</button>` : '';
+      return `${hub}${banner}<div class="map-side${PE.MapBar.open ? ' open' : ''}">${hubSide}${side}${fold}</div>
+        <button class="btn map-switch" data-act="districts">${PE.Dom.icon('NAV-01', 26)}${PE.Words.html(PE.Words.districtId(here.name), here.name, PE.Dom.esc(here.name), 'switch-word')}${PE.Dom.icon('SYS-03', 14, 'down')}${waiting ? PE.Dom.icon('STA-03', 20) : ''}</button>
         <button class="btn plain map-list" data-act="mapList">${PE.Dom.icon('SYS-05', 22)}List</button>`;
     },
   };

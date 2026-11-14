@@ -58,6 +58,11 @@ globalThis.PE.Data.animMoves = {
   moves: {
     // Terpz's gift balloon (job 19B): it fills up on the ground before take-off, to Aaron's timing.
     'VEH-06': { inflate: { set: 'INFLATE', hold: true } },
+    // Terpz (job 32): only his 8-direction walk is drawn so far (terpz_anim/TERPZ_ANIM.md). Until his standing and
+    // reactions come he stands on WALKFRONT frame 01, with a gentle bob, for everything that isn't walking.
+    // His own frames, filed as TERPZ-<MOVE>-01.png, take over here once they're in.
+    TERPZ: Object.fromEntries(['idle', 'stand', 'look', 'greet', 'wave', 'talk', 'chat', 'cheer', 'angry', 'shrug', 'puzzled', 'think', 'rub', 'clap', 'laugh', 'flick', 'sleepy']
+      .map((m) => [m, { set: ['IDLE', 'WALKFRONT'], first: true, from: 1, to: 1, hold: true, bob: true }])),
     HAZE: {
       // Job 19B: his smoke without the peace sign (PUFF, frames 064-088). The peace sign is its own move, now and then.
       idle: { set: 'PUFF', loop: true },

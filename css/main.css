@@ -711,7 +711,7 @@ html.fast-time #hud::after { content: 'FAST TIME: NOT SAVING'; display: block; t
 .talk-bubble::before, .talk-bubble-line::before, .helper-pop .bubble::before { content: ''; position: absolute; left: 0; right: 0; top: 0; bottom: -21px; z-index: -1; margin: 0; border: 0 solid transparent; border-width: 26px 26px 48px 48px; border-image: url(../assets/ui/BUB-01.webp) 70 70 130 130 fill / 26px 26px 48px 48px stretch; filter: drop-shadow(0 4px 0 #1d0f3355); }
 .talk-bubble::after { display: none; }
 .talk-bubble-line::before, .helper-pop .bubble::before { top: -21px; bottom: 0; transform: scaleY(-1); }
-.talk-bubble-line { margin-top: 20px; }
+.talk-bubble-line { margin-top: 20px; padding-left: 26px; }
 .helper-pop .bubble { margin-top: 30px; }
 .tut-tip { background: none; clip-path: none; filter: none; isolation: isolate; padding: 18px 26px; }
 .tut-tip::before { content: ''; position: absolute; left: -6px; right: -6px; top: -12px; bottom: -12px; z-index: -1; border: 0 solid transparent; border-width: 40px; border-image: url(../assets/ui/BUB-02.webp) 110 fill / 40px round; filter: drop-shadow(0 3px 0 #1d0f33); }
@@ -898,3 +898,28 @@ html.fast-time #hud::after { content: 'FAST TIME: NOT SAVING'; display: block; t
 .art-row .art-pic { width: 52px; height: 52px; object-fit: contain; flex: none; border-radius: 8px; background: #0003; display: flex; align-items: center; justify-content: center; font-size: 22px; }
 .art-row.missing { border-color: var(--gold); }
 .art-row small { display: block; }
+
+/* Job 27: drawn signs and words (js/ui/words.js). Each sits where its typed words were. */
+.word-art { display: block; height: auto; max-width: 100%; pointer-events: none; user-select: none; }
+.ev-word { max-height: 54px; margin: 0 0 2px; }
+.hub-word { display: inline-block; max-height: 22px; max-width: 86px; }
+.ev-bm-word { max-height: 70px; margin: 6px auto 2px; }
+.btn-word { display: inline-block; max-height: 24px; max-width: 70px; margin-right: 6px; vertical-align: middle; }
+.bm-word { max-height: 76px; margin: 0 auto 4px; }
+.modal-word { max-height: 64px; margin: 0 auto; }
+.panel-word { max-height: 80px; margin: 0 auto 6px; }
+.menu-logo { max-height: 60px; margin: 0 auto 8px; }
+.dist-banner { display: inline-block; max-height: 40px; max-width: 70%; vertical-align: middle; }
+.tag-word { display: inline-block; max-height: 30px; max-width: 80px; margin-right: 6px; vertical-align: middle; }
+.toast.words { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.toast-word { max-height: 52px; }
+/* Job 27: the Event button and festival card shrink to their icons when every place on the map's left side has a building. */
+.map-hub.compact span, .map-event.compact span { display: none; }
+.map-hub.compact, .map-event.compact { padding: 4px; }
+#actionbar:not(.hub-tucked) .hub-side { display: none; }
+#actionbar.hub-tucked .map-hub, #actionbar.hub-tucked .map-event { visibility: hidden; pointer-events: none; }
+.hub-side.on { box-shadow: 0 0 0 3px var(--pink), 0 3px 8px #0008; }
+#actionbar.hub-tucked .map-side .hub-side { display: flex; }
+.switch-word { display: inline-block; height: 34px; width: auto; max-width: 150px; object-fit: contain; vertical-align: middle; margin: -4px 2px; }
+/* Job 32: on the narrowest phones (320 across) the banner is smaller, so the district button and List stay on one row. */
+@media (max-width: 359px) { .switch-word { height: 28px; max-width: 100px; } }

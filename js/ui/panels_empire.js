@@ -22,8 +22,8 @@
         const open = game.map.isUnlocked(d.id);
         const here = game.map.current() === d.id;
         const owned = d.facilities.filter((f) => game.facilities.isOwned(f)).length;
-        const right = here ? '<span class="tag go">Here</span>' : open ? '<span class="tag go">Go</span>' : `<span class="tag">Level ${game.map.unlockLevel(d)}</span>`;
-        return `<div class="item ${open ? '' : 'locked'}" ${open && !here ? `data-act="go:${d.id}"` : ''}><span class="fac-ico">${PE.Dom.icon('NAV-01', 30)}</span><div class="grow"><b>${esc(d.name)}${open && game.map.needsYou(d.id) ? ' <em class="alert-dot">!</em>' : ''}</b><small>${open ? `${owned} of ${d.facilities.length} places owned` : 'Keep growing to open this district'}</small></div>${right}</div>`;
+        const right = here ? '<span class="tag go">Here</span>' : open ? '<span class="tag go">Go</span>' : `${PE.Words.extra('SIGN-LOCKED', 'Locked', 'tag-word')}<span class="tag">Level ${game.map.unlockLevel(d)}</span>`;
+        return `<div class="item ${open ? '' : 'locked'}" ${open && !here ? `data-act="go:${d.id}"` : ''}><span class="fac-ico">${PE.Dom.icon('NAV-01', 30)}</span><div class="grow"><b>${PE.Words.html(PE.Words.districtId(d.name), d.name, esc(d.name), 'dist-banner')}${open && game.map.needsYou(d.id) ? ' <em class="alert-dot">!</em>' : ''}</b><small>${open ? `${owned} of ${d.facilities.length} places owned` : 'Keep growing to open this district'}</small></div>${right}</div>`;
       }).join('');
     },
     actions: {

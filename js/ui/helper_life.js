@@ -78,8 +78,11 @@
       this.nextLounge = rand(5, 20);
       Life.turn = (Life.turn || 0) + 1;
       if (!PE.App.state.settings.helpers) return;
-      // Uncle Haze and one other: two per screen at most, and they take turns.
-      const other = Life.turn % 2 ? 'BUDZ' : 'LEAFY';
+      // Uncle Haze and one other: two per screen at most, and they take turns. Job 32: Terpz takes his turn too, now he
+      // walks (his walk is in data/anim_art.js). Not while he's up in his balloon (PE.Cast below).
+      // Budz and Leafy still swap turn by turn; every third turn is Terpz's.
+      const terpz = !!(PE.Data.animArt.chars.TERPZ || {}).WALKFRONT && Life.turn % 3 === 0;
+      const other = window.__helperOther || (terpz ? 'TERPZ' : Life.turn % 2 ? 'BUDZ' : 'LEAFY');
       // One of each (job 19): a helper who's out driving their vehicle somewhere doesn't also walk about here.
       for (const id of world.ids || ['HAZE', other]) if (!PE.Cast || PE.Cast.isFree(id)) this.add(id);
     }
@@ -91,6 +94,16 @@
       this.list.push(e);
       actor.play('idle');
       return e;
+    }
+    // Job 32: a helper heads off (Terpz, to fetch his balloon when a gift is due). Only while just standing or walking
+    // about, so a chat or anything else isn't cut short. True if they've gone.
+    leave(id) {
+      const e = this.list.find((x) => x.id === id);
+      if (!e || (e.state !== 'idle' && e.state !== 'walk')) return false;
+      if (e.bubble) { e.bubble.destroy(); e.bubble = null; }
+      e.actor.destroy();
+      this.list = this.list.filter((x) => x !== e);
+      return true;
     }
     frozen() { return calm() || window.__frozenHelpers; }
 

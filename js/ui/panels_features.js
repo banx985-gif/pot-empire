@@ -50,7 +50,7 @@
       unlock(id) {
         const r = g().grow.unlockStrain(id);
         if (!r.ok) toast(r.why === 'cash' ? 'Not enough cash yet' : 'Not available yet');
-        else { PE.Dom.toast(`${g().grow.strainStats(id).name} unlocked!`, '', 'COL-02'); PE.App.saveGame(); }
+        else { PE.Words.toast('WRD-NEW-STRAIN', 'New Strain!', `${g().grow.strainStats(id).name} unlocked!`, '', 'COL-02'); PE.App.saveGame(); }
       },
     },
   };
@@ -78,7 +78,7 @@
     title: 'Arcade',
     render() {
       const used = g().meta.wheelUsed();
-      return `${icon('RWD-03', 150, 'center-ico')}
+      return `${PE.Words.extra('WRD-LUCKY-SPIN', 'Lucky Spin', 'panel-word')}${icon('RWD-03', 150, 'center-ico')}
         <p class="center">${used ? 'You had your free spin today. The machine needs a nap.' : 'One free spin a day. No tokens, no catch.'}</p>
         <button class="btn wide ${used ? 'cant' : 'buy'}" data-act="spin">${used ? 'Back tomorrow' : 'Spin the prize wheel'}</button>
         ${PE.Store && PE.Store.adButton ? PE.Store.adButton('extraWheelSpins', 'An extra spin') : ''}`;
