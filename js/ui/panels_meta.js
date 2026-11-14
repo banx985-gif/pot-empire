@@ -15,7 +15,7 @@
     { id: 'festival', label: 'Festival', icon: 'GOL-03' },
     { id: 'achievements', label: 'Awards', icon: 'GOL-02' },
     { id: 'rivals', label: 'Rivals', icon: 'GOL-05' },
-    { id: 'prestige', label: 'Prestige', icon: 'GOL-04' },
+    { id: 'prestige', label: 'Prestige', icon: 'GOL-04', locked: () => g().progress.level() < g().meta.prestigeUnlockLevel() },
   ];
   PE.MapMenu = [{ id: 'calendar', label: 'Daily', icon: 'RWD-04', dot: () => g().calendar.canClaim() }, ...MENU];
 
@@ -111,7 +111,7 @@
       const game = g();
       const lvl = game.meta.prestigeUnlockLevel();
       const shares = Money.format(game.state.currencies.empireShares);
-      const head = `<p>${PE.Dom.icon('CUR-04', 22)} <b>${shares} Empire Shares</b> · all harvests x${game.meta.globalMultiplier().toFixed(2)}</p>
+      const head = `<p>${PE.Plates.cur(PE.Dom.icon('CUR-04', 22), shares)} <b>Empire Shares</b> · all harvests x${game.meta.globalMultiplier().toFixed(2)}</p>
         <p class="muted">Optional. Restart one district's equipment for permanent Empire Shares. You can always keep playing without it.</p>`;
       if (game.progress.level() < lvl) return `${head}<p class="center">Opens at level ${lvl}.</p>`;
       const rows = game.facilities.districts.map((d) => {

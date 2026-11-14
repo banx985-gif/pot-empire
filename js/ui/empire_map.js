@@ -21,6 +21,12 @@
   // at cy (part of the plate's height, from its top), shifted dx, in a box tw x th (parts of the plate).
   const PLATE_BOARD = { sale: { w: 186, foot: 148, cy: 0.6, tw: 0.74, th: 0.34, dx: 0 }, lot: { w: 156, foot: 150, cy: 0.5, tw: 0.62, th: 0.48, dx: 0.1 } };
   const NAME_SIGN_H = 58;   // job 27: a drawn name sign's height on the map (the typed name is about 26 high)
+  // Job 33: the hanging For Sale sign (SIGN-FORSALE-HANGING): drawn this wide on the plot; its price goes on the blank
+  // cream board that hangs under it (cy: its middle, part of the picture's height from the top; w, h: the room there).
+  // beside: a building's foot closer than this (world units) to the plot counts as right beside it.
+  const HANG = { w: 170, cy: 0.81, tw: 0.62, th: 0.22, beside: 330 };
+  // Job 33: the signs that go on a building: how tall (world units) and how far up its picture (part of its height).
+  const ON_BUILDING = { door: { h: 34, up: 0.07 }, reno: { h: 46, up: 0.5 }, soon: { h: 48, up: 0.42 } };
   function drawLot(G, forSale) {
     const c = BOX_W / 2 - 12, b = BOX_H - 20;
     G.fillStyle(0x000000, 0.18).fillEllipse(c, b - 58, 60, 14);
@@ -84,6 +90,12 @@
       this.buildFeatures();
       // Job 32: Aaron's plates for the plots' signs. Once they're here the plots are redrawn with them.
       PE.Plates.textures(this, ['PRICE-FORSALE', 'LBL-LIGHT-01'], () => {
+        if (!this.views || !this.sys.isActive()) return;
+        for (const v of this.views.values()) if (!v.feature && !this.g.facilities.isOwned(v.fid)) v.shown = null;
+        this.refresh();
+      });
+      // Job 33: the hanging For Sale sign, for a plot whose standing sign would hide the building beside it.
+      PE.Words.texture(this, 'SIGN-FORSALE-HANGING', () => {
         if (!this.views || !this.sys.isActive()) return;
         for (const v of this.views.values()) if (!v.feature && !this.g.facilities.isOwned(v.fid)) v.shown = null;
         this.refresh();
@@ -223,6 +235,76 @@
       const wide = `SIGN-${v.fid}-B`;
       const id = PE.Words.has(wide) ? wide : `SIGN-${v.fid}`;
       PE.Words.swapLabel(this, id, v.name, id === wide ? NAME_SIGN_H * 1.7 : NAME_SIGN_H, (im) => { v.name = im; this.nameSig = null; });
+      // Job 33: zoomed right out, Trophy Tower shows its small square sign (SIGN-X12-C) instead (placeNames swaps them).
+      if (v.fid === 'X12') PE.Words.texture(this, 'SIGN-X12-C', () => { this.nameSig = null; });
+    }
+    // Job 33: Trophy Tower's sign for this zoom: the small one zoomed right out, the wide one otherwise.
+    trophySign(z) {
+      const v = this.views.get('X12');
+      const t = v && v.name;
+      if (!t || !t.scene || !/^SIGN-X12-[BC]$/.test(t.wordId || '')) return;
+      const want = z <= this.zoomLimits().min * 1.12 ? 'SIGN-X12-C' : 'SIGN-X12-B';
+      if (t.wordId === want || !this.textures.exists('word-' + want)) return;
+      t.setTexture('word-' + want);
+      t.setScale((want === 'SIGN-X12-C' ? NAME_SIGN_H * 1.9 : NAME_SIGN_H * 1.7) / t.height);
+      t.wordId = want;
+    }
+    // Job 33: a drawn sign on a building (its door's Open or Closed, Under Renovation, Coming Soon), one per slot. at: where
+    // its foot goes and how tall it is. No id takes it down. A sign that isn't drawn simply doesn't show.
+    setSign(v, slot, id, at) {
+      const cur = v[slot];
+      if (!id || !at) { if (cur) cur.destroy(); v[slot] = null; v[slot + 'Want'] = null; return; }
+      if (cur && cur.scene && cur.wordId === id) { cur.setPosition(at.x, at.y).setScale(at.h / cur.height).setDepth(at.depth); return; }
+      if (v[slot + 'Want'] === id) return;   // on its way
+      v[slot + 'Want'] = id;
+      PE.Words.texture(this, id, (key) => {
+        if (v[slot + 'Want'] !== id || !v.image.scene) return;
+        if (v[slot]) v[slot].destroy();
+        const im = this.add.image(at.x, at.y, key).setOrigin(0.5, 1);
+        im.setScale(at.h / im.height).setDepth(at.depth);
+        im.wordId = id;
+        v[slot] = im;
+      });
+    }
+    // Where a sign goes on a building's picture (none until the picture is there).
+    onBuilding(v, kind) {
+      if (!v.artTop || !v.image.visible) return null;
+      const o = ON_BUILDING[kind];
+      return { x: v.s.x, y: v.s.y - v.artTop * o.up, h: o.h, depth: v.s.y + (kind === 'door' ? 0.6 : 0.7) };
+    }
+    // Job 33: the signs on a building you own. A shop's door says Open while it has stock and it's daytime, Closed when it
+    // has no stock or it's night (the same Closed sign as Bud Match on a day it isn't on). Under Renovation for a couple of
+    // minutes after a renovation or expansion is bought.
+    ownSigns(v, own, row) {
+      let door = null;
+      if (own && row.mode === 'Retail') {
+        const stocked = this.g.business.slots(v.fid).some((s) => s.sku && this.g.stock.getStock(s.sku) >= 1);
+        const night = PE.MapSky && PE.MapSky.now().part === 'night';
+        door = stocked && !night ? 'SIGN-OPEN' : 'SIGN-CLOSED';
+      }
+      this.setSign(v, 'door', door, door && this.onBuilding(v, 'door'));
+      const reno = own && ((PE.App.renovating || {})[v.fid] || 0) > Date.now() ? 'SIGN-UNDER-RENOVATION' : null;
+      this.setSign(v, 'reno', reno, reno && this.onBuilding(v, 'reno'));
+    }
+    // Job 33: does this plot for sale sit close beside a building (yours, a feature or a rival's), or would its standing For
+    // Sale sign hide part of one? Then it gets the smaller hanging sign, so the tall sign doesn't crowd its neighbour. (On
+    // Aaron's 4 maps no standing sign really covers a building: the plots are well apart, so it's the ones close beside.)
+    saleWouldHide(v) {
+      if (!this.textures.exists('word-SIGN-FORSALE-HANGING') || !this.textures.exists('plate-PRICE-FORSALE')) return false;
+      const B = this.boardFor(true), half = PLATE_BOARD.sale.w / 2;
+      const foot = v.s.y + 20;
+      const box = { l: v.s.x - half, r: v.s.x + half, t: foot - B.up - 50, b: foot - 58 };
+      const area = (box.r - box.l) * (box.b - box.t);
+      const others = [];
+      for (const o of this.views.values()) if (o !== v && o.artTop && o.image.visible) others.push({ l: o.s.x - o.artW / 2, r: o.s.x + o.artW / 2, t: o.s.y - o.artTop, b: o.s.y });
+      if (this.life && this.life.rivals) for (const r of this.life.rivals.values()) if (r.image && r.image.visible && r.image.displayHeight > 4) { const bd = r.image.getBounds(); others.push({ l: bd.x, r: bd.right, t: bd.y, b: bd.bottom }); }
+      const near = (k) => Math.hypot((k.l + k.r) / 2 - v.s.x, k.b - v.s.y) < HANG.beside;
+      return others.some((k) => near(k) || Math.max(0, Math.min(box.r, k.r) - Math.max(box.l, k.l)) * Math.max(0, Math.min(box.b, k.b) - Math.max(box.t, k.t)) > area * 0.15);
+    }
+    // Where the price goes on the hanging sign: on its blank cream board.
+    hangBoard() {
+      const img = this.textures.get('word-SIGN-FORSALE-HANGING').getSourceImage();
+      return { art: true, up: img.height * (1 - HANG.cy), w: img.width * HANG.tw, h: img.height * HANG.th, dx: 0 };
     }
     makeBubble(x, y, depth) {
       const c = this.add.container(x, y).setDepth(depth + 60000);
@@ -301,19 +383,23 @@
           }
           v.bubble.c.setVisible(st.kind !== 'none');
           if (st.kind !== 'none') { this.drawBubble(v.bubble, st); v.bubble.c.setScale(k); }
+          // Job 33: a feature whose screen opens at a later level wears the Coming Soon sign till then.
+          const soon = g.map.featureOpensAt(v.fid) ? 'SIGN-COMING-SOON' : null;
+          this.setSign(v, 'soon', soon, soon && this.onBuilding(v, 'soon'));
           continue;
         }
         const own = g.facilities.isOwned(v.fid);
         const row = g.facilities.row(v.fid);
         const open = g.facilities.isAvailable(v.fid);
         const tier = own ? g.facilities.get(v.fid).renovation : -1;
-        const shown = own ? `b${tier}` : open ? 'sale' : 'lot';
+        const shown = own ? `b${tier}` : open ? (this.saleWouldHide(v) ? 'hang' : 'sale') : 'lot';
         if (v.shown !== shown) {
           v.shown = shown;
           this.showLook(v, own, open, tier);
         }
         this.showStickers(v, own);
         this.placeSign(v, own, open, row);
+        this.ownSigns(v, own, row);
         const showBubble = st.kind !== 'none';
         if (own && (st.kind === 'ready' || st.kind === 'idle')) st.word = (BUBBLE_WORDS[row.mode] || {})[st.kind] || '';
         v.bubble.c.setVisible(showBubble);
@@ -355,7 +441,7 @@
     // Job 22B: the words on a plot's sign. A for-sale price sits in the middle of the board, shrunk to fit inside it (the
     // short money form, 1.2K, 3.4M...), and moves and scales with the sign. The sign is drawn over the vans and trees.
     placeSign(v, own, open, row) {
-      const B = this.boardFor(open);
+      const B = v.shown === 'hang' && open && !own ? this.hangBoard() : this.boardFor(open);
       const price = `$${PE.Money.format(this.g.facilities.econ(v.fid).cost)}`;
       const text = own ? '' : open ? (B.art ? price : `FOR SALE\n${price}`) : `Level ${row.playerLevel}`;
       if (v.sign.text !== text) v.sign.setText(text);
@@ -372,7 +458,11 @@
     showLook(v, own, open, tier) {
       const id = !own ? PE.Data.map.lockedLotArt : `BLD-${v.fid}-${PE.Data.map.lookForRenovation[Math.min(3, tier)]}`;
       v.artId = id;
-      v.image.setTexture(this.lotKey(open)).setOrigin((BOX_W / 2 - 12) / BOX_W, 1).setPosition(v.s.x, v.s.y + 20).setScale(1);
+      if (!own && open && v.shown === 'hang') {
+        // Job 33: the hanging For Sale sign, smaller and standing on the plot's front edge.
+        v.image.setTexture('word-SIGN-FORSALE-HANGING').setOrigin(0.5, 1).setPosition(v.s.x, v.s.y + 10);
+        v.image.setScale(HANG.w / v.image.width);
+      } else v.image.setTexture(this.lotKey(open)).setOrigin((BOX_W / 2 - 12) / BOX_W, 1).setPosition(v.s.x, v.s.y + 20).setScale(1);
       // A plot's sign stands over the traffic and the trees (job 22B); a building goes back to its own depth.
       v.image.setDepth(own ? v.s.y : 50000 + v.s.y + 1);
       v.bubble.c.y = v.s.y - 220;
@@ -670,6 +760,7 @@
       const L = PE.UI.layout(this);
       // Worked out from the camera itself: its worldView can be a frame behind just after a zoom.
       const z = cam.zoom;
+      this.trophySign(z);
       const view = { x: cam.scrollX + cam.width * cam.originX - (cam.width / z) * cam.originX, y: cam.scrollY + cam.height * cam.originY - (cam.height / z) * cam.originY };
       const pad = 6 * L.u;
       // The side buttons, in the canvas's own pixels.
@@ -724,7 +815,7 @@
       const here = g.map.districts().find((d) => d.id === g.map.current());
       const waiting = g.map.districts().some((d) => d.id !== here.id && g.map.isUnlocked(d.id) && g.map.needsYou(d.id));
       const menu = PE.MapMenu || [];
-      const side = menu.map((m) => `<button class="map-side-btn" data-act="menu:${m.id}" aria-label="${m.label}"><span>${PE.Dom.icon(m.icon, 28)}</span><small>${m.label}</small>${m.dot && m.dot() ? PE.Dom.icon('STA-03', 16, 'side-alert') : ''}</button>`).join('');
+      const side = menu.map((m) => `<button class="map-side-btn${m.locked && m.locked() ? ' locked' : ''}" data-act="menu:${m.id}" aria-label="${m.label}"><span>${PE.Dom.icon(m.icon, 28)}</span><small>${m.label}</small>${m.dot && m.dot() ? PE.Dom.icon('STA-03', 16, 'side-alert') : ''}</button>`).join('');
       // On a narrow screen the column folds into this one button (job 21). It carries a "!" if any inside has one.
       const anyDot = menu.some((m) => m.dot && m.dot());
       const fold = `<button class="map-side-btn map-side-fold" data-act="sideFold" aria-label="More"><span class="fold-open"><i class="fold-bars"><b></b><b></b><b></b></i></span><span class="fold-x">×</span>${anyDot && !PE.MapBar.open ? PE.Dom.icon('STA-03', 16, 'side-alert') : ''}</button>`;

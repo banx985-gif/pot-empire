@@ -585,6 +585,17 @@
         soon.setScale(Math.min((sw * 0.66) / soon.width, (sh * 0.17) / soon.height));
         c.add(soon);
         c.signArt = im;
+        // Job 33: Aaron's drawn Coming Soon board (SIGN-COMING-SOON) takes the typed words' place on the strip, a little
+        // wider than the strip, so the lot reads For Sale, Coming Soon.
+        PE.Words.texture(this, 'SIGN-COMING-SOON', (k2) => {
+          if (!c.scene) return;
+          soon.destroy();
+          const cs = this.add.image(0, 4 - sh + sh * 0.8, k2).setOrigin(0.5);
+          cs.setScale(Math.min((sw * 0.98) / cs.width, (sh * 0.5) / cs.height));
+          cs.wordId = 'SIGN-COMING-SOON';
+          c.add(cs);
+          c.soonArt = cs;
+        });
       });
       return { x: s.x, y: s.y, c };
     });

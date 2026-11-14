@@ -68,7 +68,7 @@
           <button class="btn wide go" data-act="tiers">See the ${T.tiers} reward tiers</button>`
         : `${PE.Dom.icon('GOL-03', 84, 'center-ico')}<p class="bigtitle">Next: ${esc(f.theme)}</p><p class="center">${esc(ev.blurb)}</p><p class="center muted">Starts in ${PE.Dom.duration((f.endsMs - game.now()) / 1000)}. There's a new one every month.</p>`}
         ${game.purchases && game.purchases.passActive() ? '<p class="center title-tag">Event pass: +25% Festival Tickets</p>' : ''}
-        <p class="center">${PE.Dom.icon('CUR-06', 22)} ${Money.format(game.state.currencies.festivalTickets)} Festival Tickets <button class="btn small plain" data-act="shop">Spend</button></p>
+        <p class="center">${PE.Plates.cur(PE.Dom.icon('CUR-06', 22), Money.format(game.state.currencies.festivalTickets))} Festival Tickets <button class="btn small plain" data-act="shop">Spend</button></p>
         <h4>Coming up</h4>${next.map((n) => `<div class="item"><div class="grow"><b>${esc(n.theme)}</b><small>Starts ${new Date(n.startsMs).toLocaleDateString()}</small></div></div>`).join('')}
         <p class="muted">Every harvest scores points while a festival is on. Rewards you reach but don't claim wait in the Tasks inbox for seven days.</p>`;
     },

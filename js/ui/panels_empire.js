@@ -269,7 +269,7 @@
       return `<div class="item"><div class="grow"><b>${esc(b.id)}</b> ${dots}<small>${esc(b.text)}</small></div>
         ${c ? `<button class="btn small ${game.canAfford('researchTokens', c.tokens) && game.canAfford('cash', c.cash) ? 'buy' : 'cant'}" data-act="research:${b.id}">${c.tokens} tokens<br>${money(c.cash)}</button>` : refineBtn(b.id)}</div>`;
     }).join('');
-    return `<p><b>Research Tokens: ${Money.format(game.state.currencies.researchTokens)}</b></p><p class="muted">Permanent. Tokens come from chests${game.meta ? ', daily tasks and achievements' : ''}.</p>${rows}${bizAssign('F06')}`;
+    return `<p>${PE.Plates.cur(PE.Dom.icon('CUR-03', 22), Money.format(game.state.currencies.researchTokens))} <b>Research Tokens</b></p><p class="muted">Permanent. Tokens come from chests${game.meta ? ', daily tasks and achievements' : ''}.</p>${rows}${bizAssign('F06')}`;
   }
 
   // A manager row for a business, filled in by Stage 4's collection screens.
@@ -277,7 +277,7 @@
     const game = g();
     const at = game.collections.managersAt(fid);
     const names = at.map((id) => game.collections.item(id).name).join(', ');
-    return `<h4>Manager</h4><div class="item" data-act="managers">${PE.Dom.managerFaces(at)}<div class="grow"><b>${names ? esc(names) : 'None assigned'}</b><small>${at.length}/${game.collections.managerSlots(fid)} slots</small></div><span class="tag">Open</span></div>`;
+    return `${PE.Plates.staffHead('Manager')}<div class="item" data-act="managers">${PE.Dom.managerFaces(at)}<div class="grow"><b>${names ? esc(names) : 'None assigned'}</b><small>${at.length}/${game.collections.managerSlots(fid)} slots</small></div><span class="tag">Open</span></div>`;
   }
 
   PE.Panels.business = {

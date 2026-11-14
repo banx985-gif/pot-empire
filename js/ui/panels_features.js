@@ -65,7 +65,7 @@
       return `${PE.HelperArt.says('BUDZ-21', "Everyone here has an agent! I'm MY agent! I take twenty percent of my snacks!", 'Budz')}
         ${row('chest', 'RWD-01', 'Milestone chests', waiting ? `${waiting} waiting for you to pick a reward` : 'You get one at milestone levels', waiting ? 'Choose' : 'None', waiting > 0)}
         ${row('binder', 'COL-01', 'Manager binder', `${c.managers.have} of ${c.managers.total} signed. Duplicates level them up.`, 'Open')}
-        <p class="muted">${Money.format(game.state.currencies.collectionTokens)} Collection Tokens to spend on managers you've reached the level for. Chests only ever come from playing.</p>`;
+        <p class="muted">${PE.Plates.cur(PE.Dom.icon('CUR-05', 20), Money.format(game.state.currencies.collectionTokens))} Collection Tokens to spend on managers you've reached the level for. Chests only ever come from playing.</p>`;
     },
     actions: {
       chest() { if (g().state.player.pendingChoices.length) PE.Hud.showChoice(); else toast('No chest waiting yet'); },
@@ -106,7 +106,7 @@
     title: "Collector's Warehouse",
     render() {
       const c = g().collections.counts();
-      return `<p class="muted">${Money.format(g().state.currencies.collectionTokens)} Collection Tokens. Duplicates turn into tokens, and tokens buy anything you've reached the level for.</p>
+      return `<p class="muted">${PE.Plates.cur(PE.Dom.icon('CUR-05', 20), Money.format(g().state.currencies.collectionTokens))} Collection Tokens. Duplicates turn into tokens, and tokens buy anything you've reached the level for.</p>
         ${row('go:relicList', 'COL-03', 'Relics', `${c.relics.have} of ${c.relics.total}. Three per district.`, 'Open')}
         ${row('go:stickerList', 'COL-04', 'Brand stickers', `${c.stickers.have} of ${c.stickers.total}. Two per shop or factory.`, 'Open')}
         ${row('go:decorList', 'COL-06', 'Decorations', `${c.decorations.have} of ${c.decorations.total}. Each has its own spot in a room.`, 'Open')}`;

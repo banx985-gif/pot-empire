@@ -56,7 +56,7 @@
       const game = g();
       const c = game.collections.counts();
       const total = c.managers.have + c.relics.have + c.stickers.have + c.vehicles.have + c.packaging.have + c.decorations.have + c.products.have + c.strains.have;
-      return `<p><b>${total} of 378</b> collected · ${Money.format(game.state.currencies.collectionTokens)} Collection Tokens</p>
+      return `<p><b>${total} of 378</b> collected · ${PE.Plates.cur(PE.Dom.icon('CUR-05', 20), Money.format(game.state.currencies.collectionTokens))} Collection Tokens</p>
         <div class="hub">${SECTIONS.map((s) => `<button class="hub-btn" data-act="go:${s.id}"><span>${PE.Dom.icon(s.icon, 48)}</span><b>${s.label}</b><small>${c[s.key].have}/${c[s.key].total}</small></button>`).join('')}
         <button class="hub-btn" data-act="go:loadouts"><span>${PE.Dom.icon('UPG-05', 48)}</span><b>Loadouts</b><small>Saved setups</small></button></div>
         <p class="muted">Duplicates turn into Collection Tokens. Spend tokens on any item you've reached the level for. Manager cards level up with duplicates.</p>`;
@@ -72,7 +72,7 @@
     const fallback = !own && it.duplicateConversion
       ? (lvlOk ? `<button class="btn small ${game.canAfford('collectionTokens', it.duplicateConversion.shopPrice) ? 'buy' : 'cant'}" data-act="buy:${it.id}">${it.duplicateConversion.shopPrice} tokens</button>` : `<span class="tag">Level ${it.levelGate}</span>`)
       : '';
-    return `<div class="item ${own ? '' : 'locked'}">${card(it)}<div class="grow"><b>${esc(it.name)}</b>
+    return `<div class="item ${own ? '' : 'locked'}">${card(it)}<div class="grow">${it.category === 'manager' ? PE.Plates.name('MANAGER', esc(it.name)) : `<b>${esc(it.name)}</b>`}
       <small class="r-${it.rarity}">${PE.Dom.rarityIcon(it.rarity)}${it.rarity}</small><small>${esc(effectLine(it))}${esc(whenText(it))}</small>${extra}</div>${own ? right : fallback}</div>`;
   }
   const buyAction = (id) => {
@@ -99,7 +99,7 @@
       const list = C().managers.filter((m) => !target || game.collections.validTarget(m, target) || !game.collections.owns(m.id));
       const roles = [...new Set(list.map((m) => m.role))];
       for (const role of roles) {
-        html += `<h4>${esc(role)}</h4>`;
+        html += PE.Plates.staffHead(esc(role));
         html += list.filter((m) => m.role === role).map((m) => {
           const own = game.collections.owns(m.id);
           const here = assigned[m.id];
@@ -336,7 +336,7 @@
     const target = `${p.fid}:${Number(p.si)}`;
     const at = game.collections.managersAt(target);
     const names = at.map((id) => game.collections.item(id).name).join(', ');
-    return `${baseStation(p)}<h4>Manager</h4><div class="item" data-act="managers">${PE.Dom.managerFaces(at)}<div class="grow"><b>${names ? esc(names) : 'None assigned'}</b><small>${at.length}/${game.collections.managerSlots(target)} slots</small></div><span class="tag">Open</span></div>`;
+    return `${baseStation(p)}${PE.Plates.staffHead('Manager')}<div class="item" data-act="managers">${PE.Dom.managerFaces(at)}<div class="grow"><b>${names ? esc(names) : 'None assigned'}</b><small>${at.length}/${game.collections.managerSlots(target)} slots</small></div><span class="tag">Open</span></div>`;
   };
   PE.Panels.station.actions.managers = () => {
     const r = params();

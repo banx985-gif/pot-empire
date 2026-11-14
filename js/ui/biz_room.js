@@ -397,6 +397,7 @@
           this.customersHappy = (this.customersHappy || 0) + 1;
           (this.customerLog = this.customerLog || []).push({ id: A.id, reach: w.reached, happy: w.happySet });
           if (this.managerActor) this.giveProduct();
+          this.payName(A);
           // No happy reaction drawn yet: a happy little hop (with the full-body picture, if they have one).
           if (!A.hasFrames || !happy || happy.set === 'FULL') this.tweens.add({ targets: A.image, y: A.image.y - A.height * 0.1, yoyo: true, repeat: 1, duration: 170, ease: 'Sine.easeOut' });
         } else if (w.state === 'happy' && w.left <= 0) {
@@ -406,6 +407,38 @@
           w.way = this.wayTo({ x: A.x, y: A.y }, w.door);
         }
       }
+    }
+    // Job 33: as a customer pays, their name pops up over their head for a moment on their nameplate: the cream one with the
+    // pointer (NAME-03), or the crown for a VIP. Only once the plate is drawn: without it nothing shows, as before.
+    payName(A) {
+      const vip = /^VIP-/.test(A.id);
+      const plate = PE.Plates.NAME_FOR[vip ? 'VIP' : 'CUSTOMER'];
+      if (!PE.Plates.has(plate) || !A.image) return;
+      const name = BizRoom.customerName(A.id);
+      // One at a time: the last one goes when the next customer pays.
+      if (this.payLabel && this.payLabel.scene) this.payLabel.destroy();
+      // The same size on screen at any zoom (about 14 points tall), like the helpers' words.
+      const k = PE.App.dpr / this.cameras.main.zoom / 2;
+      const t = this.add.text(A.x, A.image.y - A.height * 1.06, name, {
+        fontFamily: 'system-ui, sans-serif', fontStyle: '900', fontSize: '28px', color: vip ? '#ffffff' : '#1d0f33',
+        stroke: vip ? '#1d0f33' : '#fff8e4', strokeThickness: vip ? 6 : 2,
+      }).setOrigin(0.5, 1).setDepth(2e6).setResolution(2).setAlpha(0).setScale(k);
+      this.payLabel = t;
+      t.payName = A.id;
+      t.plateId = plate;
+      PE.Plates.behind(this, plate, t, vip ? { padX: 0.9, padY: 0.5, lift: 0.3 } : { padX: 0.9, padY: 0.5, lift: -0.18 });
+      (this.payNames = this.payNames || []).push({ who: A.id, name, plate });
+      const follow = () => PE.Plates.follow(t);
+      if (this.calm()) { t.setAlpha(1); follow(); this.time.delayedCall(1800, () => t.destroy()); return; }
+      this.tweens.add({ targets: t, alpha: 1, y: t.y - 14 * k, duration: 220, ease: 'Sine.easeOut', onUpdate: follow, onComplete: follow });
+      this.tweens.add({ targets: t, alpha: 0, delay: 1700, duration: 300, onUpdate: follow, onComplete: () => t.destroy() });
+    }
+    // A customer's name: a VIP's own name, otherwise who they are (Skater, Granny...) from the art list.
+    static customerName(id) {
+      const vip = (PE.Data.vips || []).find((v) => v.id === id);
+      if (vip) return vip.name;
+      const e = PE.Data.assetRegistry && PE.Data.assetRegistry.entries.find((x) => x.id === id);
+      return e && e.note && e.note.length < 20 ? e.note : 'Customer';
     }
     // sku: what just sold. A customer at the counter buys whatever's on a stocked shelf here.
     giveProduct(sku) {

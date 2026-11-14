@@ -80,6 +80,7 @@
       calm: () => !!(app.state.settings.reducedMotion || app.state.settings.lowPower),
     };
     PE.App = app;
+    app.RENOVATION_SIGN_MS = 2 * 60 * 1000;   // job 33: how long the Under Renovation sign stays up on the map
     PE.Dom.init();
     PE.HelperUI.init();
     PE.ChestReveal.init();
@@ -263,6 +264,9 @@
     // ---- Game events -> messages ---------------------------------------------------------------------
     g.on((type, e) => {
       if (type === 'harvest' && e.strainId) app.lastHarvestStrain = e.strainId;
+      // Job 33: the builders tidy up for a couple of minutes after a renovation or expansion (the Under Renovation sign on
+      // the map). Only a look: the renovation itself is done the moment it's bought. Not saved.
+      if (type === 'renovated') (app.renovating = app.renovating || {})[e.fid] = Date.now() + PE.App.RENOVATION_SIGN_MS;
       if (type === 'levelUp') {
         PE.Dom.toast(`Level ${e.level}!${e.rewards.length ? ' ' + e.rewards[0] : ''}`, 'big', 'RWD-06');
       } else if (type === 'celebrate') {

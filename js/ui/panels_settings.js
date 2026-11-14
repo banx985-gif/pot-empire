@@ -7,7 +7,7 @@
   const S = () => PE.App.state.settings;
   const changed = () => { PE.App.saveGame(); PE.Look.apply(); };
   const toggle = (key, title, text) => `<div class="item"><div class="grow"><b>${title}</b><small>${text}</small></div>
-    <button class="btn small ${S()[key] ? 'go' : 'cant'}" data-act="flip:${key}" aria-pressed="${!!S()[key]}">${S()[key] ? 'On' : 'Off'}</button></div>`;
+    <button class="btn small flip ${S()[key] ? 'go' : 'cant'}" data-act="flip:${key}" aria-pressed="${!!S()[key]}">${S()[key] ? 'On' : 'Off'}</button></div>`;
   const slider = (key, title) => `<label class="item slider"><div class="grow"><b>${title}</b><small>${Math.round(S()[key] * 100)}%</small></div>
     <input type="range" min="0" max="100" step="5" value="${Math.round(S()[key] * 100)}" data-change="vol:${key}" aria-label="${title}"></label>`;
 

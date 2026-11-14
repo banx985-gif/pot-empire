@@ -134,6 +134,7 @@
         if (!g.spend('cash', info.cost, 'renovation')) return { ok: false, why: 'cash' };
         get(fid).renovation += 1;
         g.emit('celebrate', { kind: 'renovation', text: `Renovation ${info.index + 1} done!` });
+        g.emit('renovated', { fid });
         g.emit('changed');
         return { ok: true };
       },
@@ -156,6 +157,7 @@
         if (!g.spend('cash', info.cost, 'expansion')) return { ok: false, why: 'cash' };
         get(fid).expansion = info.level + 1;
         if (get(fid).expansion % 5 === 0) g.emit('celebrate', { kind: 'expansion', text: `${byId.get(fid).name}: expansion ${get(fid).expansion}!` });
+        g.emit('renovated', { fid });
         g.emit('changed');
         return { ok: true };
       },

@@ -184,6 +184,17 @@
       X11: () => prestigeStatus().kind === 'idle',
       X12: () => g.meta.achievementList().some((a) => a.done && !a.claimed),
     };
+    // Job 33: the level a feature building's screen opens at, for the ones that open later than their district (0 when it's
+    // open). The map shows the Coming Soon sign on it till then.
+    const FEATURE_LEVEL = {
+      X07: () => g.progress.featureLevel('vip') || 0,
+      X10: () => B.profile.hallOfFameLevel,
+      X11: () => g.meta.prestigeUnlockLevel(),
+    };
+    function featureOpensAt(id) {
+      const lvl = FEATURE_LEVEL[id] ? FEATURE_LEVEL[id]() : 0;
+      return lvl && g.progress.level() < lvl ? lvl : 0;
+    }
     function featureStatus(id) {
       const f = featureRow(id);
       return FEATURE_DUE[id]() ? { kind: 'idle', feature: true, text: f.why } : { kind: 'none', feature: true, text: '' };
@@ -256,6 +267,7 @@
       featureRow,
       featureStage,
       featureMetric,
+      featureOpensAt,
       // Which renovation picture a building shows: 0 = locked lot, then 1, 2, 3.
       look(fid) {
         if (!g.facilities.isOwned(fid)) return 0;
