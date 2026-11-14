@@ -725,6 +725,8 @@ html.fast-time #hud::after { content: 'FAST TIME: NOT SAVING'; display: block; t
 #seed-stash { position: absolute; z-index: 6; pointer-events: auto; max-width: calc(100% - 16px); background: #2a1a47f5; border: 3px solid var(--lime); border-radius: 18px; padding: 8px 8px 6px; box-shadow: 0 8px 24px #000c; animation: pop .22s cubic-bezier(.2,1.5,.4,1); touch-action: none; }
 #seed-stash .stash-head { font-weight: 800; font-size: 14px; padding: 0 4px 6px; }
 #seed-stash .stash-head small { font-weight: 600; color: #d8cdea; margin-left: 6px; }
+#seed-stash .stash-jar { width: 34px; height: 34px; object-fit: contain; vertical-align: middle; margin-right: 6px; }
+.terpz-fly .terpz-rider { display: inline-block; vertical-align: bottom; }
 #seed-stash .stash-row { display: flex; gap: 6px; overflow-x: auto; overscroll-behavior: contain; touch-action: pan-x; padding-bottom: 2px; }
 #ui .stash-seed { flex: none; width: 74px; display: flex; flex-direction: column; align-items: center; gap: 2px; background: #ffffff14; border: 2px solid #ffffff22; border-radius: 12px; padding: 6px 2px 4px; color: #fff; touch-action: none; }
 .stash-seed small { font-size: 10.5px; font-weight: 700; line-height: 1.1; text-align: center; max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -796,6 +798,8 @@ html.fast-time #hud::after { content: 'FAST TIME: NOT SAVING'; display: block; t
 .ev-card { display: flex; gap: 12px; align-items: center; padding: 12px; border-radius: 16px; background: linear-gradient(135deg, #3a2266, #2a1a47); border: 2px solid #ffffff2a; margin-bottom: 10px; }
 .ev-card.on { border-color: var(--ev, var(--pink)); box-shadow: 0 0 16px #ff4fa344; }
 .ev-card b { font-size: 18px; display: block; }
+.ev-card.small { padding: 10px; }
+.ev-card.small b { font-size: 15px; }
 .ev-card small { display: block; color: #e8def8; }
 .ev-card .ev-when { margin: 6px 0 2px; font-weight: 800; color: var(--gold); }
 .ev-card.on .ev-when { color: var(--lime); }
@@ -883,3 +887,14 @@ html.fast-time #hud::after { content: 'FAST TIME: NOT SAVING'; display: block; t
 @keyframes bump { 0% { transform: scale(1); } 45% { transform: scale(1.25); } 100% { transform: scale(1); } }
 .calm .bump { animation: none; }
 .help-row .ico { flex: none; }
+
+/* Job 25: the login streak line on the calendar. */
+.cal-streak { margin: 6px 0 8px; }
+.cal-streak .ico { vertical-align: -5px; }
+.cal-streak small { display: block; color: #cbbbe6; }
+
+/* Job 25: the secret art list. */
+.art-filter { flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+.art-row .art-pic { width: 52px; height: 52px; object-fit: contain; flex: none; border-radius: 8px; background: #0003; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+.art-row.missing { border-color: var(--gold); }
+.art-row small { display: block; }

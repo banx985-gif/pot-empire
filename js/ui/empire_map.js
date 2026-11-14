@@ -481,8 +481,8 @@
       const mode = this.g.facilities.row(fid).mode;
       if (this.peeking) return;
       // Job 20: a short zoom in on the building on the way in (not with reduced motion).
-      // Only for places you walk into: the lab and HQ open a menu over the map, which must stay where it was.
-      const walkIn = ['Grow', 'Retail', 'Factory', 'Logistics'].includes(mode);
+      // Every place is walked into since job 25 (the lab and HQ too).
+      const walkIn = ['Grow', 'Retail', 'Factory', 'Logistics', 'Research', 'Prestige'].includes(mode);
       if (!walkIn) { PE.App.goToRoom(fid); return; }
       if (v && !this.calm()) {
         const cam = this.cameras.main;
@@ -577,7 +577,8 @@
       const sy = (wy - cam.midPoint.y) * cam.zoom + cam.height / 2;
       return { x: r.left + (sx * r.width) / this.scale.width, y: r.top + (sy * r.height) / this.scale.height };
     }
-    buildingPagePoint(fid) { const s = this.layout.spots[fid] || this.layout.features[fid]; return this.worldToPage(s.x, s.y - 50); }
+    // (Job 25: a little higher up the building, clear of the Event Day button over the bottom corner of the map.)
+    buildingPagePoint(fid) { const s = this.layout.spots[fid] || this.layout.features[fid]; return this.worldToPage(s.x, s.y - 110); }
     bubblePagePoint(fid) { const b = this.views.get(fid).bubble.c; return this.worldToPage(b.x, b.y); }
   }
 

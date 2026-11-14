@@ -59,6 +59,9 @@
       // Which reward is next, counting from 1. Never goes backwards.
       dayNumber: () => c().claimed + 1,
       round: () => c().round,
+      streak: () => { const cal = c(); const gap = cal.lastClaimDay === null || cal.lastClaimDay === undefined ? 99 : today() - cal.lastClaimDay; return gap <= 1 || (gap === 2 && cal.catchUpWeek !== Math.floor(today() / 7)) ? cal.streak || 0 : 0; },
+      bestStreak: () => c().bestStreak || 0,
+      caughtUp: () => !!c().caughtUp,
       name: () => table().name,
       days: () => table().days,
       // For the screen: every day, and whether it's been claimed.
@@ -73,8 +76,20 @@
         const key = `${cal.id}:${cal.round}:${dayNumber}`;
         let text = '';
         const ran = g.once(`calendar:${key}`, () => {
+          // Job 25: the login streak. A day in a row adds one; one missed day in between is forgiven once a week (the
+          // catch-up), so a busy day doesn't wipe it; more than that starts it again at 1. Every 7th day of a streak pays a
+          // little extra (balance table: calendar.streak).
+          const gap = cal.lastClaimDay === null || cal.lastClaimDay === undefined ? null : today() - cal.lastClaimDay;
+          const week = Math.floor(today() / 7);
+          if (gap === 1) cal.streak = (cal.streak || 0) + 1;
+          else if (gap === 2 && cal.catchUpWeek !== week) { cal.streak = (cal.streak || 0) + 1; cal.catchUpWeek = week; cal.caughtUp = true; }
+          else cal.streak = 1;
+          if (gap !== 2) cal.caughtUp = false;
+          cal.bestStreak = Math.max(cal.bestStreak || 0, cal.streak);
           cal.lastClaimDay = today();
           text = payDay(reward, key, dayNumber);
+          const S = T().streak;
+          if (S && cal.streak % S.every === 0) { const extra = g.meta.payReward(S.reward, 'streak'); if (extra) text += `, ${cal.streak} day streak: ${extra}`; }
           cal.claimed += 1;
           // All done: a new calendar starts tomorrow, using whichever one is current then.
           if (cal.claimed >= table().days.length) {

@@ -40,6 +40,14 @@
     look: 1.0,                // a look at each other, then back to normal
   };
 
+  // Job 25: rare scenes (the Leafy and Haze phone call, Terpz's gift balloon) never overlap: one at a time, game-wide.
+  // A scene takes the lock while it plays and gives it back at the end (or after a minute at most, if it never does).
+  const Rare = PE.Rare = PE.Rare || {
+    now: null, until: 0, log: [],
+    busy() { return !!Rare.now && performance.now() < Rare.until; },
+    take(name, ms = 60000) { if (Rare.busy() && Rare.now !== name) return false; Rare.now = name; Rare.until = performance.now() + ms; Rare.log.push(name); return true; },
+    free(name) { if (Rare.now === name) Rare.now = null; },
+  };
   let lastInput = 0;
   if (typeof window !== 'undefined') window.addEventListener('pointerdown', () => { lastInput = performance.now(); }, { capture: true, passive: true });
 
@@ -403,6 +411,7 @@
       // The 25 second comment limit holds for both of them.
       for (const e of [leafy, haze]) if (e.lastComment !== undefined && this.t - e.lastComment < T.commentGap) return null;
       if (!this.world.callOk()) return null;
+      if (Rare.busy()) return null;
       return { leafy, haze };
     }
     static callGapOk() {
@@ -425,6 +434,7 @@
       let i = Math.floor(Math.random() * list.length);
       if (list.length > 1 && i === Life.lastCallLines) i = (i + 1) % list.length;
       Life.lastCallLines = i;
+      if (!Rare.take('call', 40000)) return false;
       PE.App.state.ui.lastCallPlayMs = PE.App.state.ui.playMs || 0;
       for (const e of [leafy, haze]) {
         if (e.bubble) { e.bubble.destroy(); e.bubble = null; }
@@ -486,6 +496,7 @@
       const C = this.callNow;
       if (!C) return;
       this.callNow = null;
+      Rare.free('call');
       this.calls[this.calls.length - 1].end = why;
       for (const e of [C.leafy, C.haze]) {
         if (e.bubble) { e.bubble.destroy(); e.bubble = null; }

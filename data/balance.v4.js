@@ -474,6 +474,8 @@ globalThis.PE.Data.balance = {
   calendar: {
     source: 'STAND-IN. Job 5 card, Stage 6. Rewards made up by Claude Code.',
     active: 'standard',
+    // Job 25: every 7th day in a row (one missed day forgiven a week) pays this as well.
+    streak: { every: 7, reward: { gems: 2, cashHarvests: 5 } },
     calendars: {
       standard: {
         name: 'Grower\'s Calendar',

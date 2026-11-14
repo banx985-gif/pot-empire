@@ -25,7 +25,7 @@
   function newSettings() {
     return { reducedMotion: false, helpers: true, sound: 0.8, music: 0.5, bigText: false, colourBlind: false, showFps: false, pretendShop: false, haptics: true,
       // Phone notifications (job 18): the main switch and one for each kind.
-      notify: true, notifyHarvest: true, notifyTank: true, notifyOrders: true, notifyDaily: true, notifyEvents: true,
+      notify: true, notifyHarvest: true, notifyTank: true, notifyOrders: true, notifyDaily: true, notifyEvents: true, notifyCap: true, notifyEventDay: true,
       // Job 24: Low power (fewer moving things, 30 frames a second when nothing moves) and the muted switch that sticks.
       lowPower: false, muted: false };
   }

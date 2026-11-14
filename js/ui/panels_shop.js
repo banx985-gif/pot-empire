@@ -13,12 +13,19 @@
   function storage() { try { return window.localStorage; } catch (e) { return null; } }
 
   const Store = {
+    // Job 25: data/release.js is the one switch. In 'test' the real store and ads stay off whatever data/shop.js says;
+    // in 'live' the pretend store can't be switched on.
+    live: () => !!(PE.Data.release && PE.Data.release.mode === 'live'),
     pretendOn() {
       const sw = PE.Data.shop.switches;
-      return sw.pretendAllowed && (urlPretend || !!PE.App.state.settings.pretendShop);
+      return !Store.live() && sw.pretendAllowed && (urlPretend || !!PE.App.state.settings.pretendShop);
     },
-    paymentsOn() { return PE.Data.shop.switches.realPaymentsEnabled || Store.pretendOn(); },
-    adsOn() { return PE.Data.shop.switches.realAdsEnabled || Store.pretendOn() || g().ads.noAds(); },
+    realPayments: () => Store.live() && PE.Data.shop.switches.realPaymentsEnabled,
+    realAds: () => Store.live() && PE.Data.shop.switches.realAdsEnabled,
+    paymentsOn() { return Store.realPayments() || Store.pretendOn(); },
+    adsOn() { return Store.realAds() || Store.pretendOn() || g().ads.noAds(); },
+    // Which ad unit a rewarded ad would use: Google's test unit in a test build.
+    adUnit: () => PE.Data.release.adUnits[Store.live() ? 'live' : 'test'].rewarded,
 
     // ---- The pretend store "account" ----
     receipts() {

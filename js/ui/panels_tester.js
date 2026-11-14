@@ -124,6 +124,9 @@
   }
 
   PE.Tester = {
+    // Job 25: the local diary for a bug report, from Settings too (nothing is ever sent by itself: no analytics).
+    sendReport: () => sendReport(),
+    reportText: () => reportText(),
     // A tap on the build number in Settings.
     tapVersion() {
       const now = Date.now();
@@ -163,11 +166,14 @@
         ${toggle('spots', 'Move spots', 'In a room, drag a numbered spot to move it. Only on this phone, until Cowork adds them.', PE.RoomSpots.editing)}
         <button class="btn wide" data-act="copySpots">Copy spots</button>
         <button class="btn wide" data-act="resetSpots">Put this room's spots back</button>
+        <h4>Art</h4>
+        <button class="btn wide" data-act="artList">Every picture: real or placeholder</button>
         <h4>Problems</h4>
         <button class="btn wide go" data-act="report">Report a problem</button>
         <p class="muted">${PE.Native.isApp() ? 'Opens the phone\'s share list so you can send it.' : 'Copies the report so you can paste it.'} It has the build, phone details, recent log lines, errors and the current screen. No save data.</p>`;
     },
     actions: {
+      artList() { PE.App.router.go('artList', {}); },
       flip(key) { S()[key] = !S()[key]; PE.App.saveGame(); PE.Look.apply(); },
       fast() { if (Fast.on) stopFast(); else startFast(); },
       report() { sendReport(); },
@@ -187,4 +193,33 @@
     title: 'Problem report',
     render({ text }) { return `<p>Press and hold to copy this.</p><textarea class="savetext" readonly>${esc(text)}</textarea>`; },
   };
+
+  // ---- Job 25: every picture the game knows, and whether it's Aaron's real art or still a placeholder -----------------
+  // From the asset registry (npm run registry). Real art shows its picture; a placeholder or a planned one says what the
+  // game shows instead. Filters: what's missing first, or everything, or one kind.
+  const STATUS = { imported: 'Real', have: 'Filed, not used yet', planned: 'Not drawn yet' };
+  PE.Panels.artList = {
+    title: 'Art: real or placeholder',
+    render(p) {
+      const all = PE.Data.assetRegistry.entries;
+      const show = p.show || 'missing';
+      const cats = [...new Set(all.map((e) => e.category))].sort();
+      const pick = all.filter((e) => (show === 'missing' ? e.status !== 'imported' || e.placeholder : show === 'all' ? true : e.category === show));
+      const count = (st) => all.filter((e) => e.status === st).length;
+      const head = `<p><b>${count('imported')}</b> real · <b>${count('have')}</b> filed but not used · <b>${count('planned')}</b> not drawn yet · ${all.length} in all</p>
+        <div class="row-btns art-filter">${['missing', 'all', ...cats].map((c) => `<button class="btn small ${c === show ? 'go' : 'plain'}" data-act="show:${c}">${esc(c === 'missing' ? 'Missing first' : c === 'all' ? 'Everything' : c)}</button>`).join('')}</div>`;
+      const rows = pick.slice(0, 400).map((e) => {
+        const real = e.status === 'imported' && e.gamePath && !e.placeholder;
+        const src = real ? e.gamePath.replace(/^game\//, '') : '';
+        const isPic = /\.(webp|png|jpe?g)$/i.test(src);
+        return `<div class="item art-row ${real ? '' : 'missing'}">${isPic ? `<img class="art-pic" loading="lazy" src="${esc(src)}" alt="">` : `<span class="art-pic none">${real ? 'snd' : '?'}</span>`}<div class="grow"><b>${esc(e.id)}</b><small>${esc(e.category)} · ${STATUS[e.status] || e.status}${e.placeholder ? ' (placeholder)' : ''}</small>${e.note ? `<small>${esc(e.note)}</small>` : ''}</div></div>`;
+      }).join('');
+      return head + rows + (pick.length > 400 ? `<p class="muted">... and ${pick.length - 400} more (pick one kind above).</p>` : '');
+    },
+    actions: { show(c) { PE.App.router.replace('artList', { show: c }); } },
+  };
+  if (typeof location !== 'undefined' && /[?&]artlist\b/.test(location.search)) {
+    const go = () => { if (PE.App && PE.App.router && PE.App.router.current()) PE.App.router.go('artList', {}); else setTimeout(go, 500); };
+    setTimeout(go, 1500);
+  }
 })(globalThis.PE = globalThis.PE || {});

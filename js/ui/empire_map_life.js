@@ -63,9 +63,12 @@
     this.buildHelpers();
     this.buildVans();
     this.buildWalkers();
+    this.buildQueues();
     this.buildBuildingLife();
     this.buildFlyers();
     this.buildManagers();
+    // Job 25: the sky (time of day and the weather, js/ui/map_sky.js).
+    PE.MapSky.attach(this);
   };
 
   proto.makeLifeTextures = function makeLifeTextures() {
@@ -308,6 +311,75 @@
     }
   };
 
+  // ---- Job 25: queues at busy shops ------------------------------------------------------------------------------
+  // Each shop you own here has a short line of customers outside its door: one per stocked shelf, up to four. Every few
+  // seconds the one at the front goes in and the rest step up (not with reduced motion or Low power: then they just
+  // stand). The line is checked every few seconds, so stocking a shelf adds someone.
+  const QUEUE_GAP = 21, QUEUE_MAX = 4;
+  proto.queueWanted = function queueWanted(fid) {
+    const stocked = this.g.business.slots(fid).filter((s) => s.sku).length;
+    return Math.min(QUEUE_MAX, stocked);
+  };
+  proto.buildQueues = function buildQueues() {
+    const L = this.layout;
+    for (const q of this.life.queues || []) q.people.forEach((p) => p.actor.destroy());
+    this.life.queues = [];
+    for (const fid of this.def.facilities) {
+      if (!this.g.facilities.isOwned(fid) || this.g.facilities.row(fid).mode !== 'Retail') continue;
+      const s = L.spots[fid];
+      if (!s) continue;
+      const door = s.door || [s.x, s.y + 34];
+      const n = s.node && L.nodes[s.node] ? L.nodes[s.node] : [door[0], door[1] + 60];
+      const len = Math.hypot(n[0] - door[0], n[1] - door[1]) || 1;
+      const ux = (n[0] - door[0]) / len, uy = (n[1] - door[1]) / len;
+      // Beside the drive, not on it: a little to one side.
+      const at = (k) => ({ x: door[0] + ux * (34 + k * QUEUE_GAP) - uy * 16, y: door[1] + uy * (34 + k * QUEUE_GAP) + ux * 16 });
+      const q = { fid, at, people: [], want: this.queueWanted(fid), next: 4 + Math.random() * 3, check: 3 };
+      this.life.queues.push(q);
+      this.fillQueue(q);
+    }
+  };
+  proto.fillQueue = function fillQueue(q) {
+    while (q.people.length > q.want) q.people.pop().actor.destroy();
+    const taken = new Set([...this.life.walkers.map((w) => w.id), ...this.life.queues.flatMap((x) => x.people.map((p) => p.actor.id))]);
+    const pool = (PE.BizRoom ? PE.BizRoom.customers() : []).filter((id) => PE.Cast.isFree(id) && !taken.has(id));
+    while (q.people.length < q.want && pool.length) {
+      const k = q.people.length;
+      const p = q.at(k);
+      const actor = new PE.Anim.Actor(this, pool.shift(), { x: p.x, y: p.y, height: PE.Anim.PERSON_H.map });
+      if (actor.clash) { actor.destroy(); continue; }
+      actor.play('idle');
+      q.people.push({ actor, k });
+    }
+  };
+  proto.stepQueues = function stepQueues(dt) {
+    const still = this.calmNow || PE.App.state.settings.lowPower;
+    for (const q of this.life.queues || []) {
+      q.check -= dt;
+      if (q.check <= 0) { q.check = 3; q.want = this.queueWanted(q.fid); if (q.want !== q.people.length) this.fillQueue(q); }
+      if (still || q.people.length < 2) continue;
+      // Everyone eases towards their place in the line.
+      for (const p of q.people) {
+        const t = q.at(p.k);
+        const dx = t.x - p.actor.x, dy = t.y - p.actor.y;
+        if (Math.abs(dx) + Math.abs(dy) > 0.5) p.actor.moveTo(p.actor.x + dx * Math.min(1, dt * 3), p.actor.y + dy * Math.min(1, dt * 3));
+      }
+      q.next -= dt;
+      if (q.next > 0) continue;
+      q.next = 5 + Math.random() * 4;
+      // The front one goes in (to the back of the line, out of sight for a moment) and everyone steps up.
+      const front = q.people.shift();
+      q.people.forEach((p, i) => { p.k = i; });
+      front.k = q.people.length;
+      const back = q.at(front.k);
+      front.actor.image.setAlpha(0);
+      front.actor.moveTo(back.x, back.y);
+      this.tweens.add({ targets: front.actor.image, alpha: 1, delay: 900, duration: 500 });
+      q.people.push(front);
+      q.served = (q.served || 0) + 1;
+    }
+  };
+
   // ---- Smoke and lights ---------------------------------------------------------------------------
   proto.buildBuildingLife = function buildBuildingLife() {
     for (const fid of this.def.facilities) {
@@ -352,13 +424,29 @@
     const names = Object.keys(L.nodes).filter((n) => !(L.notStreet || []).includes(n));
     const nearest = (x, y, list = names) => list.slice().sort((p, q) => Math.hypot(L.nodes[p][0] - x, L.nodes[p][1] - y) - Math.hypot(L.nodes[q][0] - x, L.nodes[q][1] - y))[0];
     const home = spots[0] || { x: L.w / 2, y: L.h / 2 };
+    const HOMES = { BUDZ: ['Logistics', 'Retail', 'Factory'], LEAFY: ['Research', 'Grow'] };
+    const homeFor = (id) => {
+      for (const mode of HOMES[id] || []) {
+        const fid = this.def.facilities.find((f) => this.g.facilities.isOwned(f) && this.g.facilities.row(f).mode === mode && L.spots[f]);
+        if (!fid) continue;
+        const s = L.spots[fid];
+        const d = s.door || [s.x, s.y + 34];
+        this.life.homes = this.life.homes || {};
+        this.life.homes[id] = fid;
+        return { x: d[0] + (id === 'BUDZ' ? -30 : 30), y: d[1] };
+      }
+      return null;
+    };
     const world = {
       height: PE.Anim.PERSON_H.map,
       speed: 24,
       near: 170,
       textScale: () => PE.App.dpr / this.cameras.main.zoom,
       start: (i, id) => {
-        const p = id === 'HAZE' && shack ? { x: shack.x - shack.w * 0.42, y: shack.y + 14 } : (spots[i] || home);
+        // Job 25: each starts at their own building where it's here: Budz at the depot (or a shop or the factory), Leafy
+        // at the lab (or a grow room). Haze keeps his Shack. Otherwise near the newest place, as before.
+        const own = id !== 'HAZE' && homeFor(id);
+        const p = id === 'HAZE' && shack ? { x: shack.x - shack.w * 0.42, y: shack.y + 14 } : (own || spots[i] || home);
         return { x: p.x, y: p.y + (id === 'HAZE' && shack ? 0 : 8), node: nearest(p.x, p.y) };
       },
       // Along the streets to somewhere not far from here, or towards someone.
@@ -412,7 +500,8 @@
     }
   };
   // Hand it over: the "here you go" move if they have one, and the product icon pops out beside the hand.
-  // sku: what sold. The crop shows the logo of the strain last harvested. A product has a stand-in label until its art arrives.
+  // sku: what sold. The crop shows the logo of the strain last harvested. A product shows its own picture (P01-P36,
+  // assets/ui/); the coloured label below is only for one whose picture can't load.
   const FAMILY_COLOUR = { Snacks: 0xff8a3d, Drinks: 0x52a6ff, Accessories: 0x62d04b, 'Novelty Gifts': 0xff4fa3, 'Wellness Fiction': 0xb47cff, 'Premium Packs': 0xffd84d };
   function productLabel(scene, id) {
     const key = 'product-' + id;
@@ -432,7 +521,15 @@
   }
   function soldPicture(scene, sku, ready) {
     const g = PE.App.g;
-    if (sku && sku !== g.business.CROP) { const k = productLabel(scene, sku); if (k) { ready(k); return; } }
+    if (sku && sku !== g.business.CROP) {
+      // Job 25: Aaron's product picture, with the drawn label only if it can't be fetched.
+      PE.UI.loadIcons(scene, [sku], () => {
+        if (scene.textures.exists('ui-' + sku)) { ready('ui-' + sku); return; }
+        const k = productLabel(scene, sku);
+        if (k) ready(k);
+      });
+      return;
+    }
     if (sku === g.business.CROP || !sku) {
       let strain = PE.App.lastHarvestStrain;
       if (!strain) g.grow.eachStation((f, si, st) => { if (!strain) strain = st.lastStrains.find(Boolean); });
@@ -510,9 +607,11 @@
     const dt = Math.min(0.1, (time - (L.last || time)) / 1000);
     L.last = time;
     this.updateGift(time, dt);
+    PE.MapSky.update(this, dt);
     if (L.leaving) this.stepBalloon(L.leaving, time, dt);
     PE.Anim.stepAll(this, dt);
     if (L.helperLife) L.helperLife.update(dt);
+    this.stepQueues(dt);
     if (this.calmNow) return;
     L.t += dt;
     const T = L.t;
@@ -624,7 +723,8 @@
     if (!L.gift) {
       if (time - L.giftCheck < 1000) return;
       L.giftCheck = time;
-      if (this.g.map.giftDue()) this.spawnGift();
+      // Job 25: not while another rare scene is playing (it waits a moment and comes then).
+      if (this.g.map.giftDue() && !(PE.Rare && PE.Rare.busy())) { if (PE.Rare) PE.Rare.take('balloon', 45000); this.spawnGift(); }
       return;
     }
     const f = L.gift;
@@ -637,6 +737,7 @@
     if (f.left <= 0) {
       f.sprite.destroy();
       L.gift = null;
+      if (PE.Rare) PE.Rare.free('balloon');
       this.g.map.giftMissed();
     }
   };
@@ -700,7 +801,7 @@
     f.actor.destroy();
     f.shadow.destroy();
     if (f.bubble) f.bubble.destroy();
-    if (this.life.gift === f) this.life.gift = null;
+    if (this.life.gift === f) { this.life.gift = null; if (PE.Rare) PE.Rare.free('balloon'); }
     if (this.life.leaving === f) this.life.leaving = null;
   };
   proto.spawnGift = function spawnGift() {
@@ -741,7 +842,7 @@
         if (L.gift.actor) {
           // Terpz says ta and floats off up and away.
           const f = L.gift;
-          L.gift = null;
+          L.gift = null; if (PE.Rare) PE.Rare.free('balloon');
           L.leaving = f;
           f.phase = 'away'; f.t = 0; f.lift = 0;
           this.terpzSays(f, 'thanks');
@@ -749,7 +850,7 @@
           return true;
         }
         s.destroy();
-        L.gift = null;
+        L.gift = null; if (PE.Rare) PE.Rare.free('balloon');
         return true;
       }
     }

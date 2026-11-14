@@ -33,6 +33,7 @@
       const can = C.canClaim();
       const grid = rows.map((d) => `<div class="cal-day ${d.day % 7 === 0 ? 'big' : ''} ${d.day === rows.length ? 'best' : ''} ${d.claimed ? 'claimed' : ''} ${d.next && can ? 'next' : ''}"><small>${d.day}</small>${icon(d.reward)}</div>`).join('');
       return `<div class="cal-today"><span class="today-ico">${icon(next.reward, 52)}</span><div class="grow"><b>Day ${next.day} of ${rows.length}${C.round() > 1 ? ` · Calendar ${Money.format(C.round())}` : ''}</b><small style="display:block">${esc(words(next.reward))}</small></div></div>
+        <p class="cal-streak">${icon('GOL-05', 22)} <b>Streak: ${C.streak()} day${C.streak() === 1 ? '' : 's'}</b> · best ${C.bestStreak()}<small>Every 7th day in a row pays extra. Miss one day and it waits for you (once a week).${C.caughtUp() ? ' You missed a day, so the catch-up kept your streak.' : ''}</small></p>
         <button class="btn wide ${can ? 'go' : 'cant'}" data-act="claim">${can ? `Claim day ${next.day}` : 'Come back tomorrow for this one'}</button>
         <div class="cal-grid">${grid}</div>
         <p class="muted center">One reward a day you log in. Missing days never resets it: your place just waits for you.</p>`;

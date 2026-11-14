@@ -67,6 +67,9 @@
         <button class="btn wide plain" data-act="help">${PE.Dom.icon('SYS-02', 22)}Help: how each place works</button>
         <p class="muted" data-act="version">Build ${esc(build)} · Balance table v${g().B.tableVersion} (provisional) · Save version ${PE.SaveSchema.CURRENT_VERSION}</p>
         <p class="muted">Music and ambience by TomMusic. Sound effects from ESM's Vibrant Game.</p>
+        <h4>Problems?</h4>
+        <p class="muted">The game keeps a small diary of what it did and any errors, on this phone only. Nothing is sent anywhere unless you send it.</p>
+        <button class="btn wide plain" data-act="report">Send a problem report (the diary)</button>
         <h4>Purchases</h4>
         <button class="btn wide plain" data-act="restorePurchases">Restore purchases</button>
         <h4>About</h4>
@@ -84,6 +87,7 @@
         if (/^notify/.test(key)) { PE.Notify.changed(); if (key === 'notify' && S().notify) PE.Notify.check(true); PE.Dom.renderPanel(); } if (key === 'colourBlind') PE.Look.redrawRoom(); },
       vol(key, v) { S()[key] = Math.max(0, Math.min(1, Number(v) / 100)); changed(); if (key === 'sound') PE.Sound.play('tap'); },
       help() { PE.App.router.go('help', {}); },
+      report() { PE.Tester.sendReport(); },
       restorePurchases() { PE.Store.restore(); },
       replayList() { PE.App.router.go('helperReplay', {}); },
       replayIntro() { PE.Intro.show(true); },

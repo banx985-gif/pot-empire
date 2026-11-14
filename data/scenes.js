@@ -66,7 +66,6 @@ globalThis.PE.Data.scenes = {
   },
   // Budz never yells at the player. His 'angry' is only ever aimed at a thirsty plant (standing behind it) or a rival's
   // building (js/ui/helper_life.js): with nothing to aim at, he doesn't do it.
-  budzPlant: ['Grow big, little buddy.', 'Looking good, mate.', "Who's a tall boy?", 'Roots down, leaves up.', 'You and me, pal.'],
   budzTellOff: ['Drink your water!', 'Oi! Drink up!', 'What did I tell you?!'],
   budzRival: ['Oi! Beat it!', 'This is OUR town!', 'Take a hike!'],
   // Job 19B: a short comment when they stop at something in a grow room. Rare: one every 25 s at most, each

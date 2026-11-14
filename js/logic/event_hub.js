@@ -166,9 +166,6 @@
       levels, level, isOpen, best, finish, milestones, claimMilestone, pay, boost,
       caps: () => D().caps,
       paid: () => s().paid,
-      // How many levels are open, and the total stars so far (all weeks).
-      openCount: () => levels().filter((x, i) => isOpen(i + 1)).length,
-      totalStars: () => Object.values(s().levels).reduce((a, b) => a + b, 0),
       anyToClaim: () => milestones().some((m) => m.reached && !m.claimed),
     };
   });

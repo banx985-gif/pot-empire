@@ -31,6 +31,16 @@
       art.keys.push(key);
       loadImage(scene, key, base, () => {
         art.image = scene.add.image(0, 0, key).setOrigin(0, 0).setDisplaySize(room.w, room.h).setDepth(depth);
+        // Job 25: each renovation done shows as a coloured section of trim along the front edge of the floor (pink, cyan,
+        // lime, the same as in the plain rooms), so the second renovation shows too (it keeps the first one's picture).
+        const f = scene.fid && scene.g && scene.g.facilities.get(scene.fid);
+        const reno = f ? Math.min(3, f.renovation || 0) : 0;
+        if (reno) {
+          const T = scene.add.graphics().setDepth(depth + 1);
+          const bh = Math.max(24, room.h * 0.012), secW = room.w / 3;
+          for (let i = 0; i < reno; i++) T.fillStyle([0xff4fa3, 0x52e6ff, 0xc6ff3d][i], 0.85).fillRect(secW * i + 8, room.h - bh, secW - 16, bh);
+          art.trim = { reno, graphics: T };
+        }
         if (scene.onRoomPicture) scene.onRoomPicture();
       });
       // Pictures are let go when the room closes: only one room's are ever held.

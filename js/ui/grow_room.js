@@ -638,7 +638,7 @@
       this.harvestAnims.push(anim);
       const done = () => { anim.finish(); this.harvestAnims = this.harvestAnims.filter((a) => a !== anim); };
 
-      // The stripped stalk takes the plant's place, lined up by its stem. Until it arrives, the plant just fades.
+      // The stripped stalk takes the plant's place, lined up by its stem. If its picture can't load, the plant just fades.
       const art = PE.Data.plantArt[e.strainId];
       const toStalk = (key) => {
         if (finished || !img.scene || !art || !art.stalk) return;
@@ -1004,6 +1004,7 @@
       const m = st.model, L = st.levels;
       const face = this.faceOf(si);
       const ids = [Layout.model(PE.Data, m, face).frameId, Layout.piece(PE.Data, m, 'LGT', L.lights, face).id, `M${m}-BADGE`, `M${m}-BASE`, `M${m}-TRAY`, `M${m}-LGT-${L.lights}`, `M${m}-SPR-${L.sprinkler}`, `M${m}-FX-${L.sprinkler}`, `M${m}-CMP-${L.computer}`, `M${m}-POT-${L.pots}`];
+      if (PE.Data.hydroArt[`M${m}-PUMP`]) ids.push(`M${m}-PUMP`);   // job 25: the pump's own picture, once it's drawn
       PE.UI.loadHydro(this, ids, () => { if (!v.gone) { this.drawStation(v, si, st, pos); this.lastRefresh = 0; } });
       return v;
     }
@@ -1247,8 +1248,8 @@
       PE.UI.loadStrain(this, p.s, apply);
     }
 
-    // A wilted plant shows its own picture, the same size and standing on the same stem. Until that arrives (or if it
-    // can't), the mature picture is greyed and drooped by code.
+    // A wilted plant shows its own picture, the same size and standing on the same stem. If it can't load, the mature
+    // picture is greyed and drooped by code.
     showWilted(pv, p, f) {
       const img = pv.img;
       img.setTint(0xa8a27a);

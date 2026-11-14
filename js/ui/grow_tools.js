@@ -158,7 +158,10 @@
       const u = $('ui').getBoundingClientRect();
       const box = document.createElement('div');
       box.id = 'seed-stash';
-      box.innerHTML = `<div class="stash-head">Your seeds <small>drag one onto the pot</small></div><div class="stash-row">${ids.map((id) => {
+      // Job 25: the seed jar picture beside the heading, once it's drawn (tools/import_drop_in_art.js).
+      const jar = PE.Data.assetRegistry.entries.find((e) => e.id === 'SEED-JAR');
+      const jarPic = jar && jar.status === 'imported' ? '<img class="stash-jar" src="assets/ui/SEED-JAR.webp" alt="" draggable="false">' : '';
+      box.innerHTML = `<div class="stash-head">${jarPic}Your seeds <small>drag one onto the pot</small></div><div class="stash-row">${ids.map((id) => {
         const s = PE.Data.strains.find((x) => x.id === id);
         return `<button class="stash-seed" data-seed="${id}" aria-label="${PE.Dom.esc(s.name)}">${Tools.packet(id, 52)}<small class="r-${s.rarity}">${PE.Dom.esc(s.name)}</small></button>`;
       }).join('')}<button class="stash-seed more" data-more="1" aria-label="More strains"><span class="more-plus">+</span><small>More strains</small></button></div>`;

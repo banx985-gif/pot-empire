@@ -57,7 +57,7 @@
     drawYard() {
       const { L } = this;
       const u = L.u;
-      const G = this.add.graphics().setDepth(0);
+      const G = this.add.graphics().setDepth(-1000);   // under the placed decorations (js/ui/decor_art.js)
       // Tarmac, the dock and the bays.
       G.fillStyle(0x3a3448, 1).fillRect(0, 0, L.W, L.H);
       for (let y = 0; y < L.H; y += 46 * u) G.fillStyle(0x342e42, 1).fillRect(0, y, L.W, 22 * u);
@@ -77,6 +77,33 @@
         this.bays.push(bay);
       });
       this.glow = this.add.graphics().setDepth(5);
+      this.dressYard(G);
+    }
+    // Job 25: the renovation shows as the dock's trim colour (grey, green, blue, gold), the decorations placed here stand
+    // round the dock, and Budz (who drives the van) hangs about in the yard.
+    dressYard(G) {
+      const u = this.L.u, D = this.dock, L = this.L;
+      this.reno = Math.min(3, (this.g.facilities.get(this.fid) || {}).renovation || 0);
+      G.fillStyle([0x7d8794, 0x3fbf5a, 0x3f8cff, 0xffc83d][this.reno], 1).fillRoundedRect(D.x, D.y - 2 * u, D.w, 9 * u, 4 * u);
+      // The yard's back fence, below the bays: the poster and the neon sign hang on it, an ornament stands on top.
+      const last = this.cells[this.cells.length - 1] || { y: D.y + D.h, h: 0 };
+      const fy = Math.min(L.bottom - 150 * u, last.y + last.h + 14 * u), fh = 74 * u;
+      G.fillStyle(0x4a3b2a, 1).fillRect(0, fy, L.W, fh);
+      for (let x = 0; x < L.W; x += 26 * u) G.fillStyle(0x5c4a35, 1).fillRect(x + 2 * u, fy, 22 * u, fh);
+      G.fillStyle(0x000000, 0.25).fillRect(0, fy + fh, L.W, 8 * u);
+      const sockets = {
+        'wall-wall': { x: L.W * 0.22, y: fy + fh * 0.5, w: 70 * u, h: 58 * u },
+        'neon-wall': { x: L.W * 0.78, y: fy + fh * 0.5, w: 90 * u, h: 54 * u },
+        'shelf-shelf': { x: L.W * 0.5, y: fy + 4 * u, w: 46 * u, h: 46 * u },
+        'counter-counter': { x: L.left + 34 * u, y: fy + fh + 4 * u, w: 50 * u, h: 58 * u },
+      };
+      PE.DecorArt.attach(this, this.fid, { room: { sockets } });
+      const c = this.cells[0];
+      if (c) {
+        const x = c.x + c.w - 62 * u, y = c.y + c.h * 0.86;
+        const a = new PE.Anim.Actor(this, 'BUDZ', { x, y, height: Math.min(120 * u, c.h * 0.6), depth: 4.5 });
+        if (a.clash) a.image.destroy(); else { a.image.setFlipX(true); a.play('idle'); this.budz = a; }
+      }
     }
     // The green up-arrow tag (the same as on shelves and machines).
     makeTag(x, y, size = 1) {

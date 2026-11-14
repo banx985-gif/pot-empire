@@ -297,7 +297,7 @@
     render() {
       const game = g();
       const cur = game.state.profile.avatarStrainId;
-      return `<p class="muted">Each strain's graffiti name badge becomes an avatar at Mastery 10. Cosmetic only. A few badges are still being drawn: those show the strain's logo for now.</p>` + C().avatars.map((a) => {
+      return `<p class="muted">Each strain's graffiti name badge becomes an avatar at Mastery 10. Cosmetic only.</p>` + C().avatars.map((a) => {
         const lvl = game.grow.masteryLevel(a.strainId);
         const open = lvl >= game.B.mastery.avatarUnlockLevel;
         return `<div class="item ${open ? '' : 'locked'}" ${open ? `data-act="pick:${a.strainId}"` : ''}>${PE.Dom.avatarPic(a.strainId, 52)}<div class="grow"><b>${esc(PE.Data.strains.find((s) => s.id === a.strainId).name)}</b><small>${open ? 'Unlocked' : `${PE.Dom.icon('QLT-06', 14)}Mastery ${lvl}/10`}${PE.Dom.avatarDrawn(a.strainId) ? '' : ' · badge planned'}</small></div>${cur === a.strainId ? '<span class="tag go">Selected</span>' : ''}</div>`;

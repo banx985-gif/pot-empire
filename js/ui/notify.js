@@ -15,13 +15,16 @@
     { key: 'notifyOrders', id: 'orders', title: 'Order ready', text: "A delivery's done and the cash is waiting. Don't leave it on the porch.", route: 'contracts' },
     { key: 'notifyDaily', id: 'daily', title: 'Daily reward', text: "Today's reward is in. Free stuff. I checked, it's legal. In the game.", route: 'calendar' },
     { key: 'notifyEvents', id: 'event', title: 'Festival time', text: 'A festival just kicked off! Every harvest scores points. Grab your sneakers.', route: 'festival' },
+    // Job 25: the automation has run as long as it can while you're away, and the weekly Event Day.
+    { key: 'notifyCap', id: 'cap', title: 'Growers on a break', text: "Your stations have done all they can while you're away. Pop back and they'll start again.", route: 'garage' },
+    { key: 'notifyEventDay', id: 'eventDay', title: 'Event Day!', text: "It's Weekly Event Day. Bud Match is open, and there are prizes. Leafy's already playing.", route: 'eventHub' },
   ];
   const ASK_TITLE = 'Want a nudge?';
   const ASK_AFTER_PLAY_MS = 5 * 60000;     // with a harvest done
   const ASK_SETTLE_MS = 20000;             // on a second open: a little play first, never straight away
   const ASK_AGAIN_MS = 30 * 86400000;      // after a "not now"
   const ASK_MOST = 2;                      // times ever
-  const MAX_A_DAY = 4;
+  const MAX_A_DAY = 2;   // job 25: never more than 2 a day
   const MIN_GAP_MS = 2 * 3600000;
   const QUIET_FROM = 22, QUIET_TO = 8;
   const AHEAD_MS = 48 * 3600000;
@@ -67,6 +70,12 @@
       if (!g.calendar.canClaim()) out.daily = at((Math.floor(gnow / 86400000) + 1) * 86400000);
       const f = g.meta.festivalNow();
       if (!f.active && f.startsMs > gnow) out.event = at(f.startsMs);
+      // Job 25: when the time-away automation will have run its full time (only if a station runs by itself).
+      let auto = false;
+      g.grow.eachStation((fid, si, st) => { if (st.auto.harvest && st.auto.replant && st.pots.some(Boolean)) auto = true; });
+      if (auto) out.cap = real + g.offline.capSeconds() * 1000;
+      // The next Weekly Event Day, at 10 in the morning (by the phone's date).
+      if (g.eventHub) { const ev = g.eventHub.weekly(); if (!ev.on && ev.startsMs > gnow) out.eventDay = at(ev.startsMs + 10 * 3600000); }
       return out;
     },
     // The list to book: each kind that's on, moved out of the quiet hours, soonest first, spaced out, a few a day.

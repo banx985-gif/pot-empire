@@ -67,7 +67,14 @@
       // The prize limits.
       const caps = H.caps(), paid = H.paid();
       const capRow = (k) => `<span>${icon(REWARD_ICON[k], 16)}${REWARD_NAME[k]} ${paid.day[k] || 0}/${caps.day[k]} today · ${paid.week[k] || 0}/${caps.week[k]} this week</span>`;
-      return `${head}${play}${week}<div class="ev-prizes">${rows}</div>
+      // Job 25: every other event in the data table (data/event_hub.js) gets its own card here with no new code: its look,
+      // name, words, and on now or when it starts. One that plays Bud Match opens it while it's on. (Its prizes use the
+      // weekly tables until a second event exists and needs its own week of stars.)
+      const others = H.list().filter((x) => x.id !== 'weekly' && x.startsMs !== Infinity).map((x) => `<div class="ev-card small ${x.on ? 'on' : ''}" data-event="${esc(x.id)}" style="--ev:${esc((x.look || {}).colour || '#52e6ff')}">
+        ${icon((x.look || {}).icon || 'GOL-03', 44)}<div class="grow"><b>${esc(x.name)}</b><small>${esc(x.blurb || '')}</small>
+        <p class="ev-when">${x.on ? `On now! Ends in ${duration((x.endsMs - now) / 1000)}` : `Starts in ${duration((x.startsMs - now) / 1000)}`}</p></div>
+        ${x.on && x.game === 'budMatch' ? `<button class="btn small go" data-act="play:${playN}">Play</button>` : ''}</div>`).join('');
+      return `${head}${play}${others ? `<h4>${icon('GOL-03', 20)} More events</h4>${others}` : ''}${week}<div class="ev-prizes">${rows}</div>
         <h4>${icon('GOL-05', 20)} Bud Match levels</h4><div class="bm-grid">${grid}</div>
         <h4>Prize limits</h4><p class="muted small ev-caps">Events add to the main game, never replace it, so their prizes stop at a limit. ${Object.keys(caps.day).map(capRow).join('')}</p>`;
     },

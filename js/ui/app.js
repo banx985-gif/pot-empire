@@ -223,6 +223,10 @@
         // Job 20: the depot is a yard you walk into too (js/ui/depot_yard.js).
         const top = router.current();
         if (top.name === 'depot') router.replace('depot', params); else router.go('depot', params);
+      } else if (row.mode === 'Research' || row.mode === 'Prestige') {
+        // Job 25: the lab and HQ are rooms you walk into too (js/ui/office_room.js).
+        const top = router.current();
+        if (top.name === 'office') router.replace('office', params); else router.go('office', params);
       } else if (PE.Panels.business) {
         app.openPanel('business', params);
       }
@@ -231,7 +235,7 @@
       const top = router.current();
       if (!top) return null;
       if (top.name === 'garage') return 'grow';
-      return ({ bizroom: 'empire', depot: 'empire', empire: 'empire', collection: 'collection', contracts: 'contracts', shop: 'shop' })[top.name] || null;
+      return ({ bizroom: 'empire', depot: 'empire', office: 'empire', empire: 'empire', collection: 'collection', contracts: 'contracts', shop: 'shop' })[top.name] || null;
     };
     app.navTo = (id) => {
       if (id === 'grow') { app.goToRoom(app.state.ui.lastRoom || 'F01'); return; }

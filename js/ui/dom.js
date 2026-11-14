@@ -266,7 +266,7 @@
         if (g.facilities.canBuyStation(fid)) bar += `<button class="btn buy" data-act="buyStation">+ Station ${money(g.facilities.nextStationCost(fid))}</button>`;
       }
       if (route && route.name === 'empire' && !Dom.panelRoute && PE.MapBar) bar = PE.MapBar.html();
-      if (route && (route.name === 'bizroom' || route.name === 'depot') && !Dom.panelRoute) bar = `<button class="btn go" data-act="manage">${icon('BIZ-06', 24)}Manage</button>`;
+      if (route && (route.name === 'bizroom' || route.name === 'depot' || route.name === 'office') && !Dom.panelRoute) bar = `<button class="btn go" data-act="manage">${icon('BIZ-06', 24)}Manage</button>`;
       this.set('actionbar', bar);
       if (PE.GrowTools) PE.GrowTools.sync();
 
@@ -328,7 +328,7 @@
 
   // A strain's neon logo, always on its dark backing (they're neon linework drawn for dark).
   Dom.logo = (strainId, size = 30) => `<span class="logo-badge" style="width:${size}px;height:${size}px"><img src="assets/logos/${strainId}.webp" alt="" draggable="false" loading="lazy"></span>`;
-  // A strain's graffiti name badge for the profile. Six aren't drawn yet: those show the logo instead.
+  // A strain's graffiti name badge for the profile. All 60 are drawn; one missing from the list would show the logo instead.
   Dom.avatarDrawn = (strainId) => PE.Data.uiArt.avatarsDrawn.includes(strainId);
   Dom.avatarPic = (strainId, size = 44) => (Dom.avatarDrawn(strainId)
     ? `<span class="logo-badge" style="width:${size}px;height:${size}px"><img src="assets/avatars/${strainId}.webp" alt="" draggable="false" loading="lazy"></span>`

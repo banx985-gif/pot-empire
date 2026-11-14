@@ -28,8 +28,15 @@
     const M = Layout.model(D, st.model, this.faceOf(si));
     const base = Layout.piece(D, st.model, 'BASE');
     const x = pos.x - M.computer.x, y = pos.y + M.computer.y;
-    this.part(v, `M${st.model}-BASE`, x, y, base.w, base.h, pos.y + 210, 0.5, 1);
-    const top = y - base.h * 0.86;
+    // Job 25: once Aaron's pump picture (HY-Mn-PUMP) is in, it stands here instead of the stand and the drawn glass; the
+    // game still draws the water level inside its tank.
+    const art = PE.Data.hydroArt[`M${st.model}-PUMP`] && this.textures.exists(`hy-M${st.model}-PUMP`);
+    let top = y - base.h * 0.86;
+    if (art) {
+      const [aw, ah] = PE.Data.hydroArt[`M${st.model}-PUMP`];
+      const h = base.h * 0.86 + TANK.h + 30;
+      this.part(v, `M${st.model}-PUMP`, x, y, (aw / ah) * h, h, pos.y + 210, 0.5, 1);
+    } else this.part(v, `M${st.model}-BASE`, x, y, base.w, base.h, pos.y + 210, 0.5, 1);
     const g = this.add.graphics().setDepth(pos.y + 211).setPosition(x, top);
     v.parts.push(g);
     const btn = this.add.container(x, top - TANK.h - 64).setDepth(pos.y + 340).setVisible(false);
@@ -42,7 +49,7 @@
     btn.wantVisible = false;
     v.parts.push(btn);
     v.pump = {
-      si, x, y, top, g, btn, level: -1, colour: WATER[st.model] || 0x52c8ff,
+      si, x, y, top, g, btn, level: -1, colour: WATER[st.model] || 0x52c8ff, art: !!art,
       box: { l: x - TANK.w / 2 - 34, r: x + TANK.w / 2 + 34, t: top - TANK.h - 14, b: y + 10 },
       btnBox: { l: x - 100, r: x + 100, t: btn.y - 46, b: btn.y + 46 },
     };
@@ -53,6 +60,12 @@
     const G = pump.g;
     const w = TANK.w, h = TANK.h;
     G.clear();
+    if (pump.art) {
+      // The pump picture has its own tank: only the water level, kept a little inside it.
+      const fillA = Math.max(0, Math.min(1, level)) * (h - 30);
+      if (fillA > 2) G.fillStyle(pump.colour, 0.6).fillRoundedRect(-w / 2 + 16, -15 - fillA, w - 32, fillA, Math.min(12, fillA / 2));
+      return;
+    }
     // The pump handle on its side, and the pipe up to the sprinklers.
     G.fillStyle(0x3a2b55, 1).fillRoundedRect(w / 2 - 6, -h * 0.72, 30, 14, 6);
     G.fillStyle(0xff4fa3, 1).fillCircle(w / 2 + 26, -h * 0.72 + 7, 13);
